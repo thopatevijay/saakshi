@@ -45,6 +45,8 @@ export interface SyncReport {
   unchanged: number;
   wentAbsent: number;
   returned: number;
+  /** Listed upstream but soft-deleted locally. Never resurrected — see `loadScope`. */
+  skipped: number;
   rejected: number;
   rejections: {
     row: number;
@@ -119,6 +121,8 @@ interface ExistingRow extends CatalogueOwned {
   id: string;
   externalId: string;
   catalogueStatus: 'active' | 'absent';
+  /** Soft-deleted locally. Loaded, because the unique key does not exclude these rows. */
+  deleted: boolean;
 }
 
 const latSql = sql<number | null>`case when ${cameras.location} is null then null
@@ -127,14 +131,18 @@ const lonSql = sql<number | null>`case when ${cameras.location} is null then nul
   else st_x(${cameras.location}::geometry) end`;
 
 /**
- * Every live camera in the sync's scope.
+ * Every camera in the sync's scope, **including soft-deleted ones**.
  *
  * `IS NOT DISTINCT FROM` rather than `=` because the scope is frequently NULL (no department
  * assigned yet), and `department_id = NULL` matches nothing — the same NULL trap that migration
  * 0010 had to solve with `NULLS NOT DISTINCT` on the unique constraint.
  *
- * Soft-deleted rows are excluded deliberately. A decommissioned camera reappearing upstream is a
- * human decision, not something a scheduled job should quietly reverse.
+ * Soft-deleted rows are loaded even though sync will not touch them, and that is not an oversight:
+ * `cameras_department_external_uk` does **not** exclude them. Filtering them out here made a
+ * decommissioned camera that was still listed upstream look new, so sync tried to INSERT it and hit
+ * the unique constraint — aborting the whole transaction. One soft-deleted camera would have
+ * stopped every subsequent sync dead, which on evaluation day is the difference between a stale
+ * registry and no registry at all. They are loaded, recognised, and skipped.
  */
 async function loadScope(db: Db, departmentId: string | null): Promise<ExistingRow[]> {
   const rows = await db
@@ -152,17 +160,14 @@ async function loadScope(db: Db, departmentId: string | null): Promise<ExistingR
       lon: lonSql,
       endpoints: cameras.endpoints,
       catalogueStatus: cameras.catalogueStatus,
+      deletedAt: cameras.deletedAt,
     })
     .from(cameras)
-    .where(
-      and(
-        sql`${cameras.departmentId} is not distinct from ${departmentId}`,
-        isNull(cameras.deletedAt),
-      ),
-    );
+    .where(sql`${cameras.departmentId} is not distinct from ${departmentId}`);
 
-  return rows.map((r) => ({
+  return rows.map(({ deletedAt, ...r }) => ({
     ...r,
+    deleted: deletedAt !== null,
     declaredFps: r.declaredFps === null ? null : Number(r.declaredFps),
     endpoints: (r.endpoints ?? {}) as Record<string, string>,
   }));
@@ -297,15 +302,38 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
 
   const toInsert: CatalogueEntry[] = [];
   const toUpdate: { row: ExistingRow; changes: Partial<CatalogueOwned>; returning: boolean }[] = [];
+  const rejections = [...parsed.rejections];
   let unchanged = 0;
   let returned = 0;
+  let skipped = 0;
 
-  for (const entry of parsed.entries) {
+  parsed.entries.forEach((entry, index) => {
     const row = byExternalId.get(entry.externalId);
     if (row === undefined) {
       toInsert.push(entry);
-      continue;
+      return;
     }
+
+    // Decommissioned locally but still listed upstream. Reported rather than silently ignored —
+    // "the catalogue and the registry disagree about this camera" is exactly the kind of thing the
+    // sync report exists to surface.
+    if (row.deleted) {
+      skipped += 1;
+      rejections.push({
+        row: index + 1,
+        externalId: entry.externalId,
+        errors: [
+          {
+            field: 'externalId',
+            message:
+              'camera is soft-deleted (decommissioned) locally but still listed upstream; ' +
+              're-sync will not resurrect it — restore it deliberately if it should come back',
+          },
+        ],
+      });
+      return;
+    }
+
     const changes = changedFields(entry, row);
     const returning = row.catalogueStatus === 'absent';
     if (returning) returned += 1;
@@ -315,12 +343,12 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
     } else {
       unchanged += 1;
     }
-  }
+  });
 
   // Absence by set difference, inside the scope only. A camera owned by another department is not
   // missing from *this* catalogue, and marking it absent would be a lie the map would then tell.
   const wentAbsent = existing.filter(
-    (row) => row.catalogueStatus === 'active' && !seen.has(row.externalId),
+    (row) => !row.deleted && row.catalogueStatus === 'active' && !seen.has(row.externalId),
   );
 
   await db.transaction(async (tx) => {
@@ -379,7 +407,7 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
     // this camera changed", and on an idempotent re-sync it did not.
     const unchangedIds = parsed.entries
       .map((e) => byExternalId.get(e.externalId))
-      .filter((row): row is ExistingRow => row !== undefined)
+      .filter((row): row is ExistingRow => row !== undefined && !row.deleted)
       .filter((row) => !toUpdate.some((u) => u.row.id === row.id))
       .map((row) => row.id);
 
@@ -423,8 +451,9 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
       unchanged,
       wentAbsent: wentAbsent.length,
       returned,
-      rejected: parsed.rejections.length,
-      rejections: parsed.rejections,
+      skipped,
+      rejected: rejections.length,
+      rejections,
     });
 
     await writeAudit(tx, options.principal, {
@@ -439,7 +468,8 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
         unchanged,
         wentAbsent: wentAbsent.length,
         returned,
-        rejected: parsed.rejections.length,
+        skipped,
+        rejected: rejections.length,
       },
       resultCount: parsed.entries.length,
     });
@@ -457,8 +487,9 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
     unchanged,
     wentAbsent: wentAbsent.length,
     returned,
-    rejected: parsed.rejections.length,
-    rejections: parsed.rejections,
+    skipped,
+    rejected: rejections.length,
+    rejections,
     durationMs: Date.now() - startedAtMs,
     startedAt,
   };

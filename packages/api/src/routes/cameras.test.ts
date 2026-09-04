@@ -91,6 +91,7 @@ afterAll(async () => {
     // Only rows this run created. audit_log is append-only and is deliberately left alone.
     await db.execute(sql`delete from cameras where external_id like ${`${TAG}%`}`);
     await db.execute(sql`delete from cameras where external_id like 'GJ-%'`);
+    await db.execute(sql`delete from catalogue_sync_runs where trigger_source = 'api'`);
   }
   await app?.close();
   await rawSql?.end();
@@ -699,9 +700,11 @@ describe('POST /api/v1/cameras/onboard-from-catalogue', () => {
     });
 
     expect(first.statusCode).toBe(200);
-    const r1 = first.json<{ fetched: number; created: number; updated: number }>();
+    const r1 = first.json<{ fetched: number; created: number; added: number; shape: string }>();
     expect(r1.fetched).toBe(3);
     expect(r1.created).toBe(3);
+    expect(r1.added).toBe(3);
+    expect(r1.shape).toBe('array');
 
     const second = await app.inject({
       method: 'POST',
@@ -709,9 +712,52 @@ describe('POST /api/v1/cameras/onboard-from-catalogue', () => {
       headers: auth('supervisor'),
       payload: { adapterKind: 'hls' },
     });
-    const r2 = second.json<{ created: number; updated: number }>();
+    // D1-02 asserted `updated: 3` here, because its importer rewrote every row unconditionally.
+    // D1-04 replaced that with a diff, and its AC 2 is explicit: a second run reports
+    // **all-unchanged**. Rewriting three rows to the values they already held was the behaviour
+    // that also erased retention_days and notes on every call.
+    const r2 = second.json<{ created: number; updated: number; unchanged: number }>();
     expect(r2.created).toBe(0);
-    expect(r2.updated).toBe(3);
+    expect(r2.updated).toBe(0);
+    expect(r2.unchanged).toBe(3);
+  });
+
+  it('persists the run and serves it from GET /api/v1/sync/reports', async () => {
+    if (!reachable) return;
+    const onboard = await app.inject({
+      method: 'POST',
+      url: '/api/v1/cameras/onboard-from-catalogue',
+      headers: auth('supervisor'),
+      payload: { adapterKind: 'hls' },
+    });
+    const { runId } = onboard.json<{ runId: string }>();
+
+    const reports = await app.inject({
+      method: 'GET',
+      url: '/api/v1/sync/reports?limit=50',
+      headers: auth('auditor'),
+    });
+    expect(reports.statusCode).toBe(200);
+    const body = reports.json<{ items: { id: string; trigger: string; fetched: number }[] }>();
+    const mine = body.items.find((r) => r.id === runId);
+    expect(mine?.trigger).toBe('api');
+    expect(mine?.fetched).toBe(3);
+  });
+
+  it('denies an unauthenticated read of the sync reports', async () => {
+    if (!reachable) return;
+    const res = await app.inject({ method: 'GET', url: '/api/v1/sync/reports' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('rejects a malformed sync-report cursor rather than silently returning page one', async () => {
+    if (!reachable) return;
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/sync/reports?cursor=garbage',
+      headers: auth('auditor'),
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it('denies operator', async () => {
@@ -828,6 +874,7 @@ describe('OpenAPI document', () => {
       ['/api/v1/cameras/{id}', 'delete'],
       ['/api/v1/cameras/bulk', 'post'],
       ['/api/v1/cameras/onboard-from-catalogue', 'post'],
+      ['/api/v1/sync/reports', 'get'],
       ['/api/v1/cameras/export', 'get'],
       ['/api/v1/departments', 'get'],
     ];

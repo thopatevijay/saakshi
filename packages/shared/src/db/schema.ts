@@ -174,6 +174,8 @@ export const catalogueSyncRuns = pgTable(
     unchanged: integer('unchanged').notNull().default(0),
     wentAbsent: integer('went_absent').notNull().default(0),
     returned: integer('returned').notNull().default(0),
+    /** Listed upstream but soft-deleted locally — never resurrected by a re-sync. */
+    skipped: integer('skipped').notNull().default(0),
     rejected: integer('rejected').notNull().default(0),
 
     error: text('error'),

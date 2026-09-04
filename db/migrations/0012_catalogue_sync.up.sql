@@ -65,6 +65,9 @@ CREATE TABLE catalogue_sync_runs (
   unchanged   integer NOT NULL DEFAULT 0,
   went_absent integer NOT NULL DEFAULT 0,
   returned    integer NOT NULL DEFAULT 0,
+  -- Listed upstream but soft-deleted locally. Counted separately because it is neither an update
+  -- nor an unchanged row: a human decommissioned it, and a scheduled job must not undo that.
+  skipped     integer NOT NULL DEFAULT 0,
   rejected    integer NOT NULL DEFAULT 0,
 
   error       text,

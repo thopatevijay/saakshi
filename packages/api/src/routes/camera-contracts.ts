@@ -217,6 +217,8 @@ export const CatalogueOnboardReport = z.object({
   unchanged: z.number().int().nonnegative(),
   wentAbsent: z.number().int().nonnegative(),
   returned: z.number().int().nonnegative(),
+  /** Listed upstream but soft-deleted locally; a re-sync never resurrects one. */
+  skipped: z.number().int().nonnegative(),
   rejected: z.array(BulkRowError),
 });
 

@@ -39,6 +39,7 @@ function print(report: SyncReport): void {
   line('unchanged', report.unchanged);
   line('went absent', report.wentAbsent);
   line('returned', report.returned);
+  line('skipped', report.skipped);
   line('rejected', report.rejected);
   console.log('');
   line('duration', `${String(report.durationMs)}ms`);

@@ -429,6 +429,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
           unchanged: report.unchanged,
           wentAbsent: report.wentAbsent,
           returned: report.returned,
+          skipped: report.skipped,
           rejected: report.rejections,
         };
       } catch (err) {
