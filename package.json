@@ -20,7 +20,11 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "npm run db --workspace @saakshi/api -- migrate",
+    "db:rollback": "npm run db --workspace @saakshi/api -- rollback",
+    "db:reset": "npm run db --workspace @saakshi/api -- reset",
+    "db:status": "npm run db --workspace @saakshi/api -- status"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
