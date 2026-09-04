@@ -66,8 +66,19 @@ const catalogueStub = (): Promise<unknown> =>
     { id: `${TAG}-cam03`, name: '03 O.N.G.C. Office' },
   ]);
 
-async function auditCount(): Promise<number> {
-  const rows = await db.execute<{ n: string }>(sql`select count(*)::text as n from audit_log`);
+/**
+ * Audit rows for one target, not a global count.
+ *
+ * A global `count(*) from audit_log` is a shared counter: vitest runs suites in parallel, and once
+ * catalogue sync started writing its own audit rows a `before + 1` assertion became a race that
+ * failed on a real count (732 vs 728) while nothing was actually wrong. Count what the assertion is
+ * about.
+ */
+async function auditCountFor(targetId: string): Promise<number> {
+  const rows = await db.execute<{ n: string }>(
+    // `target_id` is text, not uuid — it addresses cameras, exports and watchlist entries alike.
+    sql`select count(*)::text as n from audit_log where target_id = ${targetId}`,
+  );
   return Number(rows[0]?.n ?? 0);
 }
 
@@ -119,7 +130,6 @@ afterAll(async () => {
 describe('POST /api/v1/cameras — manual onboarding', () => {
   it('creates a camera and writes an audit row', async () => {
     if (!reachable) return;
-    const before = await auditCount();
 
     const res = await app.inject({
       method: 'POST',
@@ -144,7 +154,7 @@ describe('POST /api/v1/cameras — manual onboarding', () => {
     expect(body.lon).toBeCloseTo(72.5145, 4);
     // Never probed is not the same as scored zero.
     expect(body.trustScore).toBeNull();
-    expect(await auditCount()).toBe(before + 1);
+    expect(await auditCountFor(body.id)).toBe(1);
   });
 
   it('rejects a bad declaredResolution with field-level detail', async () => {
@@ -454,7 +464,7 @@ describe('PATCH /api/v1/cameras/:id', () => {
 
   it('updates metadata and writes an audit row', async () => {
     if (!reachable) return;
-    const before = await auditCount();
+    const before = await auditCountFor(id);
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/v1/cameras/${id}`,
@@ -467,7 +477,7 @@ describe('PATCH /api/v1/cameras/:id', () => {
     expect(body.name).toBe('After');
     expect(body.district).toBe('Gandhinagar');
     expect(body.lat).toBeCloseTo(23.2156, 4);
-    expect(await auditCount()).toBe(before + 1);
+    expect(await auditCountFor(id)).toBe(before + 1);
   });
 
   it('rejects an out-of-range declaredFps', async () => {
@@ -503,7 +513,7 @@ describe('DELETE /api/v1/cameras/:id — soft delete only', () => {
       payload: { externalId: `${TAG}-del`, name: 'Doomed', adapterKind: 'hls' },
     });
     const { id } = created.json<{ id: string }>();
-    const before = await auditCount();
+    const before = await auditCountFor(id);
 
     const res = await app.inject({
       method: 'DELETE',
@@ -512,7 +522,7 @@ describe('DELETE /api/v1/cameras/:id — soft delete only', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json<{ deleted: boolean }>().deleted).toBe(true);
-    expect(await auditCount()).toBe(before + 1);
+    expect(await auditCountFor(id)).toBe(before + 1);
 
     // Gone from the API...
     const detail = await app.inject({
