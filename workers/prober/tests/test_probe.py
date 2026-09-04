@@ -93,6 +93,24 @@ class TestTamperAgainstRealVideo:
             f"the loop point produced a false tamper flag: {result.breakdown['tamper']}"
         )
 
+    def test_tamper_frames_span_the_window_rather_than_its_first_seconds(
+        self, clips: dict[str, Path]
+    ) -> None:
+        """The ticket specifies **long-window** frame differencing, and this is what enforces it.
+
+        Keeping the first N decoded frames is the obvious implementation and it is wrong: at 15 fps
+        the first 36 frames all land inside the ~2 s connect burst, so tamper would be measured over
+        two seconds of replayed GOP and a camera covered five seconds after connect would score
+        perfectly healthy. Frames are sampled by PTS across the whole window instead.
+        """
+        result = _probe(clips["motion"])
+
+        span = result.breakdown["tamper"]["sampled_pts_span_s"]
+        assert span >= SHORT.fps_window_s * 0.5, (
+            f"tamper sampled only {span}s of a {SHORT.fps_window_s}s window — the frames are "
+            "clustering at the start again"
+        )
+
 
 @requires_ffmpeg
 class TestFailureModesAreReportedNotRaised:

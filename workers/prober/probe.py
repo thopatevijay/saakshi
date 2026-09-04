@@ -223,6 +223,17 @@ def _probe_open_container(
     first_frame_wall: float | None = None
     last_frame_wall: float | None = None
     window_end: float | None = None
+    last_kept_pts: float | None = None
+
+    # Frames kept for the CV signals, spread evenly across the whole window rather than taken as
+    # the first N decoded.
+    #
+    # Keeping the first N is the obvious implementation and it is wrong: at 15 fps the first 36
+    # frames all fall inside the ~2 s connect burst, so `tamper_score` — which the ticket specifies
+    # as **long-window** frame differencing — would be computed over two seconds of replayed GOP.
+    # A camera covered five seconds after connect would score perfectly healthy.
+    frame_budget = thresholds.tamper_sample_pairs * 3
+    keep_every_s = (thresholds.burst_discard_s + thresholds.fps_window_s) / frame_budget
 
     for frame in container.decode(video=0):
         now = time.monotonic()
@@ -243,10 +254,17 @@ def _probe_open_container(
         if width is None:
             width, height = frame.width, frame.height
 
-        # Frames are kept for the CV signals, subsampled so a 30 s window does not hold hundreds of
-        # 1080p arrays in memory at once — at 80,000 cameras the sweep's memory is a real constraint.
-        if len(frames) < thresholds.tamper_sample_pairs * 3:
+        # Subsampled by PTS, so the kept frames span the window instead of clustering at its start,
+        # and a 30 s window never holds hundreds of 1080p arrays at once — at 80,000 cameras the
+        # sweep's memory is a real constraint.
+        frame_pts = (frame.pts * time_base) if (frame.pts is not None and time_base) else None
+        if len(frames) < frame_budget and (
+            frame_pts is None
+            or last_kept_pts is None
+            or (frame_pts - last_kept_pts) >= keep_every_s
+        ):
             frames.append(frame.to_ndarray(format="bgr24"))
+            last_kept_pts = frame_pts
 
         if now - started > max_wall_s:
             # Wall-clock backstop. Not a health verdict — the gateway throttles ~10x under sustained
@@ -301,6 +319,12 @@ def _probe_open_container(
                 # statistics deliberately do not let it vote.
                 "max_frame_diff": tamper.max_frame_diff,
                 "pairs_sampled": tamper.pairs_sampled,
+                # The PTS span the tamper statistic actually covered. "Long-window" is a claim;
+                # this is the number that supports or refutes it for a given row.
+                "sampled_pts_span_s": round(
+                    0.0 if last_kept_pts is None or not pts_seconds else last_kept_pts - min(pts_seconds),
+                    3,
+                ),
             },
             "light": {
                 "luma_mean": luma,
