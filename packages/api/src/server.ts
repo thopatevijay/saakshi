@@ -22,6 +22,7 @@ import { registerCameraRoutes } from './routes/cameras.js';
 import { registerDepartmentRoutes } from './routes/departments.js';
 import { registerSyncRoutes } from './routes/sync.js';
 import { registerTrustRoutes } from './routes/trust.js';
+import { registerAuthRoutes } from './routes/auth.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -122,6 +123,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
         { name: 'sync', description: 'Catalogue ingest runs and their reports' },
         { name: 'trust', description: 'Trust scores, breakdowns and the estate distribution' },
         { name: 'health', description: 'Liveness' },
+        { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
     },
     transform: createJsonSchemaTransform({ skipList: ['/api/v1/docs/*', '/api/v1/docs'] }),
@@ -149,6 +151,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerDepartmentRoutes(app, { db });
     registerSyncRoutes(app, { db });
     registerTrustRoutes(app, { db });
+    registerAuthRoutes(app, { db });
   }
 
   return app;
