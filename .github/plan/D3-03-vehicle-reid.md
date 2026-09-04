@@ -1,7 +1,7 @@
 ---
 title: "D3-03 · Vehicle re-ID bridging for unreadable plates"
 milestone: "Day 3 — Differentiators"
-labels: ["day-3", "cv", "pillar-3", "bonus", "stretch"]
+labels: ["day-3", "cv", "pillar-3", "bonus"]
 blocked_by: ["D2-02", "D2-08"]
 estimate: "4h"
 ---
@@ -15,9 +15,14 @@ Re-ID closes them: from one confident plate **anchor**, propagate identity to ca
 was illegible but the vehicle is visibly the same. This is bonus item *"advanced cross-camera vehicle
 movement tracking or multi-camera correlation."*
 
-**This is the most CV-specialist ticket in the project and it is first on the cut list.** If Day 3 is
-running short, close it as deferred, log to `BL-01`, and put it in the roadmap. The trace works
-without it.
+**This is the most CV-specialist ticket in the project, and it is in scope.** It is gated on
+*measured quality*, not on the clock: a wrong link corrupts an evidentiary route, which is worse than
+a missing one. If precision on the labelled set is below 0.9, the feature ships **disabled by default
+and honestly documented** — that is a quality decision with a stated number behind it, not a silent
+drop. The trace remains fully functional either way, so the failure mode is graceful.
+
+Deferral is a last resort, and only via `Phase 8-BLOCKED`: WIP pushed, reason recorded, roadmap entry
+written. Never quietly omitted.
 
 ## Scope
 
@@ -42,7 +47,9 @@ without it.
 - [ ] `reid`-linked sightings flagged distinctly in the API and UI; filterable and excludable
 - [ ] A trace can be rendered plate-only (re-ID off) — the officer chooses the evidentiary standard
 - [ ] Measured trace-completeness improvement recorded: sightings found with vs without re-ID
-- [ ] If precision target is not met: feature disabled by default, honestly documented, logged to `BL-01`
+- [ ] If precision target is not met: feature disabled by default, **the measured number stated in
+      the deck and `docs/limitations.md`**, and logged to `BL-01`. "We built it, measured it at
+      0.NN, and shipped it off by default" is a stronger claim than silence.
 
 ## Deliverables
 

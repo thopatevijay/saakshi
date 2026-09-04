@@ -244,10 +244,29 @@ interface CameraAdapter {
 }
 ```
 
-### The eight sandbox failure modes — pre-declared by the organisers, each handled and demonstrated
+### The eight pre-declared failure modes — all handled, each with a named venue
 
-The Resources page is simultaneously a trap list and a scoring rubric. We handle all eight and show
-a checklist slide:
+The Resources page is simultaneously a trap list and a scoring rubric. We implement all eight.
+
+**But the guide describes live RTSP and the deployed sandbox is VOD HLS** (see `BL-01`), so four of
+the eight cannot be exercised against the government feed at all. We keep every one implemented and
+demonstrate the RTSP-specific ones against **local MediaMTX** — and we state which venue each was
+proven in. Claiming all eight against a feed that cannot produce four of them would be the kind of
+unverifiable claim this project exists to avoid.
+
+| # | Failure mode | Demonstrated against |
+|---|---|---|
+| 1 | RTSP forced over TCP | **MediaMTX** (sandbox has no 8554) |
+| 2 | Never trust declared FPS | **Sandbox** — measured per camera, 6 distinct rates found |
+| 3 | All timing from PTS | **Both** |
+| 4 | Non-uniform frame intervals | **Both** |
+| 5 | Reconnect with backoff | **MediaMTX** (VOD HLS does not drop mid-stream) |
+| 6 | Join-time decoder warnings non-fatal | **Both** |
+| 7 | Mixed codecs and resolutions | **Sandbox** — 6 resolutions found, all H.264 |
+| 8 | Loop-point scene discontinuity | **MediaMTX** loop source (sandbox VOD ends rather than loops) |
+
+The checklist slide carries this venue column. "The transport changed and the platform did not" is
+the federation argument demonstrated rather than asserted.
 
 1. ✅ **RTSP forced over TCP** everywhere (`rtsp_transport=tcp`); HLS fallback if 8554 is blocked.
 2. ✅ **Never trust `CAP_PROP_FPS`** — measured, and the discrepancy is surfaced as a registry field.
@@ -313,10 +332,18 @@ elapsed time ⇒ either an OCR misread or a **cloned plate**, and the system sta
 likely (based on read confidence and edit distance to plausible neighbours). One detector, two uses.
 Plate cloning is a real, widespread, undetected Indian crime problem.
 
-### Cut (solo scope)
-- ❌ Vehicle re-ID embeddings — specialist CV work; best-shot + voting recovers most of the benefit
-- ❌ Make/model classification
-- ✅ Colour (HSV histogram in the vehicle box) and coarse body type (detector class) — cheap, honest
+### Vehicle attributes and re-ID — in scope, gated on quality not on schedule
+
+- ✅ **Colour** (HSV histogram in the vehicle box) and **coarse body type** (detector class)
+- ✅ **Vehicle re-ID embeddings** (`D3-03`) — closes the gaps where the plate is illegible. **In
+  scope.** It is gated on *measured precision ≥ 0.9* on a labelled set, not on time: a wrong link
+  corrupts an evidentiary route, which is worse than a missing one. If precision is not met the
+  feature ships **disabled by default and honestly documented** — a quality decision, never a silent
+  drop.
+- ✅ **Make/model** — attempted after re-ID; the same precision-over-recall rule applies.
+
+Nothing here is pre-cut. If something is genuinely not finished it is closed as *deferred* with a
+recorded reason and a roadmap entry (`D4-08`), never quietly omitted.
 
 ---
 
@@ -611,7 +638,7 @@ believed on everything else.
 | RTSP host blocks datacenter IPs | No cloud GPU | Test Day 0; fall back to local Apple Silicon (MPS) + fewer concurrent cameras |
 | Local hardware can't sustain 10+ streams | Thin demo | Motion gating, frame sampling, best-shot-only OCR; state measured throughput and let the sizing model do the scaling argument |
 | A Model 5 exists in a document behind the login | Non-compliant submission | Day 0 check + helpdesk call |
-| Time — solo, 4 days | Incomplete submission | Strict cut list; Day 1 gate is a *working vertical slice*, not breadth |
+| Time — solo, 4 days | Incomplete submission | Gates are empirical and per-day; anything unfinished is closed as *deferred* with a reason and a roadmap entry, never silently dropped. No feature is pre-cut. |
 | Portal fails at deadline | Total loss | Submit midday 7 Sep, not evening |
 | Shortlisted with 2.5 days' travel notice | Miss the finale | Decide travel feasibility **now**, before Day 1 |
 

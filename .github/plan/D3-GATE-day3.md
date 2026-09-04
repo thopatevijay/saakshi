@@ -11,9 +11,12 @@ estimate: "1h"
 **Do not start Day 4 until this passes.** Day 4 is deployment and submission writing — it assumes the
 product is feature-complete and every number we intend to print is measured.
 
-`D3-03` (re-ID), `D3-09` (NL query) and `D3-10` (observability) are bonus. If any is deferred, close
-it as deferred with a reason, log to `BL-01`, and put it in the roadmap — do **not** block this gate
-on them.
+`D3-03` (re-ID), `D3-09` (NL query) and `D3-10` (observability) are labelled bonus **so that they
+cannot sink the submission** — not because they are optional work. The intent is to build all three.
+
+If one genuinely cannot finish, it is closed as *deferred* with a recorded reason, a `BL-01` entry
+and a roadmap line — an explicit decision, never a default. This gate does not block on them, but
+**the gate comment must state which were built and which were deferred, and why.** Silence is a fail.
 
 ## Acceptance Criteria
 

@@ -22,7 +22,9 @@ sophistication to any single stage.
 - Per-camera decoder + per-camera batch shape read from capabilities (no fixed-shape batch)
 - Apple Silicon MPS and CUDA both supported, device auto-detected
 - Worker assigned a camera subset by config; concurrency bounded
-- Graceful handling of the eight organiser-declared failure modes (see `PROJECT.md §4`)
+- Graceful handling of the eight organiser-declared failure modes. **See the venue table in
+  `PROJECT.md §4`**: four are RTSP-specific and must be proven against local MediaMTX because the
+  HLS-only sandbox cannot exercise them. Implement all eight; record which venue proved each.
 - Publishes to `sightings` stream; API consumer persists to Postgres
 
 ## Out of scope
