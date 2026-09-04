@@ -60,9 +60,31 @@ import {
 import type { CameraFeatureCollection } from '@/src/lib/registry/geojson';
 import { bboxParam } from '@/src/lib/registry/query';
 
-/** Registered once per page, not per map: MapLibre keys protocols globally. */
+/**
+ * The `pmtiles://` protocol, registered once per page — MapLibre keys protocols globally.
+ *
+ * ## Why this package is pinned to MapLibre 5, not 6
+ *
+ * MapLibre 6 loads its tile worker from a separate file, resolved with
+ * `new URL('./maplibre-gl-worker.mjs', import.meta.url)`. Under webpack — which is what
+ * `next build` uses — `import.meta.url` is not an `http(s):` URL, so MapLibre's own guard gives up
+ * and returns `''`, and `new Worker('')` resolves against the **document**: it fetches `/registry`,
+ * gets HTML, and dies with `Failed to load module script … MIME type "text/html"`.
+ *
+ * The failure mode is what makes this worth a paragraph. The map constructs, the canvas appears,
+ * the style's sources resolve on the main thread, `map.on('error')` fires **nothing** — and the map
+ * is simply blank, because every tile is parsed in a worker that never started. Pointing
+ * `setWorkerUrl` at a webpack-emitted asset gets the worker to load and then fails one level
+ * deeper, because the worker's own relative import of `maplibre-gl-shared.mjs` is not emitted
+ * beside it.
+ *
+ * MapLibre 5 bundles the worker into the main file and creates it from a blob, so there is nothing
+ * to resolve and nothing to vendor. Version 6 would need a copy step into `public/` that a fresh
+ * clone must remember to run — a build dependency whose failure is an invisible blank map. Logged
+ * to `BL-01`; revisit if a later ticket needs a v6-only feature.
+ */
 let protocolRegistered = false;
-function registerPmtilesProtocol(): void {
+function registerMapGlobals(): void {
   if (protocolRegistered) return;
   addProtocol('pmtiles', new Protocol().tile);
   protocolRegistered = true;
@@ -130,6 +152,10 @@ export function RegistryMap({
 
   const applyData = useCallback((collection: CameraFeatureCollection) => {
     pending.current = collection;
+    // The exact collection the source is holding, for the verification scripts. MapLibre keeps its
+    // copy on a private field, and reading a private field is a test that breaks on a patch bump.
+    (window as unknown as { __saakshiFeatures?: CameraFeatureCollection }).__saakshiFeatures =
+      collection;
     const instance = map.current;
     if (instance === null || !ready.current) return;
     const source: GeoJSONSource | undefined = instance.getSource(SOURCE);
@@ -141,7 +167,7 @@ export function RegistryMap({
   // ── Build the map, once ───────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (container.current === null || map.current !== null) return;
-    registerPmtilesProtocol();
+    registerMapGlobals();
 
     const bounds: LngLatBoundsLike = [
       [GUJARAT_BOUNDS[0], GUJARAT_BOUNDS[1]],
@@ -170,6 +196,34 @@ export function RegistryMap({
     });
 
     map.current = instance;
+
+    // A WebGL canvas is opaque to every kind of assertion. The verification scripts
+    // (`packages/web/scripts/verify-*.mjs`) read the live source through this handle to check
+    // feature coordinates against `psql`, count clusters, and time frames during a pan — none of
+    // which can be done from the DOM. Kept deliberately rather than stripped in production: the
+    // acceptance criteria have to stay re-runnable against a real deployment, and a debug handle
+    // that only exists in development is a debug handle that has never been exercised.
+    (window as unknown as { __saakshiMap?: MlMap }).__saakshiMap = instance;
+    const markIdle = (value: boolean) => {
+      (window as unknown as { __saakshiMapIdle?: boolean }).__saakshiMapIdle = value;
+    };
+    markIdle(false);
+    instance.on('idle', () => {
+      markIdle(true);
+    });
+
+    // Map errors are per-tile and non-fatal, so MapLibre only writes them to the console — where,
+    // on a console-room screen nobody has open, they are invisible. Collected here so a failing
+    // basemap is diagnosable after the fact instead of presenting as "the map is grey".
+    const errors: string[] = [];
+    (window as unknown as { __saakshiMapErrors?: string[] }).__saakshiMapErrors = errors;
+    instance.on('error', (event: { error?: { message?: string } }) => {
+      errors.push(event.error?.message ?? 'unknown map error');
+    });
+    instance.on('movestart', () => {
+      markIdle(false);
+    });
+
     instance.addControl(new NavigationControl({ showCompass: false }), 'top-right');
     instance.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left');
     instance.fitBounds(bounds, { padding: 24, animate: false });

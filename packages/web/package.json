@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@saakshi/shared": "*",
-    "maplibre-gl": "^6.7.0",
+    "maplibre-gl": "^5.24.0",
     "next": "^15.5.3",
     "openapi-fetch": "^0.13.8",
     "pmtiles": "^4.5.0",
