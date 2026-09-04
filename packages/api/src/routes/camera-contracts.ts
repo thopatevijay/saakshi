@@ -16,6 +16,19 @@ export const StorageType = z.enum(['cloud', 'local']);
 export const CameraStatus = z.enum(['unknown', 'online', 'degraded', 'offline']);
 export const CameraGeometry = z.enum(['anpr_viable', 'detection_only', 'unclassified']);
 
+/**
+ * Presence in the upstream catalogue — **not** health. D1-04: *"a camera can be listed and dead,
+ * or delisted and still serving."* Two facts, two fields, two badges.
+ */
+export const CatalogueStatus = z.enum(['active', 'absent']);
+
+/**
+ * The trust band. Lives here rather than in `trust.ts` because `CameraResponse` carries it and
+ * `trust.ts` already imports this module — one definition, no cycle. `trust.ts` re-exports it under
+ * the name D1-06 published.
+ */
+export const TrustBand = z.enum(['trusted', 'degraded', 'untrusted', 'dead']);
+
 const lat = z.coerce.number().min(-90).max(90);
 const lon = z.coerce.number().min(-180).max(180);
 
@@ -85,8 +98,21 @@ export const CameraResponse = z.object({
   endpoints: z.record(z.string(), z.string()),
 
   status: CameraStatus,
+  /** Presence in the upstream catalogue. Independent of `status`; never merge the two. */
+  catalogueStatus: CatalogueStatus,
   /** null means never probed, which is not the same as scored zero. */
   trustScore: z.number().nullable(),
+  /**
+   * The band a client must colour by — **resolved server-side**, never re-derived from
+   * `trustScore`.
+   *
+   * D1-06's handoff: *"an unreachable camera keeps its last good score"*, so
+   * `trust_score >= 70` counts a camera that went dark yesterday as `trusted`. `dead` comes from
+   * the **latest health check's** `connectable`, exactly as `GET /api/v1/trust/summary` and
+   * `GET /api/v1/cameras/:id/trust` resolve it. `null` means never scored, which is a third thing
+   * — not `untrusted`, and not a low `trusted`.
+   */
+  band: TrustBand.nullable(),
   onboardedAt: z.string(),
   updatedAt: z.string(),
 });
