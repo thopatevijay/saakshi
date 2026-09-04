@@ -60,7 +60,11 @@ class SessionTracker:
         # one. D0-01 measured a 7x spread across this estate, so a fixed rate would be wrong on most.
         self.frame_rate = max(1.0, float(frame_rate))
         self.session_index = 0
-        self._tracker = sv.ByteTrack(frame_rate=self.frame_rate)
+        # The module-level filter is not enough: pytest resets warning filters per test, so the
+        # deprecation would reappear in every suite run. Scoped here so nothing else is hidden.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            self._tracker = sv.ByteTrack(frame_rate=self.frame_rate)
 
     def new_session(self) -> int:
         """Ends the current tracking session and begins a fresh one. Returns the new index."""

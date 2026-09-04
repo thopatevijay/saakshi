@@ -29,6 +29,7 @@ from typing import Callable, Iterator
 
 import av
 import av.error
+import av.logging
 
 from workers.prober.probe import BENIGN_DECODER_WARNINGS
 
@@ -128,6 +129,20 @@ class _WarningCollector(logging.Handler):
 
 @contextmanager
 def capture_decoder_warnings() -> Iterator[_WarningCollector]:
+    """Routes libav's own complaints into a counter for the duration of one session.
+
+    `av.logging.set_level` is **required**, not decorative. PyAV's default level is `None`, and with
+    it libav's messages never reach Python's `logging` at all: attaching a handler to the `libav`
+    logger and reading zero is exactly what a healthy stream looks like, so the mistake is invisible.
+    Measured here on a deliberately corrupted clip that libav complains about six times — the
+    handler saw none of them until the level was set.
+
+    Set once and never restored: it is process-global, eight camera threads enter this block
+    concurrently, and restoring it from whichever thread happens to exit first would switch logging
+    off underneath the other seven.
+    """
+    if av.logging.get_level() is None:
+        av.logging.set_level(av.logging.WARNING)
     collector = _WarningCollector()
     av_log = logging.getLogger("libav")
     av_log.addHandler(collector)
@@ -178,7 +193,17 @@ def is_retryable(error: BaseException) -> bool:
     `TimeoutError`. D1-05 caught only the obvious name and wrote down a healthy camera as broken.
     """
     return isinstance(
-        error, (av.error.ExitError, av.error.TimeoutError, av.error.ConnectionResetError, OSError)
+        error,
+        (
+            av.error.ExitError,
+            av.error.TimeoutError,
+            av.error.ConnectionResetError,
+            # A half-fetched HLS segment reads as "Invalid data found when processing input". That is
+            # the network delivering less than a segment, not the camera being broken — the same
+            # class of mistake, one layer down.
+            av.error.InvalidDataError,
+            OSError,
+        ),
     )
 
 
@@ -237,10 +262,20 @@ class CameraPipeline:
         on_open: Callable[[], None] | None = None,
         start_gate: threading.Event | None = None,
         gate_timeout_s: float = 0.0,
+        max_sessions: int | None = None,
     ) -> CameraStats:
-        """Decode until `stop` is set or `deadline_at` (a `time.monotonic()` value) passes."""
+        """Decode until `stop` is set or `deadline_at` (a `time.monotonic()` value) passes.
+
+        `max_sessions` bounds the number of connect-to-disconnect cycles. A live camera never uses
+        it; a finite file does, because "reconnect forever" against a four-second clip is a test that
+        never ends.
+        """
         attempt = 0
+        sessions = 0
         while not stop.is_set() and (deadline_at is None or time.monotonic() < deadline_at):
+            if max_sessions is not None and sessions >= max_sessions:
+                break
+            sessions += 1
             try:
                 self._session(
                     stop, deadline_at, on_open=on_open, start_gate=start_gate,
@@ -297,7 +332,12 @@ class CameraPipeline:
         self.stats.connect_attempts += 1
         connect_started = time.monotonic()
 
+        # The warning counts are folded into `stats` in the `finally` below rather than after the
+        # `with`: a session that ends by raising is exactly the session whose decoder warnings
+        # matter most, and accumulating them only on the clean path threw every warning that
+        # preceded a reconnect away.
         with capture_decoder_warnings() as warnings_seen:
+          try:
             # `(open, read)`: the open deadline is sized for a gateway that has taken 516 s on a
             # single probe; the read deadline is what lets a stopped worker leave the decode call
             # rather than block until the next frame that may never come.
@@ -328,17 +368,17 @@ class CameraPipeline:
                     start_gate.wait(gate_timeout_s)
 
                 self._decode(container, stream, capabilities, stop, deadline_at)
-
-        self.stats.benign_warnings += warnings_seen.benign
-        self.stats.other_warnings += warnings_seen.other
-        if warnings_seen.samples:
-            log.info(
-                "%s: %d benign / %d other decoder warnings at join, e.g. %s",
-                self.source.external_id,
-                warnings_seen.benign,
-                warnings_seen.other,
-                warnings_seen.samples[0][:120],
-            )
+          finally:
+            self.stats.benign_warnings += warnings_seen.benign
+            self.stats.other_warnings += warnings_seen.other
+            if warnings_seen.samples:
+                log.info(
+                    "%s: %d benign / %d other decoder warnings — logged, never fatal, e.g. %s",
+                    self.source.external_id,
+                    warnings_seen.benign,
+                    warnings_seen.other,
+                    warnings_seen.samples[0][:120],
+                )
 
     def _capabilities(self, stream: av.video.stream.VideoStream) -> CameraCapabilities:
         ctx = stream.codec_context
