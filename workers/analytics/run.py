@@ -118,7 +118,7 @@ def run_worker(
         stats = [f.result() for f in futures]
 
     window_s = round(time.monotonic() - window_opened, 1)
-    return summarise(
+    summary = summarise(
         stats,
         device=device.description,
         weights=weights,
@@ -129,6 +129,18 @@ def run_worker(
         started_wall=started_wall,
         sink=out_sink,
     )
+
+    stats_source = getattr(engine, "stats", None)
+    if stats_source is not None:
+        # The device-side half of the throughput table. Kept separate from wall-clock fps because
+        # on a throttled gateway they answer different questions: how fast the model is, versus how
+        # fast the frames arrived.
+        summary["inference"] = {
+            "calls": stats_source.calls,
+            "p50_ms": stats_source.percentile(50),
+            "p95_ms": stats_source.percentile(95),
+        }
+    return summary
 
 
 def summarise(
@@ -181,7 +193,13 @@ def summarise(
         # `loop_self_time_s` is a throttled gateway, not a frame-loop stall in this worker.
         "time_split": {"upstream_wait_s": upstream, "loop_self_time_s": self_time},
         "publish_failures": getattr(sink, "failed", 0),
-        "per_camera": [asdict(s) for s in stats],
+        # `effective_fps` and `skip_ratio` are properties, so `asdict` does not carry them. Merged in
+        # explicitly: they are the two per-camera numbers the throughput table is made of, and a
+        # summary that omits them forces every reader to recompute them from the raw counters.
+        "per_camera": [
+            {**asdict(s), "effective_fps": s.effective_fps, "skip_ratio": s.skip_ratio}
+            for s in stats
+        ],
     }
 
 

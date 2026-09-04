@@ -203,6 +203,9 @@ def test_our_own_deadline_is_classified_as_retry_later_not_as_a_broken_camera() 
     assert is_retryable(av.error.ExitError(1, "Immediate exit requested")) is True
     assert is_retryable(av.error.TimeoutError(1, "timeout")) is True
     assert is_retryable(OSError("connection reset")) is True
+    # A feed whose publisher has gone away answers DESCRIBE with 404 while the camera is fine —
+    # measured against MediaMTX during this ticket's reconnect proof, and it recovered on its own.
+    assert is_retryable(av.error.HTTPNotFoundError(404, "Not Found")) is True
     assert is_retryable(ValueError("a real bug in our code")) is False
 
 

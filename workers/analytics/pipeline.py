@@ -202,6 +202,11 @@ def is_retryable(error: BaseException) -> bool:
             # the network delivering less than a segment, not the camera being broken — the same
             # class of mistake, one layer down.
             av.error.InvalidDataError,
+            # Measured while proving AC 4 against MediaMTX: killing the publisher makes the gateway
+            # answer DESCRIBE with **404**, not with a transport error, for the whole 75 s the feed
+            # was away — and it served frames again the moment the publisher returned. Calling that
+            # non-retryable would be D1-05's mistake in HTTP clothing.
+            av.error.HTTPNotFoundError,
             OSError,
         ),
     )
