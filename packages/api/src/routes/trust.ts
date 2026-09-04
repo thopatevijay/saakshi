@@ -11,7 +11,7 @@ import type { App } from '../server.js';
 import { cameraHealthChecks, cameras, departments } from '@saakshi/shared/db';
 import { authenticate, READ_ROLES, requireRole } from '../auth.js';
 import type { Db } from '../db/client.js';
-import { ErrorResponse } from './camera-contracts.js';
+import { ErrorResponse, TrustBand } from './camera-contracts.js';
 import { bandFor, loadWeights } from '../services/trust.js';
 
 const SignalContribution = z.object({
@@ -25,7 +25,8 @@ const SignalContribution = z.object({
   note: z.string(),
 });
 
-export const TrustBand = z.enum(['trusted', 'degraded', 'untrusted', 'dead']);
+/** Defined in `camera-contracts.ts` so `CameraResponse` can carry it; re-exported under D1-06's name. */
+export { TrustBand };
 
 export const CameraTrustResponse = z.object({
   cameraId: z.uuid(),

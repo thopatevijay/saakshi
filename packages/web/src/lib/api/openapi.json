@@ -19,7 +19,9 @@
     "/health": {
       "get": {
         "summary": "Liveness probe",
-        "tags": ["health"],
+        "tags": [
+          "health"
+        ],
         "responses": {
           "200": {
             "description": "Default Response"
@@ -30,7 +32,9 @@
     "/api/v1/cameras": {
       "get": {
         "summary": "List cameras with filters, cursor pagination and PostGIS bbox search",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "parameters": [
           {
             "schema": {
@@ -54,7 +58,10 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["analog", "ip"]
+              "enum": [
+                "analog",
+                "ip"
+              ]
             },
             "in": "query",
             "name": "cameraType",
@@ -63,7 +70,10 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["static", "mobile"]
+              "enum": [
+                "static",
+                "mobile"
+              ]
             },
             "in": "query",
             "name": "mount",
@@ -72,7 +82,14 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+              "enum": [
+                "hls",
+                "rtsp",
+                "onvif",
+                "whep",
+                "nvr",
+                "file"
+              ]
             },
             "in": "query",
             "name": "adapterKind",
@@ -81,7 +98,12 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["unknown", "online", "degraded", "offline"]
+              "enum": [
+                "unknown",
+                "online",
+                "degraded",
+                "offline"
+              ]
             },
             "in": "query",
             "name": "status",
@@ -90,7 +112,11 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["anpr_viable", "detection_only", "unclassified"]
+              "enum": [
+                "anpr_viable",
+                "detection_only",
+                "unclassified"
+              ]
             },
             "in": "query",
             "name": "geometryClass",
@@ -207,15 +233,25 @@
                           },
                           "cameraType": {
                             "type": "string",
-                            "enum": ["analog", "ip"]
+                            "enum": [
+                              "analog",
+                              "ip"
+                            ]
                           },
                           "mount": {
                             "type": "string",
-                            "enum": ["static", "mobile"]
+                            "enum": [
+                              "static",
+                              "mobile"
+                            ]
                           },
                           "geometryClass": {
                             "type": "string",
-                            "enum": ["anpr_viable", "detection_only", "unclassified"]
+                            "enum": [
+                              "anpr_viable",
+                              "detection_only",
+                              "unclassified"
+                            ]
                           },
                           "declaredCodec": {
                             "nullable": true,
@@ -244,11 +280,21 @@
                           "storageType": {
                             "nullable": true,
                             "type": "string",
-                            "enum": ["cloud", "local"]
+                            "enum": [
+                              "cloud",
+                              "local"
+                            ]
                           },
                           "adapterKind": {
                             "type": "string",
-                            "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+                            "enum": [
+                              "hls",
+                              "rtsp",
+                              "onvif",
+                              "whep",
+                              "nvr",
+                              "file"
+                            ]
                           },
                           "endpoints": {
                             "type": "object",
@@ -258,11 +304,33 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": ["unknown", "online", "degraded", "offline"]
+                            "enum": [
+                              "unknown",
+                              "online",
+                              "degraded",
+                              "offline"
+                            ]
+                          },
+                          "catalogueStatus": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "absent"
+                            ]
                           },
                           "trustScore": {
                             "nullable": true,
                             "type": "number"
+                          },
+                          "band": {
+                            "nullable": true,
+                            "type": "string",
+                            "enum": [
+                              "trusted",
+                              "degraded",
+                              "untrusted",
+                              "dead"
+                            ]
                           },
                           "onboardedAt": {
                             "type": "string"
@@ -294,7 +362,9 @@
                           "adapterKind",
                           "endpoints",
                           "status",
+                          "catalogueStatus",
                           "trustScore",
+                          "band",
                           "onboardedAt",
                           "updatedAt"
                         ],
@@ -309,7 +379,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "nextCursor", "limit"],
+                  "required": [
+                    "data",
+                    "nextCursor",
+                    "limit"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -346,12 +420,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -388,12 +468,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -403,7 +489,9 @@
       },
       "post": {
         "summary": "Manual single-camera onboarding",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -452,17 +540,27 @@
                   "cameraType": {
                     "default": "ip",
                     "type": "string",
-                    "enum": ["analog", "ip"]
+                    "enum": [
+                      "analog",
+                      "ip"
+                    ]
                   },
                   "mount": {
                     "default": "static",
                     "type": "string",
-                    "enum": ["static", "mobile"]
+                    "enum": [
+                      "static",
+                      "mobile"
+                    ]
                   },
                   "geometryClass": {
                     "default": "unclassified",
                     "type": "string",
-                    "enum": ["anpr_viable", "detection_only", "unclassified"]
+                    "enum": [
+                      "anpr_viable",
+                      "detection_only",
+                      "unclassified"
+                    ]
                   },
                   "declaredCodec": {
                     "nullable": true,
@@ -500,11 +598,21 @@
                   "storageType": {
                     "nullable": true,
                     "type": "string",
-                    "enum": ["cloud", "local"]
+                    "enum": [
+                      "cloud",
+                      "local"
+                    ]
                   },
                   "adapterKind": {
                     "type": "string",
-                    "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+                    "enum": [
+                      "hls",
+                      "rtsp",
+                      "onvif",
+                      "whep",
+                      "nvr",
+                      "file"
+                    ]
                   },
                   "endpoints": {
                     "default": {},
@@ -514,7 +622,11 @@
                     }
                   }
                 },
-                "required": ["externalId", "name", "adapterKind"]
+                "required": [
+                  "externalId",
+                  "name",
+                  "adapterKind"
+                ]
               }
             }
           }
@@ -566,15 +678,25 @@
                     },
                     "cameraType": {
                       "type": "string",
-                      "enum": ["analog", "ip"]
+                      "enum": [
+                        "analog",
+                        "ip"
+                      ]
                     },
                     "mount": {
                       "type": "string",
-                      "enum": ["static", "mobile"]
+                      "enum": [
+                        "static",
+                        "mobile"
+                      ]
                     },
                     "geometryClass": {
                       "type": "string",
-                      "enum": ["anpr_viable", "detection_only", "unclassified"]
+                      "enum": [
+                        "anpr_viable",
+                        "detection_only",
+                        "unclassified"
+                      ]
                     },
                     "declaredCodec": {
                       "nullable": true,
@@ -603,11 +725,21 @@
                     "storageType": {
                       "nullable": true,
                       "type": "string",
-                      "enum": ["cloud", "local"]
+                      "enum": [
+                        "cloud",
+                        "local"
+                      ]
                     },
                     "adapterKind": {
                       "type": "string",
-                      "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+                      "enum": [
+                        "hls",
+                        "rtsp",
+                        "onvif",
+                        "whep",
+                        "nvr",
+                        "file"
+                      ]
                     },
                     "endpoints": {
                       "type": "object",
@@ -617,11 +749,33 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["unknown", "online", "degraded", "offline"]
+                      "enum": [
+                        "unknown",
+                        "online",
+                        "degraded",
+                        "offline"
+                      ]
+                    },
+                    "catalogueStatus": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "absent"
+                      ]
                     },
                     "trustScore": {
                       "nullable": true,
                       "type": "number"
+                    },
+                    "band": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "trusted",
+                        "degraded",
+                        "untrusted",
+                        "dead"
+                      ]
                     },
                     "onboardedAt": {
                       "type": "string"
@@ -653,7 +807,9 @@
                     "adapterKind",
                     "endpoints",
                     "status",
+                    "catalogueStatus",
                     "trustScore",
+                    "band",
                     "onboardedAt",
                     "updatedAt"
                   ],
@@ -693,12 +849,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -735,12 +897,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -777,12 +945,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -794,13 +968,18 @@
     "/api/v1/cameras/export": {
       "get": {
         "summary": "Export the registry as CSV or JSON — Model 1 sample metadata dataset",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "parameters": [
           {
             "schema": {
               "default": "csv",
               "type": "string",
-              "enum": ["csv", "json"]
+              "enum": [
+                "csv",
+                "json"
+              ]
             },
             "in": "query",
             "name": "format",
@@ -827,7 +1006,9 @@
     "/api/v1/cameras/bulk": {
       "post": {
         "summary": "Bulk import from CSV or JSON, transactional per batch with a per-row report",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -883,18 +1064,28 @@
                                   "type": "string"
                                 }
                               },
-                              "required": ["field", "message"],
+                              "required": [
+                                "field",
+                                "message"
+                              ],
                               "additionalProperties": false
                             }
                           }
                         },
-                        "required": ["row", "externalId", "errors"],
+                        "required": [
+                          "row",
+                          "externalId",
+                          "errors"
+                        ],
                         "additionalProperties": false
                       }
                     },
                     "format": {
                       "type": "string",
-                      "enum": ["csv", "json"]
+                      "enum": [
+                        "csv",
+                        "json"
+                      ]
                     },
                     "committed": {
                       "type": "boolean"
@@ -945,12 +1136,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -987,12 +1184,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1029,12 +1232,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1046,7 +1255,9 @@
     "/api/v1/cameras/onboard-from-catalogue": {
       "post": {
         "summary": "Pull the upstream catalogue and sync it into the registry",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1066,7 +1277,14 @@
                   "adapterKind": {
                     "default": "hls",
                     "type": "string",
-                    "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+                    "enum": [
+                      "hls",
+                      "rtsp",
+                      "onvif",
+                      "whep",
+                      "nvr",
+                      "file"
+                    ]
                   }
                 }
               }
@@ -1160,12 +1378,19 @@
                                   "type": "string"
                                 }
                               },
-                              "required": ["field", "message"],
+                              "required": [
+                                "field",
+                                "message"
+                              ],
                               "additionalProperties": false
                             }
                           }
                         },
-                        "required": ["row", "externalId", "errors"],
+                        "required": [
+                          "row",
+                          "externalId",
+                          "errors"
+                        ],
                         "additionalProperties": false
                       }
                     }
@@ -1220,12 +1445,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1262,12 +1493,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1304,12 +1541,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1321,7 +1564,9 @@
     "/api/v1/cameras/{id}": {
       "get": {
         "summary": "Camera detail with latest measured health and the declared-vs-measured delta",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1381,15 +1626,25 @@
                     },
                     "cameraType": {
                       "type": "string",
-                      "enum": ["analog", "ip"]
+                      "enum": [
+                        "analog",
+                        "ip"
+                      ]
                     },
                     "mount": {
                       "type": "string",
-                      "enum": ["static", "mobile"]
+                      "enum": [
+                        "static",
+                        "mobile"
+                      ]
                     },
                     "geometryClass": {
                       "type": "string",
-                      "enum": ["anpr_viable", "detection_only", "unclassified"]
+                      "enum": [
+                        "anpr_viable",
+                        "detection_only",
+                        "unclassified"
+                      ]
                     },
                     "declaredCodec": {
                       "nullable": true,
@@ -1418,11 +1673,21 @@
                     "storageType": {
                       "nullable": true,
                       "type": "string",
-                      "enum": ["cloud", "local"]
+                      "enum": [
+                        "cloud",
+                        "local"
+                      ]
                     },
                     "adapterKind": {
                       "type": "string",
-                      "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+                      "enum": [
+                        "hls",
+                        "rtsp",
+                        "onvif",
+                        "whep",
+                        "nvr",
+                        "file"
+                      ]
                     },
                     "endpoints": {
                       "type": "object",
@@ -1432,11 +1697,33 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["unknown", "online", "degraded", "offline"]
+                      "enum": [
+                        "unknown",
+                        "online",
+                        "degraded",
+                        "offline"
+                      ]
+                    },
+                    "catalogueStatus": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "absent"
+                      ]
                     },
                     "trustScore": {
                       "nullable": true,
                       "type": "number"
+                    },
+                    "band": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "trusted",
+                        "degraded",
+                        "untrusted",
+                        "dead"
+                      ]
                     },
                     "onboardedAt": {
                       "type": "string"
@@ -1578,7 +1865,9 @@
                     "adapterKind",
                     "endpoints",
                     "status",
+                    "catalogueStatus",
                     "trustScore",
+                    "band",
                     "onboardedAt",
                     "updatedAt",
                     "latestHealth",
@@ -1620,12 +1909,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1662,12 +1957,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1704,12 +2005,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1719,7 +2026,9 @@
       },
       "patch": {
         "summary": "Update camera metadata",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1763,17 +2072,27 @@
                   "cameraType": {
                     "default": "ip",
                     "type": "string",
-                    "enum": ["analog", "ip"]
+                    "enum": [
+                      "analog",
+                      "ip"
+                    ]
                   },
                   "mount": {
                     "default": "static",
                     "type": "string",
-                    "enum": ["static", "mobile"]
+                    "enum": [
+                      "static",
+                      "mobile"
+                    ]
                   },
                   "geometryClass": {
                     "default": "unclassified",
                     "type": "string",
-                    "enum": ["anpr_viable", "detection_only", "unclassified"]
+                    "enum": [
+                      "anpr_viable",
+                      "detection_only",
+                      "unclassified"
+                    ]
                   },
                   "declaredCodec": {
                     "nullable": true,
@@ -1811,11 +2130,21 @@
                   "storageType": {
                     "nullable": true,
                     "type": "string",
-                    "enum": ["cloud", "local"]
+                    "enum": [
+                      "cloud",
+                      "local"
+                    ]
                   },
                   "adapterKind": {
                     "type": "string",
-                    "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+                    "enum": [
+                      "hls",
+                      "rtsp",
+                      "onvif",
+                      "whep",
+                      "nvr",
+                      "file"
+                    ]
                   },
                   "endpoints": {
                     "default": {},
@@ -1888,15 +2217,25 @@
                     },
                     "cameraType": {
                       "type": "string",
-                      "enum": ["analog", "ip"]
+                      "enum": [
+                        "analog",
+                        "ip"
+                      ]
                     },
                     "mount": {
                       "type": "string",
-                      "enum": ["static", "mobile"]
+                      "enum": [
+                        "static",
+                        "mobile"
+                      ]
                     },
                     "geometryClass": {
                       "type": "string",
-                      "enum": ["anpr_viable", "detection_only", "unclassified"]
+                      "enum": [
+                        "anpr_viable",
+                        "detection_only",
+                        "unclassified"
+                      ]
                     },
                     "declaredCodec": {
                       "nullable": true,
@@ -1925,11 +2264,21 @@
                     "storageType": {
                       "nullable": true,
                       "type": "string",
-                      "enum": ["cloud", "local"]
+                      "enum": [
+                        "cloud",
+                        "local"
+                      ]
                     },
                     "adapterKind": {
                       "type": "string",
-                      "enum": ["hls", "rtsp", "onvif", "whep", "nvr", "file"]
+                      "enum": [
+                        "hls",
+                        "rtsp",
+                        "onvif",
+                        "whep",
+                        "nvr",
+                        "file"
+                      ]
                     },
                     "endpoints": {
                       "type": "object",
@@ -1939,11 +2288,33 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["unknown", "online", "degraded", "offline"]
+                      "enum": [
+                        "unknown",
+                        "online",
+                        "degraded",
+                        "offline"
+                      ]
+                    },
+                    "catalogueStatus": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "absent"
+                      ]
                     },
                     "trustScore": {
                       "nullable": true,
                       "type": "number"
+                    },
+                    "band": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "trusted",
+                        "degraded",
+                        "untrusted",
+                        "dead"
+                      ]
                     },
                     "onboardedAt": {
                       "type": "string"
@@ -1975,7 +2346,9 @@
                     "adapterKind",
                     "endpoints",
                     "status",
+                    "catalogueStatus",
                     "trustScore",
+                    "band",
                     "onboardedAt",
                     "updatedAt"
                   ],
@@ -2015,12 +2388,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2057,12 +2436,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2099,12 +2484,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2114,7 +2505,9 @@
       },
       "delete": {
         "summary": "Soft delete — the row is retained as provenance for existing sightings",
-        "tags": ["cameras"],
+        "tags": [
+          "cameras"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2142,13 +2535,19 @@
                     },
                     "deleted": {
                       "type": "boolean",
-                      "enum": [true]
+                      "enum": [
+                        true
+                      ]
                     },
                     "deletedAt": {
                       "type": "string"
                     }
                   },
-                  "required": ["id", "deleted", "deletedAt"],
+                  "required": [
+                    "id",
+                    "deleted",
+                    "deletedAt"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2185,12 +2584,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2227,12 +2632,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2269,12 +2680,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2286,7 +2703,9 @@
     "/api/v1/departments": {
       "get": {
         "summary": "List departments with their live camera counts",
-        "tags": ["departments"],
+        "tags": [
+          "departments"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2354,7 +2773,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "nextCursor", "limit"],
+                  "required": [
+                    "data",
+                    "nextCursor",
+                    "limit"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2391,12 +2814,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2433,12 +2862,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2450,7 +2885,9 @@
     "/api/v1/sync/reports": {
       "get": {
         "summary": "Catalogue sync runs, most recent first",
-        "tags": ["sync"],
+        "tags": [
+          "sync"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2600,12 +3037,19 @@
                                         "type": "string"
                                       }
                                     },
-                                    "required": ["field", "message"],
+                                    "required": [
+                                      "field",
+                                      "message"
+                                    ],
                                     "additionalProperties": false
                                   }
                                 }
                               },
-                              "required": ["row", "externalId", "errors"],
+                              "required": [
+                                "row",
+                                "externalId",
+                                "errors"
+                              ],
                               "additionalProperties": false
                             }
                           },
@@ -2643,7 +3087,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["items", "nextCursor"],
+                  "required": [
+                    "items",
+                    "nextCursor"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2680,12 +3127,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2722,12 +3175,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2764,12 +3223,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2781,7 +3246,9 @@
     "/api/v1/sync/reports/{id}": {
       "get": {
         "summary": "One sync run, including the raw payload kept from an unknown-shape failure",
-        "tags": ["sync"],
+        "tags": [
+          "sync"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2909,12 +3376,19 @@
                                   "type": "string"
                                 }
                               },
-                              "required": ["field", "message"],
+                              "required": [
+                                "field",
+                                "message"
+                              ],
                               "additionalProperties": false
                             }
                           }
                         },
-                        "required": ["row", "externalId", "errors"],
+                        "required": [
+                          "row",
+                          "externalId",
+                          "errors"
+                        ],
                         "additionalProperties": false
                       }
                     },
@@ -2980,12 +3454,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3022,12 +3502,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3064,12 +3550,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3081,7 +3573,9 @@
     "/api/v1/cameras/{id}/trust": {
       "get": {
         "summary": "Current trust score, the breakdown that explains it, and the recent trend",
-        "tags": ["trust"],
+        "tags": [
+          "trust"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3131,7 +3625,12 @@
                     "band": {
                       "nullable": true,
                       "type": "string",
-                      "enum": ["trusted", "degraded", "untrusted", "dead"]
+                      "enum": [
+                        "trusted",
+                        "degraded",
+                        "untrusted",
+                        "dead"
+                      ]
                     },
                     "checkedAt": {
                       "nullable": true,
@@ -3204,7 +3703,10 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["signal", "reason"],
+                            "required": [
+                              "signal",
+                              "reason"
+                            ],
                             "additionalProperties": false
                           }
                         },
@@ -3216,7 +3718,12 @@
                           "type": "number"
                         }
                       },
-                      "required": ["signals", "excluded", "weightsVersion", "pointsTotal"],
+                      "required": [
+                        "signals",
+                        "excluded",
+                        "weightsVersion",
+                        "pointsTotal"
+                      ],
                       "additionalProperties": false
                     },
                     "trend": {
@@ -3234,7 +3741,12 @@
                           "band": {
                             "nullable": true,
                             "type": "string",
-                            "enum": ["trusted", "degraded", "untrusted", "dead"]
+                            "enum": [
+                              "trusted",
+                              "degraded",
+                              "untrusted",
+                              "dead"
+                            ]
                           },
                           "checks": {
                             "type": "integer",
@@ -3247,7 +3759,13 @@
                             "maximum": 9007199254740991
                           }
                         },
-                        "required": ["bucket", "score", "band", "checks", "reachableChecks"],
+                        "required": [
+                          "bucket",
+                          "score",
+                          "band",
+                          "checks",
+                          "reachableChecks"
+                        ],
                         "additionalProperties": false
                       }
                     }
@@ -3298,12 +3816,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3340,12 +3864,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3382,12 +3912,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3399,7 +3935,9 @@
     "/api/v1/trust/summary": {
       "get": {
         "summary": "Estate-wide trust distribution, by department and by district",
-        "tags": ["trust"],
+        "tags": [
+          "trust"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -3447,7 +3985,12 @@
                           "maximum": 9007199254740991
                         }
                       },
-                      "required": ["trusted", "degraded", "untrusted", "dead"],
+                      "required": [
+                        "trusted",
+                        "degraded",
+                        "untrusted",
+                        "dead"
+                      ],
                       "additionalProperties": false
                     },
                     "byDepartment": {
@@ -3604,12 +4147,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3646,12 +4195,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3663,7 +4218,9 @@
     "/api/v1/auth/login": {
       "post": {
         "summary": "Exchange a badge number and password for a bearer token",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3680,7 +4237,10 @@
                     "minLength": 1
                   }
                 },
-                "required": ["badgeNo", "password"]
+                "required": [
+                  "badgeNo",
+                  "password"
+                ]
               }
             }
           }
@@ -3719,7 +4279,12 @@
                         },
                         "role": {
                           "type": "string",
-                          "enum": ["admin", "supervisor", "operator", "auditor"]
+                          "enum": [
+                            "admin",
+                            "supervisor",
+                            "operator",
+                            "auditor"
+                          ]
                         },
                         "departmentId": {
                           "nullable": true,
@@ -3750,7 +4315,11 @@
                       "additionalProperties": false
                     }
                   },
-                  "required": ["token", "expiresInSeconds", "user"],
+                  "required": [
+                    "token",
+                    "expiresInSeconds",
+                    "user"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3787,12 +4356,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3804,7 +4379,9 @@
     "/api/v1/auth/me": {
       "get": {
         "summary": "The signed-in user behind the presented token",
-        "tags": ["auth"],
+        "tags": [
+          "auth"
+        ],
         "responses": {
           "200": {
             "description": "Default Response",
@@ -3826,7 +4403,12 @@
                     },
                     "role": {
                       "type": "string",
-                      "enum": ["admin", "supervisor", "operator", "auditor"]
+                      "enum": [
+                        "admin",
+                        "supervisor",
+                        "operator",
+                        "auditor"
+                      ]
                     },
                     "departmentId": {
                       "nullable": true,
@@ -3890,12 +4472,18 @@
                             "type": "string"
                           }
                         },
-                        "required": ["field", "message"],
+                        "required": [
+                          "field",
+                          "message"
+                        ],
                         "additionalProperties": false
                       }
                     }
                   },
-                  "required": ["error", "message"],
+                  "required": [
+                    "error",
+                    "message"
+                  ],
                   "additionalProperties": false
                 }
               }

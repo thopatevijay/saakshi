@@ -18,6 +18,7 @@ import {
 } from './camera-contracts.js';
 import { detectFormat, parseCsv, parseJsonRows, validateBatch } from './bulk-import.js';
 import { syncCatalogue } from '../jobs/catalogue-sync.js';
+import { loadWeights } from '../services/trust.js';
 import { z } from 'zod';
 
 /**
@@ -34,6 +35,40 @@ const pointSql = (lat: number | null | undefined, lon: number | null | undefined
   lat === null || lat === undefined || lon === null || lon === undefined
     ? null
     : sql`st_setsrid(st_makepoint(${lon}, ${lat}), 4326)::geography`;
+
+/**
+ * The band, resolved in SQL.
+ *
+ * **This exists so no client ever writes `trust_score >= 70` itself.** D1-06's handoff is blunt
+ * about why: an unreachable camera keeps its last good score, because a camera that answered
+ * nothing has no signals to compute a new number from. So the stored number says `trusted` about a
+ * camera that went dark yesterday, and a map coloured from it is exactly the false assurance
+ * Pillar 1 exists to remove.
+ *
+ * `dead` therefore comes from the **latest health check's** `connectable` — the same
+ * `distinct on (camera_id) … order by checked_at desc` resolution `GET /api/v1/trust/summary`
+ * uses — and the correlated subquery is only evaluated for cameras that *have* a score, because
+ * `case` short-circuits on the null arm first. The index
+ * `camera_health_checks_camera_checked_at_idx (camera_id, checked_at desc)` makes each lookup a
+ * single index seek, so a 500-row page costs 500 seeks, not a scan.
+ *
+ * Thresholds are read from `config/trust-weights.json` rather than written here, so a weight change
+ * moves the map's colours without a code change — the same guarantee `bandFor` gives.
+ */
+const BANDS = loadWeights().bands;
+
+const bandSql = sql<'trusted' | 'degraded' | 'untrusted' | 'dead' | null>`
+  case
+    when ${cameras.trustScore} is null then null
+    when (select h.connectable
+            from ${cameraHealthChecks} h
+           where h.camera_id = ${cameras.id}
+           order by h.checked_at desc
+           limit 1) is false then 'dead'
+    when ${cameras.trustScore} >= ${BANDS.trusted} then 'trusted'
+    when ${cameras.trustScore} >= ${BANDS.degraded} then 'degraded'
+    else 'untrusted'
+  end`;
 
 const CAMERA_COLUMNS = {
   id: cameras.id,
@@ -58,7 +93,9 @@ const CAMERA_COLUMNS = {
   adapterKind: cameras.adapterKind,
   endpoints: cameras.endpoints,
   status: cameras.status,
+  catalogueStatus: cameras.catalogueStatus,
   trustScore: cameras.trustScore,
+  band: bandSql,
   onboardedAt: cameras.onboardedAt,
   updatedAt: cameras.updatedAt,
 } as const;
