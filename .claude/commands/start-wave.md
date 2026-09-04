@@ -26,20 +26,59 @@ only if you actively protect them:
 3. **The GitHub issue is still the specification.** Every worker runs the full `/start` contract —
    AC by AC, gate verbatim, evidence not vibes. Parallelism changes the schedule, never the standard.
 
-## Step 1 — Plan
+## Step 1 — Pre-flight
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
-git checkout main && git pull --ff-only origin main
+git checkout main && git pull --ff-only origin main && git fetch --prune origin
 python3 scripts/waves.py $ARGUMENTS
 ```
 
 The planner outputs, per ticket: its issue number, its **pre-allocated migration prefix**, its
-**own database name**, its branch, and whether it needs the **live feed**.
+**own database name**, its branch, and whether it needs the **live feed**. It also runs the safety
+checks, and prints `Safe to spawn: YES/NO`.
 
-**Stop and report if `BLOCKED BY TICKETS OUTSIDE THIS MILESTONE` is non-empty.** Those blockers are
-in an earlier milestone and are not this command's job. Name them and stop — a wave built on an open
-blocker produces workers that cannot verify their own ACs.
+**If it says `NO`, stop and report. Do not spawn.** Each hazard means a worker would collide with
+something that already exists:
+
+| Pre-flight finding | Why it blocks spawning |
+|---|---|
+| `status:in-progress` | A session or worktree is on that ticket **right now**. A second worker gives you two branches racing to land the same issue. |
+| `status:blocked` | Read its blocked note first. Spawning re-runs work that already stopped for a stated reason. |
+| `.prp/<TICKET>.md` exists | Interrupted work. Resume it with `/start <TICKET>` — which continues an existing branch — rather than starting over. |
+| `feat/<ticket>-*` branch exists | A previous attempt. Spawning over it loses that work or races it. |
+| dirty tree / not on main | Workers branch from `main`. Anything uncommitted is either lost or silently inherited by every worktree. |
+| `BLOCKED BY … OUTSIDE THIS MILESTONE` | Not this command's job. A wave built on an open blocker produces workers that cannot verify their own ACs. |
+
+**This is deliberately stricter than `/start`.** A sequential ticket that hits a surprise costs one
+ticket; a wave that hits one costs three workers, three worktrees, three databases, and a merge
+sequence to unpick.
+
+## Step 2 — Read the blockers' handoffs, as the *manager*
+
+Every worker will read its own issue and its own blockers — that is `/start` Phase 0 and it is about
+implementation. **You read them for something different: facts that change the schedule.**
+
+```bash
+# For each distinct closed blocker of the tickets in this milestone:
+gh issue view <blocker> -R thopatevijay/saakshi --json comments \
+  --jq '.comments[-1].body' | head -80
+```
+
+You are looking only for these, and you should expect to find them — every milestone so far has
+produced some:
+
+- **Shared-resource limits.** "The gateway throttles ~10× under sustained use." "A full prober sweep
+  is 23.6 minutes at pool 4." These decide your concurrency and your live-feed pairing, and they are
+  invisible in the ticket bodies.
+- **Ordering constraints between tickets in the same wave.** Two tickets with no `blocked_by` edge
+  can still contend — the same migration table, the same seeded rows, the same port.
+- **Timing warnings.** "Do not record a demonstration immediately after running the test suites."
+- **Anything that makes a ticket bigger than its estimate**, which changes which batch it belongs in.
+
+Ignore the implementation detail; the workers will read that themselves. If a handoff changes the
+plan — a pairing, a batch order, the cap — say so to the user before spawning, with the quote that
+caused it.
 
 Show the user the plan and the honest expectation before spawning:
 
@@ -48,7 +87,7 @@ Show the user the plan and the honest expectation before spawning:
 - **rough wall-clock**: `sum over waves of (ceil(wave_size / 3) x longest estimate in that wave)`,
   plus a merge-and-gate pass per wave.
 
-## Step 2 — Prepare the shared resources
+## Step 3 — Prepare the shared resources
 
 Per ticket in the wave about to run:
 
@@ -72,7 +111,7 @@ Seed it the same way the ticket's gate expects. If the ticket needs the estate, 
 `sync:catalogue` against **that** database — **not** in parallel across workers, because the
 catalogue fetch shares the throttled gateway.
 
-## Step 3 — Spawn the wave
+## Step 4 — Spawn the wave
 
 **At most three workers at once.** Not a guess: past three, the shared Postgres and the sandbox
 gateway dominate, and the gateway degrades ~10x under sustained load — measured **4.2 s → 63 s** for
@@ -135,7 +174,7 @@ those simultaneously is three conflicts.
 > which hot files you touched and what you added**, so the manager can resolve a conflict without
 > re-reading your branch.
 
-## Step 4 — Merge the wave, in order
+## Step 5 — Merge the wave, in order
 
 Workers finish out of order. **Merge in the planner's order**, not in finish order — the migration
 numbers were allocated in that sequence, and merging out of order leaves a gap that
@@ -165,7 +204,7 @@ npm run db:reset && npm run db:migrate    # migrations apply cleanly, in sequenc
 A failure here belongs to the manager. Fix it on `main`, or revert the offending merge and re-open
 its ticket with `status:blocked` and the real error. **Never start the next wave on a red main.**
 
-## Step 5 — Close out the wave
+## Step 6 — Close out the wave
 
 Workers deliberately do **not** close their own issues, so this is yours. For each merged ticket, in
 the same order:
@@ -195,7 +234,7 @@ done
 
 Then report the wave to the user — merged, blocked, gate result — and start the next wave.
 
-## Step 6 — Finish the milestone
+## Step 7 — Finish the milestone
 
 When the last wave is merged and green, tell the user the milestone is ready and name the gate
 command (`/gate <MILESTONE>-GATE`). **Do not run the gate yourself** — it is a hard stop that must

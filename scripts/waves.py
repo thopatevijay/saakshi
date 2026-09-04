@@ -82,22 +82,87 @@ def load_plan() -> dict[str, dict]:
     return plan
 
 
-def closed_tickets(issue_map: dict[str, int], offline: bool) -> set[str]:
-    """Ticket ids whose GitHub issue is closed. Offline treats everything as still open."""
+def github_state(issue_map: dict[str, int], offline: bool) -> dict[str, set[str]]:
+    """Ticket ids that are closed, in flight, or blocked.
+
+    `closed` decides the waves. The other two decide whether it is safe to spawn at all: a ticket
+    already labelled `status:in-progress` has a session or a worktree working on it right now, and
+    spawning a second worker onto it produces two branches racing to land the same ticket.
+    """
+    empty = {"closed": set(), "in_progress": set(), "blocked": set()}
     if offline:
-        return set()
+        return empty
+
+    by_number = {num: tid for tid, num in issue_map.items()}
     try:
         raw = subprocess.run(
-            ["gh", "issue", "list", "-R", REPO, "--state", "closed", "--limit", "100",
-             "--json", "number"],
+            ["gh", "issue", "list", "-R", REPO, "--state", "all", "--limit", "100",
+             "--json", "number,state,labels"],
             capture_output=True, text=True, check=True,
         ).stdout
     except (subprocess.CalledProcessError, FileNotFoundError) as exc:
         print(f"warning: could not reach GitHub ({exc}); treating all tickets as open",
               file=sys.stderr)
-        return set()
-    closed_numbers = {row["number"] for row in json.loads(raw)}
-    return {tid for tid, num in issue_map.items() if num in closed_numbers}
+        return empty
+
+    state = {"closed": set(), "in_progress": set(), "blocked": set()}
+    for row in json.loads(raw):
+        tid = by_number.get(row["number"])
+        if tid is None:
+            continue
+        labels = {label["name"] for label in row["labels"]}
+        if row["state"] == "CLOSED":
+            state["closed"].add(tid)
+        elif "status:in-progress" in labels:
+            state["in_progress"].add(tid)
+        elif "status:blocked" in labels:
+            state["blocked"].add(tid)
+    return state
+
+
+def local_hazards(pending: set[str]) -> dict[str, list[str]]:
+    """Local state that would collide with a fresh worker.
+
+    Scoped to the tickets about to be spawned — a leftover branch for an already-merged ticket is
+    housekeeping, not a hazard, and reporting it buries the one that matters.
+
+    An orphaned `.prp/` file or an existing `feat/<ticket>-*` branch both mean a previous attempt at
+    *this* ticket exists. Spawning over either loses that work or races it to `main`.
+    """
+    hazards: dict[str, list[str]] = {}
+
+    prps = {f.stem for f in (ROOT / ".prp").glob("*.md")} if (ROOT / ".prp").is_dir() else set()
+    for tid in sorted(pending & prps):
+        hazards.setdefault(tid, []).append(".prp/%s.md exists — interrupted work" % tid)
+
+    try:
+        branches = subprocess.run(
+            ["git", "branch", "-a", "--format=%(refname:short)"],
+            capture_output=True, text=True, check=True, cwd=ROOT,
+        ).stdout.split()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        branches = []
+    for tid in sorted(pending):
+        stub = f"feat/{tid.lower()}-"
+        existing = [b for b in branches if stub in b]
+        if existing:
+            hazards.setdefault(tid, []).append(
+                "branch already exists: %s" % ", ".join(sorted(set(existing))[:3]))
+
+    try:
+        dirty = subprocess.run(["git", "status", "--porcelain"],
+                               capture_output=True, text=True, check=True, cwd=ROOT).stdout.strip()
+        branch = subprocess.run(["git", "branch", "--show-current"],
+                                capture_output=True, text=True, check=True, cwd=ROOT).stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        dirty, branch = "", ""
+    if dirty:
+        hazards.setdefault("(repo)", []).append(
+            "working tree is dirty — %d path(s) uncommitted" % len(dirty.splitlines()))
+    if branch and branch != "main":
+        hazards.setdefault("(repo)", []).append(f"not on main (on {branch})")
+
+    return hazards
 
 
 def next_migration_number() -> int:
@@ -146,7 +211,8 @@ def external_blockers(tickets: dict[str, dict], done: set[str], scope: set[str])
 def build(milestone: str, offline: bool) -> dict:
     plan = load_plan()
     issue_map = json.loads(ISSUE_MAP.read_text())
-    done = closed_tickets(issue_map, offline)
+    state = github_state(issue_map, offline)
+    done = state["closed"]
 
     scope = {
         tid: t for tid, t in plan.items()
@@ -158,6 +224,7 @@ def build(milestone: str, offline: bool) -> dict:
     remaining = {tid: t for tid, t in scope.items() if tid not in done}
     waves = compute_waves(remaining, done) if remaining else []
     blocked_outside = external_blockers(remaining, done, set(scope))
+    hazards = local_hazards(set(remaining))
 
     # Migration numbers are allocated in wave-then-alphabetical order, so the sequence on main
     # after merging matches the order the manager merges in.
@@ -190,6 +257,15 @@ def build(milestone: str, offline: bool) -> dict:
             for wave in waves
         ],
         "blocked_by_external": blocked_outside,
+        # Safety, not scheduling: these do not change the waves, they decide whether spawning is
+        # safe at all. The command refuses to start while any of them is non-empty.
+        "in_progress": sorted(state["in_progress"] & set(scope)),
+        "already_blocked": sorted(state["blocked"] & set(scope)),
+        "local_hazards": hazards,
+        "safe_to_spawn": not (state["in_progress"] & set(scope))
+                         and not (state["blocked"] & set(scope))
+                         and not hazards
+                         and not blocked_outside,
         "hot_files": list(HOT_FILES),
     }
 
@@ -201,7 +277,21 @@ def render(plan: dict) -> str:
     add(f"  Milestone {plan['milestone']} — {plan['total']} tickets, "
         f"{len(plan['already_done'])} already done, {len(plan['waves'])} wave(s)")
     add(f"  Concurrency cap {plan['max_concurrency']} · live-feed semaphore 1")
+    add(f"  Safe to spawn: {'YES' if plan['safe_to_spawn'] else 'NO — see pre-flight below'}")
     add("")
+
+    problems = (plan["in_progress"] or plan["already_blocked"]
+                or plan["local_hazards"] or plan["blocked_by_external"])
+    if problems:
+        add("  ✋ PRE-FLIGHT — resolve before spawning anything:")
+        for tid in plan["in_progress"]:
+            add(f"      {tid}  is labelled status:in-progress — a session is already on it")
+        for tid in plan["already_blocked"]:
+            add(f"      {tid}  is labelled status:blocked — read its blocked note first")
+        for tid, notes in sorted(plan["local_hazards"].items()):
+            for note in notes:
+                add(f"      {tid}  {note}")
+        add("")
 
     if plan["blocked_by_external"]:
         add("  ⚠ BLOCKED BY TICKETS OUTSIDE THIS MILESTONE — resolve before starting:")

@@ -68,6 +68,22 @@ and flags the tickets that need the live sandbox.
 A milestone whose waves are mostly width 1–2 gains nothing: the coordination overhead exceeds the
 saving. The planner prints the shape; believe it rather than the ticket count.
 
+### It refuses to start on unsafe ground
+
+`/start-wave` pre-flights before spawning anything, and **stops** if a ticket is already
+`status:in-progress` or `status:blocked`, if a `.prp/` file or a `feat/<ticket>-*` branch already
+exists for a ticket it is about to spawn, if the tree is dirty, or if a blocker outside the
+milestone is still open. The planner prints `Safe to spawn: YES/NO`.
+
+This is stricter than `/start` on purpose: a sequential ticket that hits a surprise costs one
+ticket, while a wave that hits one costs three workers, three worktrees, three databases and a merge
+sequence to unpick.
+
+It then reads the closed blockers' handoffs **as the manager** — not for implementation detail,
+which the workers read themselves, but for the facts that change the *schedule*: shared-resource
+limits ("the gateway throttles ~10×", "a full sweep is 23.6 minutes"), contention between tickets
+that have no dependency edge, and timing warnings.
+
 ### Three limits that are not negotiable
 
 - **Three concurrent workers, maximum.** Past three, the shared Postgres and the sandbox gateway
