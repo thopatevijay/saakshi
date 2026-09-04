@@ -72,19 +72,26 @@ const SEGMENT = /^[A-Za-z0-9 _.,-]+$/;
 function resolveAsset(root: string, segments: string[]): { file: string; type: string } | null {
   if (segments.some((s) => !SEGMENT.test(s) || s === '.' || s === '..')) return null;
 
+  const [first, second, third] = segments;
   let file: string;
   let type: string;
 
-  if (segments.length === 1 && segments[0] === TILES_FILE) {
+  if (segments.length === 1 && first === TILES_FILE) {
     file = path.join(root, TILES_FILE);
     type = 'application/octet-stream';
-  } else if (segments.length === 3 && segments[0] === 'fonts' && segments[2].endsWith('.pbf')) {
+  } else if (
+    segments.length === 3 &&
+    first === 'fonts' &&
+    second !== undefined &&
+    third !== undefined &&
+    third.endsWith('.pbf')
+  ) {
     // MapLibre sends the font stack URL-encoded with spaces, and may send several comma-separated
     // names in fallback order. The vendored directories use underscores; take the first stack that
     // is actually on disk.
-    const stacks = segments[1].split(',').map((s) => s.trim().replaceAll(' ', '_'));
+    const stacks = second.split(',').map((s) => s.trim().replaceAll(' ', '_'));
     const found = stacks
-      .map((stack) => path.join(root, FONTS_DIR, stack, segments[2]))
+      .map((stack) => path.join(root, FONTS_DIR, stack, third))
       .find((candidate) => existsSync(candidate));
     if (found === undefined) return null;
     file = found;

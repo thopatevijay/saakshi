@@ -16,6 +16,13 @@ import {
   type MappableCamera,
 } from './geojson';
 
+/** `noUncheckedIndexedAccess` makes `array[0]` optional; failing loudly beats a `!`. */
+function only<T>(items: readonly T[]): T {
+  const item = items[0];
+  if (item === undefined) throw new Error('expected at least one item');
+  return item;
+}
+
 const cam = (over: Partial<MappableCamera> = {}): MappableCamera => ({
   id: '11111111-1111-4111-8111-111111111111',
   externalId: 'cam01',
@@ -58,33 +65,34 @@ describe('placement', () => {
 
   it('keeps an unplaced camera`s real band, so the tray can colour it honestly', () => {
     const { unplaced } = partition([cam({ lat: null, lon: null, band: 'untrusted' })]);
-    expect(unplaced[0].band).toBe('untrusted');
+    expect(only(unplaced).band).toBe('untrusted');
   });
 });
 
 describe('features', () => {
   it('emits [lon, lat] — the GeoJSON order the API`s bbox also uses', () => {
     const fc = toFeatureCollection([cam({ lat: 23.0225, lon: 72.5714 })]);
-    expect(fc.features[0].geometry.coordinates).toEqual([72.5714, 23.0225]);
+    expect(only(fc.features).geometry.coordinates).toEqual([72.5714, 23.0225]);
   });
 
   it('copies the API band verbatim and never recomputes it from the score', () => {
     // The case that catches a client-side threshold: a high score with a dead band. The API says
     // dead because the last probe could not connect; arithmetic on 96.23 would say trusted.
     const fc = toFeatureCollection([cam({ trustScore: 96.23, band: 'dead' })]);
-    expect(fc.features[0].properties.band).toBe('dead');
-    expect(fc.features[0].properties.trustScore).toBe(96.23);
+    expect(only(fc.features).properties.band).toBe('dead');
+    expect(only(fc.features).properties.trustScore).toBe(96.23);
   });
 
   it('renders a never-probed camera as `unscored`, not as a band', () => {
     const fc = toFeatureCollection([cam({ trustScore: null, band: null })]);
-    expect(fc.features[0].properties.band).toBe('unscored');
-    expect(fc.features[0].properties.trustScore).toBeNull();
+    expect(only(fc.features).properties.band).toBe('unscored');
+    expect(only(fc.features).properties.trustScore).toBeNull();
   });
 
   it('carries presence and health as two separate properties', () => {
-    const props = toFeatureCollection([cam({ catalogueStatus: 'absent', status: 'online' })])
-      .features[0].properties;
+    const props = only(
+      toFeatureCollection([cam({ catalogueStatus: 'absent', status: 'online' })]).features,
+    ).properties;
     expect(props.catalogueStatus).toBe('absent');
     expect(props.status).toBe('online');
   });
@@ -97,7 +105,7 @@ describe('features', () => {
 
   it('uses the camera id as the feature id, so a selection survives a refetch', () => {
     const fc = toFeatureCollection([cam({ id: 'abc' })]);
-    expect(fc.features[0].id).toBe('abc');
+    expect(only(fc.features).id).toBe('abc');
   });
 });
 

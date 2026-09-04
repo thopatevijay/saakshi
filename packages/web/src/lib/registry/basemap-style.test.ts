@@ -42,9 +42,11 @@ describe('the style is self-hosted', () => {
   });
 
   it('points the vector source at the app-served extract over the pmtiles protocol', () => {
-    const sources = style['sources'] as Record<string, { type: string; url: string }>;
-    expect(sources['basemap'].type).toBe('vector');
-    expect(sources['basemap'].url).toBe(`pmtiles://${BASEMAP_TILES_URL}`);
+    const sources = style['sources'] as Record<string, { type: string; url: string } | undefined>;
+    const basemap = sources['basemap'];
+    expect(basemap).toBeDefined();
+    expect(basemap?.type).toBe('vector');
+    expect(basemap?.url).toBe(`pmtiles://${BASEMAP_TILES_URL}`);
   });
 
   it('declares no sprite, so there is no icon atlas to fetch from anywhere', () => {

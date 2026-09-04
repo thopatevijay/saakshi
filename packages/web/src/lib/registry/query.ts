@@ -51,6 +51,19 @@ export type GeometryClass = (typeof GEOMETRY_CLASSES)[number];
 export const MAX_LIMIT = 500;
 export const DEFAULT_LIMIT = 500;
 
+/**
+ * How many cameras the map will hold at once.
+ *
+ * D1-02 caps `limit` at 500 a page, so a statewide view of a 100k estate is paged. Rather than page
+ * forever, the map fetches up to this many and **says so** — a legend that silently shows 2,000 of
+ * 100,000 cameras is a lie about coverage, and coverage is the thing this screen exists to report
+ * on. Zooming in narrows the bbox and the cap stops binding.
+ *
+ * Lives here rather than beside the action that enforces it because a `'use server'` module may
+ * export only async functions.
+ */
+export const MAX_MAP_FEATURES = 2000;
+
 // ── State ───────────────────────────────────────────────────────────────────────────────────────
 
 /** Server-side filters. Every key is a D1-02 query parameter, spelled exactly as the API spells it. */
@@ -84,6 +97,15 @@ export interface LayerState {
   status: ReadonlySet<CameraStatus>;
   department: ReadonlySet<string>;
 }
+
+/**
+ * A change to the filters, where `undefined` means **clear this one**.
+ *
+ * `Partial<RegistryFilters>` will not do under `exactOptionalPropertyTypes`: it makes a key
+ * omittable but forbids passing `undefined` as its value, and "the operator emptied the search box"
+ * has to be expressible.
+ */
+export type FilterPatch = { [K in keyof RegistryFilters]?: RegistryFilters[K] | undefined };
 
 export interface RegistryState {
   filters: RegistryFilters;
@@ -323,10 +345,10 @@ export function toggleLayer(
   dimension: keyof LayerState,
   value: string,
 ): LayerState {
-  const next = new Set(layers[dimension] as ReadonlySet<string>);
+  const next = new Set<string>(layers[dimension]);
   if (next.has(value)) next.delete(value);
   else next.add(value);
-  return { ...layers, [dimension]: next } as LayerState;
+  return { ...layers, [dimension]: next };
 }
 
 /** A viewport as the API's `bbox` string. Longitude first — the ordering everyone gets wrong once. */
