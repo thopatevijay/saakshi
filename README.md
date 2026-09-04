@@ -45,9 +45,13 @@ git clone https://github.com/thopatevijay/saakshi.git && cd saakshi
 
 cp .env.example .env          # then fill in the Sentinel sandbox values
 make up                       # db · valkey · minio · mediamtx, waits for healthy
-make install                  # npm workspaces + Python worker deps
+make install                  # creates .venv if missing, then npm workspaces + Python deps
 make dev                      # API on :4000, web on :3000
 ```
+
+`make install` creates `.venv` on **python3.13** when it does not exist — the venv is gitignored, so
+a fresh clone has none. `make dev` builds `@saakshi/shared` before starting either server; without
+that step `packages/web` cannot resolve the workspace package and returns HTTP 500.
 
 Verify:
 

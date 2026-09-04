@@ -12,7 +12,9 @@
     "packages/*"
   ],
   "scripts": {
+    "predev": "npm run build --workspace @saakshi/shared",
     "dev": "npm run dev --workspace @saakshi/api & npm run dev --workspace @saakshi/web",
+    "pretest": "npm run build --workspace @saakshi/shared",
     "build": "npm run build --workspace @saakshi/shared && npm run build --workspace @saakshi/api && npm run build --workspace @saakshi/web",
     "typecheck": "npm run build --workspace @saakshi/shared && npm run typecheck --workspace @saakshi/api && npm run typecheck --workspace @saakshi/web",
     "lint": "eslint . --max-warnings 0",

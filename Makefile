@@ -1,7 +1,10 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down logs ps psql install dev build typecheck lint format test venv verify clean
+.PHONY: help up down logs ps psql install dev build typecheck lint format test venv venv-create verify clean
 
 PY := ./.venv/bin/python
+# python3.13 by name, not `python3`: Homebrew's default is 3.14 + PEP 668 and has no reliable
+# OpenCV wheels. See README "Python workers".
+PY_BOOTSTRAP := python3.13
 
 help:  ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -22,7 +25,13 @@ logs:  ## Tail all container logs
 psql:  ## Open a psql shell against the local database
 	set -a; . ./.env; set +a; psql "$$DATABASE_URL"
 
-install:  ## Install Node workspaces and Python worker deps
+venv-create:  ## Create .venv on python3.13 if it is missing
+	@test -x $(PY) || { \
+	  command -v $(PY_BOOTSTRAP) >/dev/null || { echo "$(PY_BOOTSTRAP) not found — brew install python@3.13"; exit 1; }; \
+	  $(PY_BOOTSTRAP) -m venv .venv && $(PY) -m pip install --quiet --upgrade pip; \
+	  echo "created .venv on $$($(PY) -V)"; }
+
+install: venv-create  ## Install Node workspaces and Python worker deps
 	npm install
 	$(PY) -m pip install -r workers/requirements.txt
 
