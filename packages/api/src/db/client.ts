@@ -19,3 +19,11 @@ export function createDb(sql: Sql) {
 }
 
 export type Db = ReturnType<typeof createDb>;
+
+/**
+ * A drizzle transaction handle. It is not assignable to `Db` — it has no `$client` — so anything
+ * that must work both standalone and inside a transaction takes `DbLike`. `writeAudit` is the
+ * reason this exists: an audit row belongs in the same transaction as the mutation it records.
+ */
+export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+export type DbLike = Db | Tx;
