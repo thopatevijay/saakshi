@@ -26,6 +26,26 @@ let rawSql: Sql;
 let db: Db;
 let reachable = false;
 
+/**
+ * Every sync in this suite runs inside its own department.
+ *
+ * Not tidiness — correctness. Absence is computed by set difference **within a scope**, so a
+ * 3-camera stub synced into the NULL scope marks every real camera in that scope absent. The suite
+ * was doing exactly that to all 30 sandbox cameras, and a `npm run test` after a live sync left a
+ * registry claiming the whole estate had vanished. A dedicated scope is the isolation.
+ */
+let scopeDept = '';
+/** A second department, so cross-scope isolation can be asserted rather than assumed. */
+let otherDept = '';
+
+/**
+ * Two *seeded* departments, claimed rather than created. Creating one made this suite's fixtures
+ * visible to `GET /api/v1/departments`, whose test asserts the seeded five — a suite that has to
+ * insert a department to isolate itself has only moved the pollution somewhere else.
+ */
+const SCOPE_CODE = 'GSRTC';
+const OTHER_CODE = 'HEALTH';
+
 const id = (n: string): string => `${TAG}-${n}`;
 
 /** A stub shaped exactly like the deployed sandbox: `[{id,name}]` and nothing else. */
@@ -37,11 +57,11 @@ const THREE = [
   { id: id('cam03'), name: '03 O.N.G.C. Office' },
 ];
 
-async function run(entries: unknown) {
+async function run(entries: unknown, departmentId = scopeDept) {
   return syncCatalogue(db, {
     source: SOURCE,
     trigger: 'cli',
-    departmentId: null,
+    departmentId,
     fetchCatalogue: stub(entries),
   });
 }
@@ -84,6 +104,18 @@ beforeAll(async () => {
     console.warn(
       '[catalogue-sync] database unreachable — skipping. Run `make up && make migrate`.',
     );
+    return;
+  }
+
+  // Outside the try: a missing seeded department is not an unreachable database, and reporting it
+  // as one would let the whole suite skip itself quietly.
+  const rows = await db.execute<{ id: string; code: string }>(
+    sql`select id::text, code from departments where code in (${SCOPE_CODE}, ${OTHER_CODE})`,
+  );
+  scopeDept = rows.find((r) => r.code === SCOPE_CODE)?.id ?? '';
+  otherDept = rows.find((r) => r.code === OTHER_CODE)?.id ?? '';
+  if (scopeDept === '' || otherDept === '') {
+    throw new Error(`seeded departments ${SCOPE_CODE}/${OTHER_CODE} missing — run make migrate`);
   }
 });
 
@@ -173,11 +205,7 @@ describe('AC 3 — manually enriched fields survive three consecutive re-syncs',
     if (!reachable) return;
     await run(THREE);
 
-    const departmentRows = await db.execute<{ id: string }>(
-      sql`select id::text from departments limit 1`,
-    );
-    const departmentId = departmentRows[0]?.id ?? null;
-    expect(departmentId).not.toBeNull();
+    const departmentId = otherDept;
 
     // Everything a human types or a machine measures, set on one camera.
     await db.execute(sql`
@@ -193,15 +221,10 @@ describe('AC 3 — manually enriched fields survive three consecutive re-syncs',
     const enriched = await snapshot(THREE[0]!.id);
     expect(enriched?.retention_days).toBe(90);
 
-    // The camera now belongs to a department, so a NULL-scoped sync no longer sees it — which is
-    // itself the correct behaviour, and is asserted separately below. Sync in its own scope.
+    // The camera now belongs to another department, so the suite's own scope no longer sees it —
+    // which is itself the correct behaviour, asserted separately below. Sync in its own scope.
     for (let pass = 1; pass <= 3; pass += 1) {
-      const report = await syncCatalogue(db, {
-        source: SOURCE,
-        trigger: 'cli',
-        departmentId,
-        fetchCatalogue: stub([THREE[0]]),
-      });
+      const report = await run([THREE[0]], departmentId);
       expect(report.fetched, `pass ${String(pass)}`).toBe(1);
       expect(report.added, `pass ${String(pass)}`).toBe(0);
 
@@ -230,17 +253,14 @@ describe('AC 3 — manually enriched fields survive three consecutive re-syncs',
 
   it('scopes absence to one department: another department’s cameras are untouched', async () => {
     if (!reachable) return;
-    const departmentRows = await db.execute<{ id: string }>(
-      sql`select id::text from departments limit 1`,
-    );
-    const departmentId = departmentRows[0]!.id;
-
-    // THREE[0] belongs to the department by now; a NULL-scoped sync that omits it must not mark it
-    // absent. It is not missing from this catalogue — it is not in this catalogue's scope at all.
+    // THREE[0] belongs to `otherDept` by now. A sync of this suite's own scope that omits it must
+    // not mark it absent: it is not missing from this catalogue, it is not in this catalogue's
+    // scope at all. Getting this wrong marks a whole estate absent, which is what it did to the 30
+    // sandbox cameras before the suite was scoped.
     await run(THREE.slice(1));
     const other = await snapshot(THREE[0]!.id);
     expect(other?.catalogue_status).toBe('active');
-    expect(other?.department_id).toBe(departmentId);
+    expect(other?.department_id).toBe(otherDept);
   });
 });
 

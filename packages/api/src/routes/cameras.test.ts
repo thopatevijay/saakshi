@@ -29,6 +29,18 @@ let db: Db;
 let env: Env;
 let reachable = false;
 
+/**
+ * Catalogue onboarding runs inside its own department.
+ *
+ * Absence is computed by set difference **within a scope**, so onboarding a 3-camera stub into the
+ * NULL scope marks every real camera in that scope absent — which it did to all 30 sandbox cameras
+ * until this was scoped. A *seeded* department is claimed rather than a new one created: inserting
+ * a department to isolate this suite would break `GET /api/v1/departments`, which asserts the
+ * seeded five, and would only move the pollution somewhere else.
+ */
+const CATALOGUE_DEPT_CODE = 'MUNICIPAL';
+let catalogueDept = '';
+
 /** Real seeded users, so the role claims match rows that exist. */
 const actors: Record<UserRole, { sub: string; badgeNo: string }> = {
   admin: { sub: '', badgeNo: 'GP-ADM-0001' },
@@ -81,6 +93,13 @@ beforeAll(async () => {
       throw new Error(`seed user ${actors[role].badgeNo} missing — run make migrate`);
     actors[role].sub = row.id;
   }
+
+  const deptRows = await db.execute<{ id: string }>(
+    sql`select id::text from departments where code = ${CATALOGUE_DEPT_CODE}`,
+  );
+  catalogueDept = deptRows[0]?.id ?? '';
+  if (catalogueDept === '')
+    throw new Error(`seeded department ${CATALOGUE_DEPT_CODE} missing — run make migrate`);
 
   app = await buildServer({ env, db, fetchCatalogue: catalogueStub });
   await app.ready();
@@ -696,7 +715,7 @@ describe('POST /api/v1/cameras/onboard-from-catalogue', () => {
       method: 'POST',
       url: '/api/v1/cameras/onboard-from-catalogue',
       headers: auth('supervisor'),
-      payload: { adapterKind: 'hls' },
+      payload: { adapterKind: 'hls', departmentId: catalogueDept },
     });
 
     expect(first.statusCode).toBe(200);
@@ -710,7 +729,7 @@ describe('POST /api/v1/cameras/onboard-from-catalogue', () => {
       method: 'POST',
       url: '/api/v1/cameras/onboard-from-catalogue',
       headers: auth('supervisor'),
-      payload: { adapterKind: 'hls' },
+      payload: { adapterKind: 'hls', departmentId: catalogueDept },
     });
     // D1-02 asserted `updated: 3` here, because its importer rewrote every row unconditionally.
     // D1-04 replaced that with a diff, and its AC 2 is explicit: a second run reports
@@ -728,7 +747,7 @@ describe('POST /api/v1/cameras/onboard-from-catalogue', () => {
       method: 'POST',
       url: '/api/v1/cameras/onboard-from-catalogue',
       headers: auth('supervisor'),
-      payload: { adapterKind: 'hls' },
+      payload: { adapterKind: 'hls', departmentId: catalogueDept },
     });
     const { runId } = onboard.json<{ runId: string }>();
 
