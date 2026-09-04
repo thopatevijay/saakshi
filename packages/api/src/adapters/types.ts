@@ -1,3 +1,5 @@
+import type { Readable } from 'node:stream';
+
 /**
  * The federation contract.
  *
@@ -86,7 +88,7 @@ export interface StreamHandle {
   url: string;
   /** Seconds into the stream this handle started at. 0 unless a seek was requested. */
   startOffsetS: number;
-  stdout: import('node:stream').Readable | null;
+  stdout: Readable | null;
   /** Resolves when the process exits. */
   closed: Promise<number | null>;
   close: () => Promise<void>;

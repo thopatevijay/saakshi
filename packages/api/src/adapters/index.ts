@@ -4,7 +4,7 @@ import { createRtspAdapter } from './rtsp.js';
 import { createOnvifAdapter } from './onvif.js';
 import { createWhepAdapter } from './whep.js';
 import { createFileAdapter, createNvrAdapter } from './nvr-file.js';
-import { NotImplementedError, type AdapterKind, type CameraAdapter } from './types.js';
+import { NotImplementedError, type CameraAdapter } from './types.js';
 
 export * from './types.js';
 export { backoffDelayMs, backoffSequenceMs, withBackoff } from './backoff.js';
@@ -35,7 +35,10 @@ export { createFileAdapter, createNvrAdapter } from './nvr-file.js';
  * the same code path, so the claim is checkable rather than asserted.
  */
 export class AdapterRegistry {
-  private readonly adapters = new Map<AdapterKind | string, CameraAdapter>();
+  // Keyed by `string`, not `AdapterKind`, deliberately: `cameras.adapter_kind` arrives from the
+  // database, and a value the registry does not know must produce a useful error naming what *is*
+  // registered — not a type-level impossibility that crashes at runtime.
+  private readonly adapters = new Map<string, CameraAdapter>();
 
   register(adapter: CameraAdapter): this {
     this.adapters.set(adapter.kind, adapter);
@@ -43,7 +46,7 @@ export class AdapterRegistry {
   }
 
   /** Throws rather than returning undefined: a camera whose transport is unknown is a data error. */
-  get(kind: AdapterKind | string): CameraAdapter {
+  get(kind: string): CameraAdapter {
     const adapter = this.adapters.get(kind);
     if (adapter === undefined) {
       throw new NotImplementedError(
@@ -55,12 +58,12 @@ export class AdapterRegistry {
     return adapter;
   }
 
-  has(kind: AdapterKind | string): boolean {
+  has(kind: string): boolean {
     return this.adapters.has(kind);
   }
 
   kinds(): string[] {
-    return [...this.adapters.keys()].map(String);
+    return [...this.adapters.keys()];
   }
 
   all(): CameraAdapter[] {

@@ -96,10 +96,14 @@ try {
   console.log(`\n  transport      ${caps.transport}`);
   console.log(`  codec          ${caps.codec ?? '(unknown)'}`);
   console.log(`  resolution     ${resolution}`);
-  console.log(`  measured fps   ${caps.measuredFps === null ? '(unknown)' : String(caps.measuredFps)}`);
+  console.log(
+    `  measured fps   ${caps.measuredFps === null ? '(unknown)' : String(caps.measuredFps)}`,
+  );
   console.log(
     `  declared fps   ${caps.declaredFps === null ? '(none declared)' : String(caps.declaredFps)}` +
-      (caps.declaredFps !== null && caps.measuredFps !== null && caps.declaredFps !== caps.measuredFps
+      (caps.declaredFps !== null &&
+      caps.measuredFps !== null &&
+      caps.declaredFps !== caps.measuredFps
         ? `   <-- MISMATCH: measured ${String(caps.measuredFps)}, header claims ${String(caps.declaredFps)}`
         : ''),
   );

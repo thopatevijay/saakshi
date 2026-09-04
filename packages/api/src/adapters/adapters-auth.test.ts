@@ -132,7 +132,11 @@ describe('credentials versus connectivity, verified locally', () => {
       })
       .catch((e: unknown) => e);
     const reachFailure = await deadHost
-      .probe({ externalId: 'dead', adapterKind: 'hls', endpoints: { hls: 'http://127.0.0.1:1/i.m3u8' } })
+      .probe({
+        externalId: 'dead',
+        adapterKind: 'hls',
+        endpoints: { hls: 'http://127.0.0.1:1/i.m3u8' },
+      })
       .catch((e: unknown) => e);
 
     expect((authFailure as Error).name).toBe('AuthError');

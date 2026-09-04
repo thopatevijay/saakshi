@@ -1,12 +1,6 @@
 import { spawn } from 'node:child_process';
 import { access, stat } from 'node:fs/promises';
-import {
-  classifyFfmpegError,
-  measuredFpsFrom,
-  parseRational,
-  run,
-  streamArgs,
-} from './ffmpeg.js';
+import { classifyFfmpegError, measuredFpsFrom, parseRational, run, streamArgs } from './ffmpeg.js';
 import {
   NotImplementedError,
   UnreachableError,
@@ -41,7 +35,9 @@ import {
 
 const FPS_WINDOW_S = 3;
 
-export function createFileAdapter(options: { ffmpegBin?: string; ffprobeBin?: string } = {}): CameraAdapter {
+export function createFileAdapter(
+  options: { ffmpegBin?: string; ffprobeBin?: string } = {},
+): CameraAdapter {
   const ffmpeg = options.ffmpegBin ?? 'ffmpeg';
   const ffprobe = options.ffprobeBin ?? 'ffprobe';
 
@@ -126,12 +122,16 @@ export function createFileAdapter(options: { ffmpegBin?: string; ffprobeBin?: st
     const path = pathFor(cfg);
     const child = spawn(
       ffmpeg,
-      streamArgs(path, {}, {
-        seekS: opts.seekS,
-        durationS: opts.durationS,
-        format: opts.format ?? 'rawvideo',
-        fps: opts.fps,
-      }),
+      streamArgs(
+        path,
+        {},
+        {
+          seekS: opts.seekS,
+          durationS: opts.durationS,
+          format: opts.format ?? 'rawvideo',
+          fps: opts.fps,
+        },
+      ),
       { stdio: ['ignore', 'pipe', 'pipe'] },
     );
     child.stderr.resume();

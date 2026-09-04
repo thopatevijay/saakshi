@@ -126,7 +126,10 @@ export function createHlsAdapter(options: HlsAdapterOptions = {}): HlsAdapter {
     const playlist = await inspectPlaylist(url);
     // A 30x to the login page is the sandbox's answer to a missing cookie. Classifying it here
     // rather than letting ffmpeg fail on HTML-as-playlist gives a far better error.
-    if (!playlist.ok && (playlist.status === 401 || playlist.status === 403 || playlist.status >= 300)) {
+    if (
+      !playlist.ok &&
+      (playlist.status === 401 || playlist.status === 403 || playlist.status >= 300)
+    ) {
       throw new AuthError(
         `playlist for ${cfg.externalId} returned HTTP ${String(playlist.status)} — the session ` +
           `token is missing or expired; the camera itself may be fine`,
@@ -149,7 +152,8 @@ export function createHlsAdapter(options: HlsAdapterOptions = {}): HlsAdapter {
     // The header's own numbers, kept only so the delta can be reported. On cam01 ffprobe returns
     // r_frame_rate 25/1 *and* avg_frame_rate 30/1 for the same stream — it contradicts itself,
     // which is the whole argument for measuring.
-    const declaredFps = parseRational(stream?.avg_frame_rate) ?? parseRational(stream?.r_frame_rate);
+    const declaredFps =
+      parseRational(stream?.avg_frame_rate) ?? parseRational(stream?.r_frame_rate);
 
     const measured = await run(
       ffmpeg,
@@ -253,7 +257,11 @@ export function createHlsAdapter(options: HlsAdapterOptions = {}): HlsAdapter {
   }
 
   /** Extracts one JPEG at an offset. Used by the probe CLI to prove a seek landed. */
-  async function extractFrame(cfg: AdapterCameraConfig, seekS: number, outPath: string): Promise<void> {
+  async function extractFrame(
+    cfg: AdapterCameraConfig,
+    seekS: number,
+    outPath: string,
+  ): Promise<void> {
     const url = urlFor(cfg);
     const result = await run(ffmpeg, extractFrameArgs(url, auth, { seekS, outPath }), timeout);
     if (result.code !== 0) throw classifyFfmpegError(result.stderr, cfg.externalId, 'hls', result);

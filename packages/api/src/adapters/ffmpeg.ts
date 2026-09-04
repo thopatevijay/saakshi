@@ -137,7 +137,8 @@ export function streamArgs(
   if (opts.fps !== undefined) args.push('-vf', `fps=${String(opts.fps)}`);
 
   if (opts.format === 'null') args.push('-f', 'null', '-');
-  else if (opts.format === 'image2pipe') args.push('-f', 'image2pipe', '-vcodec', 'mjpeg', 'pipe:1');
+  else if (opts.format === 'image2pipe')
+    args.push('-f', 'image2pipe', '-vcodec', 'mjpeg', 'pipe:1');
   else args.push('-f', 'rawvideo', '-pix_fmt', 'bgr24', 'pipe:1');
 
   return args;

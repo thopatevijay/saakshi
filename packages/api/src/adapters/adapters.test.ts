@@ -179,7 +179,7 @@ describe('ffmpeg argv carries auth and a browser User-Agent', () => {
     expect(args[args.indexOf('-headers') + 1]).toBe('Cookie: sentinel=abc123\r\n');
   });
 
-  it('sends a browser UA even with no cookie — Cloudflare 403s ffmpeg\'s default either way', () => {
+  it("sends a browser UA even with no cookie — Cloudflare 403s ffmpeg's default either way", () => {
     const args = httpInputArgs({});
     expect(args[args.indexOf('-user_agent') + 1]).toBe(BROWSER_UA);
     expect(args).not.toContain('-headers');
@@ -188,7 +188,10 @@ describe('ffmpeg argv carries auth and a browser User-Agent', () => {
   it.each([
     ['probe', probeArgs('https://h/c/index.m3u8', auth)],
     ['measure fps', measureFpsArgs('https://h/c/index.m3u8', auth, { windowS: 4 })],
-    ['extract frame', extractFrameArgs('https://h/c/index.m3u8', auth, { seekS: 100, outPath: '/tmp/x.jpg' })],
+    [
+      'extract frame',
+      extractFrameArgs('https://h/c/index.m3u8', auth, { seekS: 100, outPath: '/tmp/x.jpg' }),
+    ],
     ['stream', streamArgs('https://h/c/index.m3u8', auth, { format: 'rawvideo' })],
   ])('%s argv includes both auth options', (_name, args) => {
     expect(args).toContain('-headers');
@@ -222,7 +225,11 @@ describe('ffmpeg argv carries auth and a browser User-Agent', () => {
   });
 
   it('still applies HTTP options when the input is HTTP', () => {
-    const args = streamArgs('https://h/c/index.m3u8', { cookie: 'sentinel=x' }, { format: 'rawvideo' });
+    const args = streamArgs(
+      'https://h/c/index.m3u8',
+      { cookie: 'sentinel=x' },
+      { format: 'rawvideo' },
+    );
     expect(args).toContain('-reconnect');
     expect(args).toContain('-headers');
   });
@@ -511,112 +518,95 @@ describe.skipIf(!liveAvailable)('HLS adapter against the real Sentinel sandbox',
   const adapter = createHlsAdapter({ cookie: COOKIE });
   const probes = new Map<string, CameraCapabilities>();
 
-  it(
-    'probes cam01 and returns measured capabilities',
-    async () => {
-      const caps = await adapter.probe(hlsCfg('cam01'));
-      probes.set('cam01', caps);
+  it('probes cam01 and returns measured capabilities', async () => {
+    const caps = await adapter.probe(hlsCfg('cam01'));
+    probes.set('cam01', caps);
 
-      expect(caps.transport).toBe('hls');
-      expect(caps.reachable).toBe(true);
-      expect(caps.decodable).toBe(true);
-      expect(caps.codec).toBe('h264');
-      expect(caps.width).toBe(1920);
-      expect(caps.height).toBe(1080);
-      expect(caps.measuredFps).toBeGreaterThan(0);
-      // VOD with ENDLIST, AES-128 — exactly what recon found, and both are load-bearing.
-      expect(caps.seekable).toBe(true);
-      expect(caps.encrypted).toBe(true);
-      expect(caps.durationS).toBeGreaterThan(3_600);
-    },
-    900_000,
-  );
+    expect(caps.transport).toBe('hls');
+    expect(caps.reachable).toBe(true);
+    expect(caps.decodable).toBe(true);
+    expect(caps.codec).toBe('h264');
+    expect(caps.width).toBe(1920);
+    expect(caps.height).toBe(1080);
+    expect(caps.measuredFps).toBeGreaterThan(0);
+    // VOD with ENDLIST, AES-128 — exactly what recon found, and both are load-bearing.
+    expect(caps.seekable).toBe(true);
+    expect(caps.encrypted).toBe(true);
+    expect(caps.durationS).toBeGreaterThan(3_600);
+  }, 900_000);
 
-  it(
-    'probes cam12 and returns a different resolution — the estate is genuinely heterogeneous',
-    async () => {
-      const caps = await adapter.probe(hlsCfg('cam12'));
-      probes.set('cam12', caps);
+  it('probes cam12 and returns a different resolution — the estate is genuinely heterogeneous', async () => {
+    const caps = await adapter.probe(hlsCfg('cam12'));
+    probes.set('cam12', caps);
 
-      expect(caps.codec).toBe('h264');
-      expect(caps.width).toBe(1280);
-      expect(caps.height).toBe(720);
-      expect(caps.measuredFps).toBeGreaterThan(0);
-    },
-    900_000,
-  );
+    expect(caps.codec).toBe('h264');
+    expect(caps.width).toBe(1280);
+    expect(caps.height).toBe(720);
+    expect(caps.measuredFps).toBeGreaterThan(0);
+  }, 900_000);
 
   it('the two cameras differ in resolution, which is why nothing may be assumed estate-wide', () => {
     const a = probes.get('cam01');
     const b = probes.get('cam12');
     if (a === undefined || b === undefined) return;
-    expect(`${String(a.width)}x${String(a.height)}`).not.toBe(`${String(b.width)}x${String(b.height)}`);
+    expect(`${String(a.width)}x${String(a.height)}`).not.toBe(
+      `${String(b.width)}x${String(b.height)}`,
+    );
   });
 
-  it(
-    'measured fps disagrees with the container header — the reason measurement exists',
-    () => {
-      const caps = probes.get('cam01');
-      if (caps === undefined) return;
-      // cam01's header claims 30 fps; independently verified at ~15 fps of actual content
-      // (151 frames per 10 s), with irregular PTS spacing. Pillar 1's whole argument, on their
-      // own feed. Asserted as a *relationship*, not a fixed number, so a re-encoded feed does not
-      // fail the suite spuriously.
-      expect(caps.declaredFps).not.toBeNull();
-      expect(caps.measuredFps).not.toBeNull();
-      expect(caps.measuredFps).toBeLessThan(caps.declaredFps ?? Infinity);
-    },
-  );
+  it('measured fps disagrees with the container header — the reason measurement exists', () => {
+    const caps = probes.get('cam01');
+    if (caps === undefined) return;
+    // cam01's header claims 30 fps; independently verified at ~15 fps of actual content
+    // (151 frames per 10 s), with irregular PTS spacing. Pillar 1's whole argument, on their
+    // own feed. Asserted as a *relationship*, not a fixed number, so a re-encoded feed does not
+    // fail the suite spuriously.
+    expect(caps.declaredFps).not.toBeNull();
+    expect(caps.measuredFps).not.toBeNull();
+    expect(caps.measuredFps).toBeLessThan(caps.declaredFps ?? Infinity);
+  });
 
-  it(
-    'seeks to an arbitrary offset and returns a frame genuinely from that point',
-    async () => {
-      const seekPath = path.join(tmpdir(), `saakshi-seek-${String(process.pid)}.jpg`);
-      const startPath = path.join(tmpdir(), `saakshi-start-${String(process.pid)}.jpg`);
-      try {
-        // Offset 39600 is 11.0h into a 12.0h recording. Proving the seek landed is done by
-        // *comparing frames*, not by brightness: cam01 is a street-lit bridge, so its night
-        // footage is not dark (measured YAVG 100 at offset 0 versus 138 at 39600 — a real
-        // difference, but far too weak to rest a claim on). If seeking silently failed, ffmpeg
-        // would hand back the first frame of the file, so two different images is the proof.
-        await adapter.extractFrame(hlsCfg('cam01'), 39_600, seekPath);
-        await adapter.extractFrame(hlsCfg('cam01'), 0, startPath);
+  it('seeks to an arbitrary offset and returns a frame genuinely from that point', async () => {
+    const seekPath = path.join(tmpdir(), `saakshi-seek-${String(process.pid)}.jpg`);
+    const startPath = path.join(tmpdir(), `saakshi-start-${String(process.pid)}.jpg`);
+    try {
+      // Offset 39600 is 11.0h into a 12.0h recording. Proving the seek landed is done by
+      // *comparing frames*, not by brightness: cam01 is a street-lit bridge, so its night
+      // footage is not dark (measured YAVG 100 at offset 0 versus 138 at 39600 — a real
+      // difference, but far too weak to rest a claim on). If seeking silently failed, ffmpeg
+      // would hand back the first frame of the file, so two different images is the proof.
+      await adapter.extractFrame(hlsCfg('cam01'), 39_600, seekPath);
+      await adapter.extractFrame(hlsCfg('cam01'), 0, startPath);
 
-        const seeked = await readFile(seekPath);
-        const start = await readFile(startPath);
+      const seeked = await readFile(seekPath);
+      const start = await readFile(startPath);
 
-        // Valid JPEGs: SOI marker.
-        for (const bytes of [seeked, start]) {
-          expect(bytes.byteLength).toBeGreaterThan(5_000);
-          expect(bytes[0]).toBe(0xff);
-          expect(bytes[1]).toBe(0xd8);
-        }
-
-        const digest = (b: Buffer): string => createHash('sha256').update(b).digest('hex');
-        expect(
-          digest(seeked),
-          'the seeked frame is byte-identical to the start of the file — the seek did not land',
-        ).not.toBe(digest(start));
-      } finally {
-        await rm(seekPath, { force: true });
-        await rm(startPath, { force: true });
+      // Valid JPEGs: SOI marker.
+      for (const bytes of [seeked, start]) {
+        expect(bytes.byteLength).toBeGreaterThan(5_000);
+        expect(bytes[0]).toBe(0xff);
+        expect(bytes[1]).toBe(0xd8);
       }
-    },
-    // Generous: a 7,200-segment playlist over a throttled gateway measured 295s for one probe.
-    900_000,
-  );
 
-  it(
-    'health() reports a live camera as connectable and decodable',
-    async () => {
-      const sample = await adapter.health(hlsCfg('cam01'));
-      expect(sample.connectable).toBe(true);
-      expect(sample.decodable).toBe(true);
-      expect(sample.actualResolution).toBe('1920x1080');
-      expect(sample.error).toBeNull();
-    },
-    900_000,
-  );
+      const digest = (b: Buffer): string => createHash('sha256').update(b).digest('hex');
+      expect(
+        digest(seeked),
+        'the seeked frame is byte-identical to the start of the file — the seek did not land',
+      ).not.toBe(digest(start));
+    } finally {
+      await rm(seekPath, { force: true });
+      await rm(startPath, { force: true });
+    }
+  }, // Generous: a 7,200-segment playlist over a throttled gateway measured 295s for one probe.
+  900_000);
+
+  it('health() reports a live camera as connectable and decodable', async () => {
+    const sample = await adapter.health(hlsCfg('cam01'));
+    expect(sample.connectable).toBe(true);
+    expect(sample.decodable).toBe(true);
+    expect(sample.actualResolution).toBe('1920x1080');
+    expect(sample.error).toBeNull();
+  }, 900_000);
 });
 
 describe('a timeout is not a verdict on the stream', () => {
