@@ -131,7 +131,10 @@ def probe_camera(
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128"
     ),
     thresholds: Thresholds = DEFAULTS,
-    open_timeout_s: float = 60.0,
+    # 120 s, not 60. The gateway throttles ~10x under sustained use (D1-03), and a full probe of a
+    # healthy camera measured 85 s today. A 60 s open deadline was timing out cameras that D0-01
+    # confirmed decodable — the deadline has to be sized for the bad case, not the good one.
+    open_timeout_s: float = 120.0,
     max_wall_s: float = 180.0,
     is_vod_hint: bool | None = None,
 ) -> ProbeResult:
@@ -163,14 +166,24 @@ def probe_camera(
                 retryable=False,
                 breakdown=_provenance(started, warnings, note="refresh the session cookie"),
             )
-        except (av.error.TimeoutError, TimeoutError) as exc:
+        except (av.error.TimeoutError, av.error.ExitError, TimeoutError) as exc:
+            # `ExitError` is **our own** timeout firing, not a camera fault.
+            #
+            # PyAV implements `timeout=` with libav's interrupt callback, and an interrupted open
+            # surfaces as `ExitError: Immediate exit requested`, never as `TimeoutError`. Catching
+            # only the obvious name recorded `cam06` — which D0-01 confirmed decodable — as a
+            # non-retryable failure after 60,067 ms. That is precisely the mistake D1-03's handoff
+            # warned about ("treat TimeoutError as 'retry later', never as a health failure"),
+            # wearing a different exception class.
             return ProbeResult(
                 external_id,
                 connectable=False,
                 decodable=False,
-                error=f"timed out after {open_timeout_s:.0f}s: {exc}",
+                error=f"timed out after {open_timeout_s:.0f}s: {type(exc).__name__}: {exc}",
                 retryable=True,
-                breakdown=_provenance(started, warnings, note="retry later — says nothing about the camera"),
+                breakdown=_provenance(
+                    started, warnings, note="retry later — says nothing about the camera"
+                ),
             )
         except av.error.FFmpegError as exc:
             return ProbeResult(

@@ -227,6 +227,28 @@ class TestUnmeasurableIsDistinctFromUnhealthy:
         assert result.decodable is False
         assert "retry later" in result.breakdown["note"]
 
+    def test_pyavs_exit_error_is_a_timeout_not_a_camera_fault(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The regression that cost `cam06` a false condemnation on a live sweep.
+
+        PyAV implements `timeout=` with libav's interrupt callback, and an interrupted open raises
+        `ExitError: Immediate exit requested` — never `TimeoutError`. Catching only the obvious name
+        recorded a camera D0-01 confirmed decodable as a non-retryable failure after 60,067 ms,
+        which is D1-03's warning ("treat a timeout as 'retry later', never as a health failure")
+        repeating itself under a different class name.
+        """
+
+        def interrupted(*args: object, **kwargs: object):
+            raise av.error.ExitError(1414092869, "Immediate exit requested")
+
+        monkeypatch.setattr(av, "open", interrupted)
+
+        result = probe_camera("slow-but-alive", "https://example.invalid/x.m3u8", thresholds=SHORT)
+
+        assert result.retryable is True, "an interrupted open must never condemn the camera"
+        assert "retry later" in result.breakdown["note"]
+
     def test_an_auth_failure_is_not_retryable_and_says_the_camera_may_be_fine(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
