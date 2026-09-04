@@ -34,6 +34,7 @@ import {
   cameraMountEnum,
   cameraStatusEnum,
   cameraTypeEnum,
+  catalogueStatusEnum,
   linkMethodEnum,
   matchTypeEnum,
   routeAnomalyEnum,
@@ -107,6 +108,16 @@ export const cameras = pgTable(
     // NULL means never probed, which is not the same as scored zero.
     trustScore: numericAsNumber('trust_score'),
 
+    // Presence in the upstream catalogue, written only by catalogue sync (D1-04). Separate from
+    // `status`, which is measured health written only by the prober (D1-05).
+    catalogueStatus: catalogueStatusEnum('catalogue_status').notNull().default('active'),
+    // NULL = never seen in a catalogue, i.e. onboarded by hand or by bulk import.
+    catalogueLastSeenAt: ts('catalogue_last_seen_at'),
+    catalogueAbsentSince: ts('catalogue_absent_since'),
+
+    // Local and human-entered. Catalogue sync never writes this.
+    notes: text('notes'),
+
     onboardedAt: ts('onboarded_at').notNull().defaultNow(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
     // Soft delete. A decommissioned camera is still the provenance of every sighting and alert
@@ -120,6 +131,7 @@ export const cameras = pgTable(
     index('cameras_district_idx').on(t.district),
     index('cameras_status_idx').on(t.status),
     index('cameras_geometry_class_idx').on(t.geometryClass),
+    index('cameras_catalogue_status_idx').on(t.catalogueStatus),
   ],
 );
 
@@ -131,6 +143,52 @@ export const cameraCoverage = pgTable('camera_coverage', {
   coveredRoadIds: bigint('covered_road_ids', { mode: 'number' }).array().notNull().default([]),
   computedAt: ts('computed_at').notNull().defaultNow(),
 });
+
+/**
+ * One row per catalogue sync run (D1-04) — the persisted report behind `GET /api/v1/sync/reports`.
+ *
+ * It is also the forensic record. The organisers are explicit that the camera set can change
+ * between now and evaluation day, so when it does, this table is what says when and to what.
+ */
+export const catalogueSyncRuns = pgTable(
+  'catalogue_sync_runs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    source: text('source').notNull(),
+    // Absence is computed within one department's scope only: a camera owned by another department
+    // is not "missing" from this catalogue, and marking it absent would be a lie.
+    departmentId: uuid('department_id').references(() => departments.id, { onDelete: 'set null' }),
+
+    startedAt: ts('started_at').notNull().defaultNow(),
+    finishedAt: ts('finished_at'),
+    durationMs: integer('duration_ms'),
+
+    ok: boolean('ok').notNull(),
+    /** Which tolerant-parse strategy matched, e.g. 'array' or 'wrapped:cameras'. */
+    shape: text('shape'),
+    triggerSource: text('trigger_source').notNull(),
+
+    fetched: integer('fetched').notNull().default(0),
+    added: integer('added').notNull().default(0),
+    updated: integer('updated').notNull().default(0),
+    unchanged: integer('unchanged').notNull().default(0),
+    wentAbsent: integer('went_absent').notNull().default(0),
+    returned: integer('returned').notNull().default(0),
+    /** Listed upstream but soft-deleted locally — never resurrected by a re-sync. */
+    skipped: integer('skipped').notNull().default(0),
+    rejected: integer('rejected').notNull().default(0),
+
+    error: text('error'),
+    /** The raw upstream JSON, kept only on a failed run so an unknown shape can be inspected. */
+    rawPayload: jsonb('raw_payload'),
+    /** `[{row, externalId, errors:[{field,message}]}]` — the shape D1-02's bulk importer reports. */
+    rejections: jsonb('rejections').notNull().default([]),
+  },
+  (t) => [
+    index('catalogue_sync_runs_pagination_idx').on(t.startedAt, t.id),
+    index('catalogue_sync_runs_department_idx').on(t.departmentId),
+  ],
+);
 
 export const roadNetwork = pgTable(
   'road_network',

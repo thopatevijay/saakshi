@@ -29,6 +29,15 @@ export const cameraStatusEnum = pgEnum('camera_status', [
   'offline',
 ]);
 
+/**
+ * Presence in the upstream catalogue — deliberately **not** `camera_status`.
+ *
+ * `camera_status` is measured health, owned by the prober (D1-05). Presence is a different fact
+ * about a different subject: a camera can be listed and dead, or delisted and still serving. See
+ * migration 0012 for the full reasoning.
+ */
+export const catalogueStatusEnum = pgEnum('catalogue_status', ['active', 'absent']);
+
 export const cameraGeometryEnum = pgEnum('camera_geometry', [
   'anpr_viable',
   'detection_only',

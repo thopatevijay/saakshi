@@ -29,6 +29,18 @@ let db: Db;
 let env: Env;
 let reachable = false;
 
+/**
+ * Catalogue onboarding runs inside its own department.
+ *
+ * Absence is computed by set difference **within a scope**, so onboarding a 3-camera stub into the
+ * NULL scope marks every real camera in that scope absent — which it did to all 30 sandbox cameras
+ * until this was scoped. A *seeded* department is claimed rather than a new one created: inserting
+ * a department to isolate this suite would break `GET /api/v1/departments`, which asserts the
+ * seeded five, and would only move the pollution somewhere else.
+ */
+const CATALOGUE_DEPT_CODE = 'MUNICIPAL';
+let catalogueDept = '';
+
 /** Real seeded users, so the role claims match rows that exist. */
 const actors: Record<UserRole, { sub: string; badgeNo: string }> = {
   admin: { sub: '', badgeNo: 'GP-ADM-0001' },
@@ -54,8 +66,19 @@ const catalogueStub = (): Promise<unknown> =>
     { id: `${TAG}-cam03`, name: '03 O.N.G.C. Office' },
   ]);
 
-async function auditCount(): Promise<number> {
-  const rows = await db.execute<{ n: string }>(sql`select count(*)::text as n from audit_log`);
+/**
+ * Audit rows for one target, not a global count.
+ *
+ * A global `count(*) from audit_log` is a shared counter: vitest runs suites in parallel, and once
+ * catalogue sync started writing its own audit rows a `before + 1` assertion became a race that
+ * failed on a real count (732 vs 728) while nothing was actually wrong. Count what the assertion is
+ * about.
+ */
+async function auditCountFor(targetId: string): Promise<number> {
+  const rows = await db.execute<{ n: string }>(
+    // `target_id` is text, not uuid — it addresses cameras, exports and watchlist entries alike.
+    sql`select count(*)::text as n from audit_log where target_id = ${targetId}`,
+  );
   return Number(rows[0]?.n ?? 0);
 }
 
@@ -82,6 +105,13 @@ beforeAll(async () => {
     actors[role].sub = row.id;
   }
 
+  const deptRows = await db.execute<{ id: string }>(
+    sql`select id::text from departments where code = ${CATALOGUE_DEPT_CODE}`,
+  );
+  catalogueDept = deptRows[0]?.id ?? '';
+  if (catalogueDept === '')
+    throw new Error(`seeded department ${CATALOGUE_DEPT_CODE} missing — run make migrate`);
+
   app = await buildServer({ env, db, fetchCatalogue: catalogueStub });
   await app.ready();
 });
@@ -91,6 +121,7 @@ afterAll(async () => {
     // Only rows this run created. audit_log is append-only and is deliberately left alone.
     await db.execute(sql`delete from cameras where external_id like ${`${TAG}%`}`);
     await db.execute(sql`delete from cameras where external_id like 'GJ-%'`);
+    await db.execute(sql`delete from catalogue_sync_runs where trigger_source = 'api'`);
   }
   await app?.close();
   await rawSql?.end();
@@ -99,7 +130,6 @@ afterAll(async () => {
 describe('POST /api/v1/cameras — manual onboarding', () => {
   it('creates a camera and writes an audit row', async () => {
     if (!reachable) return;
-    const before = await auditCount();
 
     const res = await app.inject({
       method: 'POST',
@@ -124,7 +154,7 @@ describe('POST /api/v1/cameras — manual onboarding', () => {
     expect(body.lon).toBeCloseTo(72.5145, 4);
     // Never probed is not the same as scored zero.
     expect(body.trustScore).toBeNull();
-    expect(await auditCount()).toBe(before + 1);
+    expect(await auditCountFor(body.id)).toBe(1);
   });
 
   it('rejects a bad declaredResolution with field-level detail', async () => {
@@ -434,7 +464,7 @@ describe('PATCH /api/v1/cameras/:id', () => {
 
   it('updates metadata and writes an audit row', async () => {
     if (!reachable) return;
-    const before = await auditCount();
+    const before = await auditCountFor(id);
     const res = await app.inject({
       method: 'PATCH',
       url: `/api/v1/cameras/${id}`,
@@ -447,7 +477,7 @@ describe('PATCH /api/v1/cameras/:id', () => {
     expect(body.name).toBe('After');
     expect(body.district).toBe('Gandhinagar');
     expect(body.lat).toBeCloseTo(23.2156, 4);
-    expect(await auditCount()).toBe(before + 1);
+    expect(await auditCountFor(id)).toBe(before + 1);
   });
 
   it('rejects an out-of-range declaredFps', async () => {
@@ -483,7 +513,7 @@ describe('DELETE /api/v1/cameras/:id — soft delete only', () => {
       payload: { externalId: `${TAG}-del`, name: 'Doomed', adapterKind: 'hls' },
     });
     const { id } = created.json<{ id: string }>();
-    const before = await auditCount();
+    const before = await auditCountFor(id);
 
     const res = await app.inject({
       method: 'DELETE',
@@ -492,7 +522,7 @@ describe('DELETE /api/v1/cameras/:id — soft delete only', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json<{ deleted: boolean }>().deleted).toBe(true);
-    expect(await auditCount()).toBe(before + 1);
+    expect(await auditCountFor(id)).toBe(before + 1);
 
     // Gone from the API...
     const detail = await app.inject({
@@ -695,23 +725,68 @@ describe('POST /api/v1/cameras/onboard-from-catalogue', () => {
       method: 'POST',
       url: '/api/v1/cameras/onboard-from-catalogue',
       headers: auth('supervisor'),
-      payload: { adapterKind: 'hls' },
+      payload: { adapterKind: 'hls', departmentId: catalogueDept },
     });
 
     expect(first.statusCode).toBe(200);
-    const r1 = first.json<{ fetched: number; created: number; updated: number }>();
+    const r1 = first.json<{ fetched: number; created: number; added: number; shape: string }>();
     expect(r1.fetched).toBe(3);
     expect(r1.created).toBe(3);
+    expect(r1.added).toBe(3);
+    expect(r1.shape).toBe('array');
 
     const second = await app.inject({
       method: 'POST',
       url: '/api/v1/cameras/onboard-from-catalogue',
       headers: auth('supervisor'),
-      payload: { adapterKind: 'hls' },
+      payload: { adapterKind: 'hls', departmentId: catalogueDept },
     });
-    const r2 = second.json<{ created: number; updated: number }>();
+    // D1-02 asserted `updated: 3` here, because its importer rewrote every row unconditionally.
+    // D1-04 replaced that with a diff, and its AC 2 is explicit: a second run reports
+    // **all-unchanged**. Rewriting three rows to the values they already held was the behaviour
+    // that also erased retention_days and notes on every call.
+    const r2 = second.json<{ created: number; updated: number; unchanged: number }>();
     expect(r2.created).toBe(0);
-    expect(r2.updated).toBe(3);
+    expect(r2.updated).toBe(0);
+    expect(r2.unchanged).toBe(3);
+  });
+
+  it('persists the run and serves it from GET /api/v1/sync/reports', async () => {
+    if (!reachable) return;
+    const onboard = await app.inject({
+      method: 'POST',
+      url: '/api/v1/cameras/onboard-from-catalogue',
+      headers: auth('supervisor'),
+      payload: { adapterKind: 'hls', departmentId: catalogueDept },
+    });
+    const { runId } = onboard.json<{ runId: string }>();
+
+    const reports = await app.inject({
+      method: 'GET',
+      url: '/api/v1/sync/reports?limit=50',
+      headers: auth('auditor'),
+    });
+    expect(reports.statusCode).toBe(200);
+    const body = reports.json<{ items: { id: string; trigger: string; fetched: number }[] }>();
+    const mine = body.items.find((r) => r.id === runId);
+    expect(mine?.trigger).toBe('api');
+    expect(mine?.fetched).toBe(3);
+  });
+
+  it('denies an unauthenticated read of the sync reports', async () => {
+    if (!reachable) return;
+    const res = await app.inject({ method: 'GET', url: '/api/v1/sync/reports' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('rejects a malformed sync-report cursor rather than silently returning page one', async () => {
+    if (!reachable) return;
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/sync/reports?cursor=garbage',
+      headers: auth('auditor'),
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it('denies operator', async () => {
@@ -828,6 +903,7 @@ describe('OpenAPI document', () => {
       ['/api/v1/cameras/{id}', 'delete'],
       ['/api/v1/cameras/bulk', 'post'],
       ['/api/v1/cameras/onboard-from-catalogue', 'post'],
+      ['/api/v1/sync/reports', 'get'],
       ['/api/v1/cameras/export', 'get'],
       ['/api/v1/departments', 'get'],
     ];

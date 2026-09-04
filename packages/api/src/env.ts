@@ -27,6 +27,9 @@ const EnvSchema = z.object({
   SENTINEL_HOST: z.string().optional(),
   SENTINEL_INGEST_URL: z.string().optional(),
   SENTINEL_PORTAL_COOKIE: z.string().optional(),
+  // Scheduled catalogue re-sync, in minutes. 0 disables it, which is the default: a background job
+  // that reaches an external host on a timer is something a deploy opts into.
+  CATALOGUE_SYNC_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(0),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

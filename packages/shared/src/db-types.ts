@@ -12,6 +12,7 @@ import type {
   cameraCoverage,
   cameraHealthChecks,
   cameras,
+  catalogueSyncRuns,
   departments,
   exportBundles,
   identitySightings,
@@ -34,6 +35,9 @@ export type NewUser = InferInsertModel<typeof users>;
 
 export type CameraRow = InferSelectModel<typeof cameras>;
 export type NewCamera = InferInsertModel<typeof cameras>;
+
+export type CatalogueSyncRunRow = InferSelectModel<typeof catalogueSyncRuns>;
+export type NewCatalogueSyncRun = InferInsertModel<typeof catalogueSyncRuns>;
 
 export type CameraCoverageRow = InferSelectModel<typeof cameraCoverage>;
 export type NewCameraCoverage = InferInsertModel<typeof cameraCoverage>;
