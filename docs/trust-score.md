@@ -166,7 +166,105 @@ behind a slow link. The distinction is carried in the row so D1-06 cannot lose i
 
 ---
 
-## 3 · What gets written
+## 3 · Scoring: turning signals into a number  *(D1-06)*
+
+Measuring is D1-05. Judging is this section. The weights live in
+**`config/trust-weights.json`** — not in code, because the acceptance criterion is that changing a
+weight changes the scores with no code change, and `trust.test.ts` proves it by scoring identical
+signals under two different weight sets.
+
+### The rule that shapes everything else
+
+> **A signal that cannot be judged is excluded from the denominator, never scored zero.**
+
+D1-05's handoff is emphatic about this, having been bitten twice:
+
+- *"`measured_fps IS NULL` means could not measure, never zero… Scoring a null as zero condemns a
+  camera for the network's behaviour."*
+- *"`pts_drift_ms` means two different things."* On the VOD sandbox it measures how fast a file was
+  pulled, not a camera's clock.
+
+**Every sandbox row is VOD**, so the clock signal is inapplicable for all thirty cameras. Scored as
+zero it would silently cost each of them 10 points for being a recording behind a slow link.
+Excluded and renormalised, it costs them nothing, and the score keeps describing the estate rather
+than describing our own gateway. `breakdown.trust.excluded[]` names every exclusion and its reason —
+nothing is dropped quietly.
+
+### The weights, and why each has the value it has
+
+| Signal | Weight | Why this weight |
+|---|---|---|
+| **focus** | **30** | The heaviest, because focus most directly decides whether the camera can do the job: an out-of-focus camera produces no plate reads however reliably it answers. |
+| **reachability** | **20** | An unreachable camera is banded `dead` before any arithmetic, so for everything that reaches the scorer this signal is full marks — its weight is a **floor every working camera collects for free**. It started at 30 and that floor proved too generous: `cam22`, whose blur of 0.011 means no readable image at all, still scored **60**. A camera that answers the phone should not be five-eighths of the way to trusted. |
+| **light** | **20** | Half an estate being useless after dark, with nobody knowing which half, is precisely the blindness this pillar exists to expose. |
+| **tamper** | **15** | Occlusion, freezing, spray paint. Below focus and light because on this estate it is the *rarest* failure: **24 of 30** cameras measured exactly 0.000. |
+| **frameRate** | **15** | Adequacy for multi-frame plate voting, plus the declared-vs-measured penalty. |
+| **clock** | **10** | Carries weight despite being inapplicable here, because a wrong clock is the one fault that poisons **other cameras'** answers — every route reconstruction this camera contributes to (D3-01, D3-02). |
+
+### The curves, and the data that set them
+
+| Curve | Constants | Calibrated against |
+|---|---|---|
+| **focus** — `log10` | `floor 10.0` · `target 250.0` | **Log, not linear, and the handoff is explicit about why:** blur spans **0.011 → 5794.088**, five orders of magnitude. On a linear map the estate's own **median of 298.6 would score 5% of full marks** and nearly every working camera would read as broken. `floor 10.0` is where structure disappears — `cam22` (0.011) and `cam09` (2.047) are the only two real cameras below it, and both are independently unusable. `target 250.0` sits deliberately *below* the median so a typical camera earns full marks; putting the target at the median would leave half the estate short of full marks for being typical. |
+| **light** — banded ramp | `darkMax 40.0` · `usableMin 60.0` · `blownMin 235.0` | The recording runs ~21:00→09:00 and measured night frames sit near **luma 90** — this estate is *streetlit, not pitch dark*. `darkMax 40` marks "effectively black", not "night"; a threshold that fired on darkness would condemn most of the estate for most of its footage. `cam09` (8.40) and `cam07` (38.22) are the two real cameras below it. |
+| **tamper** — ramp | `cleanMax 0.05` · `severeMin 0.33` | **Re-derived from measured data, which BL-01 assigned to this ticket.** The prober's own display flag sits at **0.60 and nothing on a real estate reached it** — the observed maximum is **0.388**. A bar nothing can clear is not a detector. `0.33` puts both genuinely degraded cameras (`cam22` 0.388, `cam09` 0.335) at full penalty while the 24 clean cameras at 0.000 are untouched. |
+| **frameRate** — ramp + penalty | `unusableMax 4.0` · `adequateMin 12.0` · `divergencePenalty 0.5` | Below ~12 fps a vehicle crossing frame yields too few candidates for multi-frame voting (D2-01); six real cameras sit under it, `cam30` lowest at **4.36**. The divergence penalty **halves** the signal rather than zeroing it — a camera running at half its claimed rate is still a working camera, it is the *registry* that is wrong. |
+| **clock** — linear | `driftMaxMs 2000` · `applicability live-only` | Inapplicable on VOD. D1-05 measured **24,505 → 161,162 ms** across the estate; that is the gateway throttling, not thirty broken clocks. |
+
+### Bands
+
+`trusted ≥ 70` · `degraded 40–69` · `untrusted < 40` · `dead = unreachable`
+
+**`dead` is decided by `connectable`, not by `connectable && decodable`.** The distinction is
+operational: a camera that answers but decodes nothing is a stream or codec fault, while one that
+does not answer is a network or power fault — they send different people to different places. The
+undecodable camera is not excused; it scores 0 and lands in `untrusted` on its own merits.
+
+`dead` is also resolved from the **latest health check**, not from the stored number. An unreachable
+camera keeps its last good score, so without that join a camera that went dark yesterday would still
+be counted `trusted` in the estate distribution.
+
+### The measured distribution
+
+Scoring the real pass over all 30 cameras produced **26 trusted · 3 degraded · 1 untrusted · 0 dead**:
+
+| camera | score | why |
+|---|---|---|
+| `cam09` | **35.00** | blur 2.047 **and** luma 8.40 — blind *and* black. The only untrusted camera on the estate. |
+| `cam22` | **55.00** | blur 0.011 (focus scores 0) and tamper 0.388 (scores 0), but reachable, lit and at 25 fps. |
+| `cam15` | 62.82 | blur 26.34, 6.13 fps |
+| `cam13` | 63.39 | blur 10.81, 10 fps |
+
+**⚠ A known limit of an additive model, stated rather than hidden.** Focus is a *necessary
+condition* for ANPR — a camera that cannot produce a readable image produces nothing, whatever else
+is true of it. A weighted sum cannot express that, which is why `cam22` reaches `degraded` on the
+strength of being reachable, lit and fast while being effectively blind. The breakdown says so
+plainly (`blur 0.011 is below the 10 structure floor — no readable detail`), and **D3-06's gap
+analysis should treat `focus quality = 0` as disqualifying regardless of band.**
+
+**⚠ One check is one moment.** `cam07`'s luma of 38.22 means *dark when it was probed*, not *always
+dark*. Single-check scores are a snapshot; the trend endpoint exists because the trustworthy
+question is "is this camera getting worse", not "what was it doing at 14:32".
+
+### What the API returns
+
+```
+GET /api/v1/cameras/:id/trust?days=7    →  score · band · breakdown · daily trend
+GET /api/v1/trust/summary               →  estate distribution, by department and district
+npm run trust:recompute [-- --all]      →  score health checks; --all re-scores history
+```
+
+`breakdown.signals[]` carries, per signal: `raw` · `quality` · `weight` · `points` · `maxPoints` ·
+`applicable` · `note`. **The points sum to the score** — asserted by a test and returned as
+`breakdown.pointsTotal` so the API can be held to it. `note` is the sentence the UI shows when a
+judge asks *why*, which is the whole reason this is not a black box.
+
+Re-score history with `--all` after changing a weight: a trend that mixes two weight versions is a
+trend nobody can read. `breakdown.trust.weightsVersion` records which version produced each row.
+
+---
+
+## 4 · What gets written
 
 One `camera_health_checks` row per camera per pass. It is a Timescale hypertable keyed
 `(camera_id, checked_at)`, so **every pass appends and none overwrites** — that is what makes the
@@ -200,7 +298,7 @@ UI can explain the number rather than assert it:
 
 ---
 
-## 4 · Running it
+## 5 · Running the prober
 
 ```bash
 python -m workers.prober.run --once --all              # one sweep of every active camera

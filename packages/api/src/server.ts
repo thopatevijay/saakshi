@@ -21,6 +21,7 @@ import type { Db } from './db/client.js';
 import { registerCameraRoutes } from './routes/cameras.js';
 import { registerDepartmentRoutes } from './routes/departments.js';
 import { registerSyncRoutes } from './routes/sync.js';
+import { registerTrustRoutes } from './routes/trust.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -119,6 +120,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
         },
         { name: 'departments', description: 'Owning departments' },
         { name: 'sync', description: 'Catalogue ingest runs and their reports' },
+        { name: 'trust', description: 'Trust scores, breakdowns and the estate distribution' },
         { name: 'health', description: 'Liveness' },
       ],
     },
@@ -146,6 +148,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     });
     registerDepartmentRoutes(app, { db });
     registerSyncRoutes(app, { db });
+    registerTrustRoutes(app, { db });
   }
 
   return app;
