@@ -1,0 +1,16 @@
+DROP TYPE IF EXISTS vehicle_class;
+DROP TYPE IF EXISTS route_anomaly;
+DROP TYPE IF EXISTS link_method;
+DROP TYPE IF EXISTS match_type;
+DROP TYPE IF EXISTS alert_status;
+DROP TYPE IF EXISTS alert_severity;
+DROP TYPE IF EXISTS source_system;
+DROP TYPE IF EXISTS watchlist_entity_type;
+DROP TYPE IF EXISTS watchlist_category;
+DROP TYPE IF EXISTS user_role;
+DROP TYPE IF EXISTS camera_geometry;
+DROP TYPE IF EXISTS camera_status;
+DROP TYPE IF EXISTS adapter_kind;
+DROP TYPE IF EXISTS storage_type;
+DROP TYPE IF EXISTS camera_mount;
+DROP TYPE IF EXISTS camera_type;

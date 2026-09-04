@@ -1,0 +1,5 @@
+DELETE FROM users WHERE badge_no IN
+  ('GP-ADM-0001', 'GP-SUP-0100', 'GP-OPR-1042', 'GP-AUD-0007');
+
+DELETE FROM departments WHERE code IN
+  ('POLICE', 'HEALTH', 'GSRTC', 'PANCHAYAT', 'MUNICIPAL');

@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS route_segments;
+DROP TABLE IF EXISTS routes;

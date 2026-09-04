@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS road_network;
+DROP TABLE IF EXISTS camera_coverage;
+DROP TABLE IF EXISTS cameras;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS departments;
