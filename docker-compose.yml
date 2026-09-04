@@ -65,13 +65,16 @@ services:
     # shell and no wget, so a container healthcheck is impossible on it (verified 2026-09-04).
     # The bundled ffmpeg also serves the video wall's transcode paths (D3-07).
     image: bluenviron/mediamtx:latest-ffmpeg
-    environment:
-      MTX_PROTOCOLS: tcp
-      MTX_METRICS: 'yes'
+    # Config file rather than env vars, because the adapter tests need a *seeded source*
+    # (`saakshi-test`) that MTX_* variables cannot express. See ops/mediamtx/mediamtx.yml — without
+    # it, the RTSP/ONVIF/WHEP adapters could only be claimed, not verified.
+    volumes:
+      - './ops/mediamtx/mediamtx.yml:/mediamtx.yml:ro'
     ports:
       - '8554:8554' # RTSP
       - '8889:8889' # WebRTC / WHEP
       - '8888:8888' # HLS
+      - '8189:8189/udp' # WebRTC media
       - '9998:9998' # Prometheus metrics (auth-gated) — consumed by D3-10
     healthcheck:
       # TCP liveness on the primary ingest port. /metrics is auth-gated and returns 401, so it is

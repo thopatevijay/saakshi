@@ -25,7 +25,8 @@
     "db:rollback": "npm run db --workspace @saakshi/api -- rollback",
     "db:reset": "npm run db --workspace @saakshi/api -- reset",
     "db:status": "npm run db --workspace @saakshi/api -- status",
-    "bench:api": "npm run bench:api --workspace @saakshi/api"
+    "bench:api": "npm run bench:api --workspace @saakshi/api",
+    "adapter:probe": "npm run adapter:probe --workspace @saakshi/api --"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

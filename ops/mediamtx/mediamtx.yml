@@ -1,0 +1,57 @@
+# MediaMTX configuration for SAAKSHI.
+#
+# Two jobs:
+#
+#   1. It is our own stream gateway for the video wall (D3-07) — the same tool the organisers use
+#      to serve the sandbox, relaying RTSP to HLS and WHEP.
+#   2. It provides a **reproducible local target** for the RTSP, ONVIF and WHEP adapter tests. The
+#      sandbox serves none of those transports, so without a local target those adapters could only
+#      be claimed, not verified — and a claim we cannot test is a claim we must not make.
+#
+# The `saakshi-test` path below publishes a synthetic pattern on startup, so
+# `npm run test -w packages/api -- adapters-mediamtx` works from a clean clone with no manual step.
+
+logLevel: info
+logDestinations: [stdout]
+
+# TCP only. Over UDP, RTP packets drop silently on a congested link: the stream keeps running while
+# frames vanish, and the analytics quietly degrade with nothing in any log to explain it.
+rtspTransports: [tcp]
+rtsp: yes
+rtspAddress: :8554
+
+hls: yes
+hlsAddress: :8888
+hlsVariant: lowLatency
+hlsAlwaysRemux: no
+
+webrtc: yes
+webrtcAddress: :8889
+# Loopback only: the adapter tests negotiate against 127.0.0.1 and need no STUN round trip.
+webrtcLocalUDPAddress: :8189
+webrtcIPsFromInterfaces: yes
+
+metrics: yes
+metricsAddress: :9998
+
+paths:
+  # ── Test source for the adapter suite ────────────────────────────────────────────────────────
+  # A 640x360 25 fps H.264 pattern with a burnt-in timer. Deliberately *not* a still image: the
+  # adapters measure fps by counting decoded frames, and a static source can hide a stalled
+  # decoder. The moving second-hand also makes a WHEP preview visibly live in a demo.
+  #
+  # 25 fps matches the modal frame rate measured across the sandbox estate, so the number the test
+  # asserts is the number the real feeds mostly produce.
+  saakshi-test:
+    runOnInit: >
+      ffmpeg -hide_banner -loglevel warning
+      -re -f lavfi -i testsrc=size=640x360:rate=25
+      -f lavfi -i sine=frequency=1000:sample_rate=48000
+      -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 25
+      -c:a aac -shortest
+      -f rtsp -rtsp_transport tcp rtsp://127.0.0.1:8554/saakshi-test
+    runOnInitRestart: yes
+
+  # Any other path is accepted on demand, which is what makes this a gateway: an adapter can relay
+  # an arbitrary upstream through it without a config change.
+  all_others:
