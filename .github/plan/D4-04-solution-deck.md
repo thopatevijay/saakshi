@@ -13,9 +13,17 @@ what must be covered — treat that list as the table of contents, not as inspir
 
 ## Scope — required content
 
-Model choice and justification first: **Model 1 + Model 3**, with the reasoning from
-`PROJECT.md §2` (Model 4's 160 Gbps and its political impossibility; Model 2's organisational
-non-scalability).
+Model choice and justification first: **Model 1 + Model 4**, with the reasoning from `PROJECT.md §2`.
+Two points must land:
+1. We score against the **per-model rubrics on `/evaluation-criteria`** (an unlinked page — see
+   `BL-01`), where Model 4 is *Centralized Analytics & AI Insights* and the models are complementary
+   layers rather than four alternatives.
+2. A fully centralised VMS — Model 4 as described on `/problems` — is **indefensible**: 160 Gbps of
+   sustained ingest, and 26 departments would have to surrender infrastructure they own. Our Model 4
+   is analytics over a federated estate, with video staying where it is. Show the arithmetic.
+
+Include a slide mapping our deliverables **line by line onto the Model 1 and Model 4 rubrics**
+(25/20/20/20/10/5 each). Make it trivial for a scorer to award marks.
 
 The ten mandatory design dimensions, each as a slide:
 1. Overall Architecture · 2. Integration Strategy · 3. AI & Video Analytics ·
@@ -42,8 +50,12 @@ Rules:
 ## Acceptance Criteria
 
 - [ ] All ten dimensions present, each explicitly labelled so a scorer can find it
-- [ ] Model choice slide states which model(s) we submit under, matching the official numbering
-      (per D0-02 Q1)
+- [ ] Model choice slide states which model(s) we submit under, matching whichever numbering the
+      helpdesk confirms authoritative (D0-02 Q1/Q5)
+- [ ] A rubric-mapping slide covers every scored line of the Model 1 and Model 4 rubrics
+- [ ] **Every stated performance benchmark is answered with a measured number** — 1,00,000+ records,
+      <200 ms API, <3 s dashboard, >90% accuracy, >99% uptime, 500+ concurrent users — or explicitly
+      marked as not-yet-measured. Never silently omitted.
 - [ ] Every quantitative claim cross-referenced to its source ticket in the speaker notes
 - [ ] Measured ANPR accuracy identical to `submission/govt-feed-output-report.pdf`
 - [ ] "What this system does not do" slide included, verbatim from `PROJECT.md §11` plus any

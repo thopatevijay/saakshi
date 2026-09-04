@@ -45,6 +45,11 @@ Rules:
 - [ ] RBAC enforced and covered by tests for all three roles
 - [ ] Every mutation produces an `audit_log` row
 - [ ] Integration tests cover happy path + validation failure + RBAC denial for each endpoint
+- [ ] **Benchmark: p95 API response < 200 ms** (stated target) on a seeded 100k-camera table —
+      measured with `npm run bench:api` and recorded
+- [ ] **Benchmark: 500+ concurrent users without degradation** — load test recorded
+- [ ] Registry holds **1,00,000+ camera records** in the load fixture without pagination or query
+      degradation
 
 ## Deliverables
 

@@ -34,6 +34,7 @@ monitor is a system nobody runs.
 - [ ] Alert rules fire in a test: kill a feed and observe `camera down` firing
 - [ ] Dashboards render with real data from a live run, not empty panels
 - [ ] Screenshot captured for the deck
+- [ ] **Uptime tracked against the stated >99% target**, with a Grafana panel showing it
 
 ## Deliverables
 

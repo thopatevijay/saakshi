@@ -39,6 +39,8 @@ on an isolated police network, and it removes a vendor dependency. Say so in the
       for the invalid fixture
 - [ ] Export downloads a valid CSV that re-imports cleanly (round-trip test)
 - [ ] Map interaction stays smooth at the full estate size (no visible jank when panning)
+- [ ] **Benchmark: dashboard load < 3 s** (stated target), measured cold on the 100k fixture and
+      recorded. UI/UX is called out as "a significant evaluation factor" — this number is scored.
 
 ## Deliverables
 

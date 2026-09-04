@@ -50,7 +50,18 @@ A submission at 11:00 with one rough edge beats a perfect one that never uploads
 
 ## Submission
 
-- [ ] Every portal field completed
+**The channel is a Google Form, not a portal upload.** The link appears in the portal navigation
+only when logged in:
+`docs.google.com/forms/d/e/1FAIpQLSeK7bCJ67zyZCF-73iAfRbMUXHtGbYKS5Cz8IgP-ZzQYZLJpw/viewform`
+
+It is **multi-page**. Page 1 is email + participant category
+(`Academic, Research & DPIIT Recognised Startup / Individual Participant` — that is us). Later pages
+are unwalked by design.
+
+- [ ] **Walk the full form early on 7 Sep — before assembling final links — and record every field.**
+      Discovering a required field at 11:00 on deadline day is an avoidable failure.
+- [ ] Google Forms has no draft-save: have every link in a scratch file and paste in one pass
+- [ ] Every form field completed
 - [ ] Every link pasted from `.dev-refs.md`, **not retyped from memory**
 - [ ] **Submitted before 13:00 IST on 7 Sep**
 - [ ] Confirmation screenshot / acknowledgement email saved to `submission/`

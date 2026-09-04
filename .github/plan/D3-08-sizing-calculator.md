@@ -25,7 +25,9 @@ checkable on a napkin, and it comes from real numbers gathered in D1-09, D2-01 a
   - **GPU count** from measured streams-per-GPU (D1-09/D2-01), split across district edge nodes
   - **Storage**: metadata TB/yr and crop TB/yr under the chosen retention, hot/warm/cold split
   - **Cost**: capex and annual opex ranges, with every unit-cost assumption visible and editable
-- Preset scenarios: `Pilot (500 cams)` · `District (5,000)` · `Statewide (80,000)`
+- Preset scenarios: `Pilot (500 cams)` · `District (5,000)` · `Statewide (80,000)` ·
+  **`Benchmark (100,000)`** — `/evaluation-criteria` states a 1,00,000+ target, above the 80,000 on
+  `/problems`. The calculator must reach the higher number.
 - **Every constant is sourced and labelled** — measured (with the ticket it came from), vendor-listed,
   or assumed. No unattributed numbers.
 - Export the current scenario to Markdown for the HLD and deck

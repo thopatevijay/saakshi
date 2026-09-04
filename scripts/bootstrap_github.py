@@ -36,7 +36,7 @@ LABELS = {
     "pillar-1": "c5def5", "pillar-2": "c5def5", "pillar-3": "c5def5", "pillar-4": "c5def5",
     "differentiator": "ff9f1c", "critical": "b60205", "headline": "ff9f1c",
     "mandatory-requirement": "b60205", "mandatory-deliverable": "b60205",
-    "model-1-deliverable": "0e8a16", "model-3-core": "0e8a16",
+    "model-1-deliverable": "0e8a16", "model-3-core": "0e8a16", "model-4-core": "0e8a16",
     "scored-dimension": "fbca04", "test-case": "d93f0b", "compliance": "5319e7",
     "bonus": "bfdadc", "stretch": "bfdadc", "recon": "0e8a16",
     "blocker-risk": "e11d21", "high-value": "ff9f1c", "submission": "d93f0b",

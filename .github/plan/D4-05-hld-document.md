@@ -27,7 +27,9 @@ it does not start from a blank page.
 - AI-powered analytics approach: **ANPR** (mandatory), object detection, person/vehicle tracking,
   and our additional analytics. State plainly that **FRS is deliberately out of scope**, and why.
 - Alert generation and notification workflow: prioritisation, visualisation, user interaction
-- Scalability, interoperability, security and performance for statewide deployment to ~80,000 cameras
+- Scalability, interoperability, security and performance for statewide deployment: `/problems` says
+  ~80,000 cameras, `/evaluation-criteria` says **1,00,000+ records/endpoints**. Design to the higher
+  figure and state both sources.
 - **Technical prerequisites, assumptions, and information required from participating departments**
   → from `docs/department-onboarding-questionnaire.md` (D4-06)
 - Assumptions & Constraints section → accepted limitations from `BL-01`

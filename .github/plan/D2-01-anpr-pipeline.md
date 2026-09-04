@@ -55,6 +55,10 @@ track (from D1-09) → best-shot scoring → plate detect → rectify/deskew →
 - [ ] Runs on ≥ 8 demo cameras concurrently; throughput recorded
 - [ ] **Measured precision/recall on a hand-labelled set of ≥ 50 plates from the sandbox feeds**,
       broken down by day/night. This number goes in the deck — it must be real, not aspirational.
+- [ ] Compared against the **stated >90% detection/processing accuracy target**. Sample the
+      **daylight window** (~offsets 32400–43200 s) deliberately: the recording is 21:00→09:00, so
+      ~9 of 12 h are dark and a naive average is night-weighted and misleading. Report day, night
+      and combined. **If we miss 90%, say so with the number** — an honest miss beats a vague claim.
 
 ## Deliverables
 

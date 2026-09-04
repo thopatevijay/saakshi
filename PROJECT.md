@@ -65,33 +65,75 @@ ones stated between the lines, and they are the ones nobody will build for:
 | P2 | **A dead camera is worse than no camera** — it creates false assurance. An inventory of blind cameras is worthless. | Model 1 asks for *"camera health and maintenance-status monitoring"* and *"gap-analysis reports for ageing infrastructure"* | **Camera Trust Score** (Pillar 1) |
 | P3 | **Evidence evaporates on a 7–15 day clock that varies per department.** Report a crime on day 12 and nobody can tell you what footage still exists. | *"some systems storing footage for 7 days and others for 15 days or more"* | **Retention / evidence clock** (Pillar 4) |
 | P4 | **Indian ANPR gives sparse, noisy reads.** Exact-string matching finds nothing. | Their own guide warns about blur, night, mixed codecs, oblique angles | **Confusion-aware fuzzy matching + best-shot OCR** (Pillar 3) |
-| P5 | **80,000 cameras cannot be centrally streamed.** 160 Gbps of video is not a budget. | Model 4 as written requires exactly this | **Edge inference, metadata-only backhaul** (Pillar 2) |
+| P5 | **100,000 cameras cannot be centrally streamed.** 160 Gbps of video is not a budget. | `/problems` Model 4 as written requires exactly this | **Edge inference, metadata-only backhaul** (Pillar 2) |
 | P6 | **Alert fatigue kills every alert system.** 80k cameras with naive alerting is an unusable firehose. | Not stated — this is the gap | **Dedupe + severity + verify-in-3-seconds UI** (Pillar 4) |
 | P7 | **Unauditable AI is not evidence.** A forensic university is the knowledge partner. | NFSU is a *forensic sciences* university and helps evaluate | **Hash-chained audit log + export manifests** (Pillar 4) |
 | P8 | **Plate cloning is rampant and undetected in India.** | Not stated — this is the gap | **Impossible-transition detection** (Pillar 3) |
 
 ---
 
-## 2. Locked architecture decision: **Model 1 + Model 3**
+## 2. Locked architecture decision: **Model 1 + Model 4**
 
-Mandatory registry/GIS foundation, plus a **VMS federation middleware** with an adapter framework.
+Mandatory registry/GIS foundation, plus **Centralized Analytics & AI Insights** built on a
+vendor-neutral federation layer.
 
-### Why not the alternatives — this justification is itself a scored slide
+> **Why not Model 3, and why the numbering matters.** The portal carries two model definitions that
+> contradict each other. `/problems` describes Model 3 as *"VMS Federation & Middleware Integration"*
+> — a software layer. But `/evaluation-criteria` (an **unlinked** page, found 2026-09-04, see
+> `BL-01`) scores Model 3 as **hardware**: *"the transponder/encoder must be stable, compatible,
+> compact, and suitable for field deployment"*, secure boot, PoE support, rugged design. We build no
+> hardware, so 60 of its 100 marks would be unreachable. **Escalated to the helpdesk: which
+> numbering is authoritative.** Until answered, we optimise for the scored rubric, which is the
+> document that decides marks.
 
-**Model 4 (Central VMS)** is what a large systems integrator will pitch, and it is indefensible:
-- 80,000 cameras × 2 Mbps ≈ **160 Gbps** of sustained ingest, plus statewide recording.
-- It requires 26 departments to surrender infrastructure they own, budget for, and hold AMCs on.
-  Politically dead on arrival, regardless of the technology.
+### Why Model 1 + Model 4 fits what we are building
 
-**Model 2 (direct connect to every departmental VMS)** puts N vendor integrations inside the core
-platform. Every new vendor becomes a change to the core. It does not scale *organisationally*, which
-is the binding constraint here, not the technical one.
+On `/evaluation-criteria` the models read as **complementary layers, not four alternatives** — Model
+4 is explicitly scored on how well it *"integrates Cameras, Registry (M1) and Control Room (M2)"*.
 
-**Model 3 (federation middleware)** makes "onboard a new department" an adapter + config task rather
-than a redesign. Departments keep operational control — matching the political reality. It is the
-only model under which 80,000 is a credible number. The portal explicitly sanctions the pairing:
-*"Model 1 should be treated as the common CCTV registry and GIS foundation that may support
-Models 2, 3, and 4."*
+| Model 1 rubric | Marks | Our answer |
+|---|---|---|
+| Data Accuracy & Registry Completeness | 25 | Registry + **trust score** — measured, not declared |
+| GIS Visualization & Usability | 20 | MapLibre registry map, trust overlay, gap analysis |
+| API Design & Integration Readiness | 20 | OpenAPI registry API + `docs/registry-api.md` |
+| Scalability & Performance | 20 | Edge-metadata architecture; sizing model |
+| Security & Access Control | 10 | RBAC + hash-chained audit chain |
+| Innovation & Value Addition | 5 | Trust score, retention clock |
+
+| Model 4 rubric | Marks | Our answer |
+|---|---|---|
+| System Architecture & Integration Depth | 25 | Adapter framework unifying cameras + registry + control room |
+| Core Functional Modules & Workflow Automation | 25 | *"discovery, connectivity, status, health, uptime, alerting"* — literally the trust prober plus the alert engine |
+| Reliability, Performance & Scalability | 20 | Benchmarks below, measured; *"pre-tested data instead of live production data"* matches the VOD sandbox |
+| Security & Access Control | 20 | RBAC, purpose binding, audit chain, export manifests |
+| Innovation & Intelligence | 5 | Fuzzy plate matching, cloning detection, route inference |
+| API Ecosystem & Extensibility | 5 | Documented adapter + provider interfaces |
+
+**Model 4 as written on `/problems` (a fully centralised VMS) remains indefensible** and we say so:
+80,000 cameras × 2 Mbps ≈ **160 Gbps** of sustained ingest, and it requires 26 departments to
+surrender infrastructure they own and hold AMCs on. Our reading of Model 4 is the
+`/evaluation-criteria` one — *analytics and insight over a federated estate*, with video staying
+where it is. That distinction is a slide, not a footnote.
+
+**Model 2 (Stream Unification)** is partially addressed by the video wall, but two of its five
+criteria are latency-weighted (25 marks for stream performance) and the sandbox is VOD HLS, so we
+do not claim it as a primary model.
+
+### Stated performance benchmarks — design to these, then **measure** them
+
+| Metric | Target | Where we prove it |
+|---|---|---|
+| Camera records / endpoints | **1,00,000+** | D3-08 sizing model, D1-02 load test |
+| API response latency | **< 200 ms** | D1-02 |
+| Dashboard load time | **< 3 s** | D1-08 |
+| Detection / processing accuracy | **> 90%** | D2-01 — report measured, day and night separately |
+| System uptime | **> 99%** | D3-10 |
+| Concurrent users, no degradation | **500+** | D1-02 |
+
+Bonus weightage is stated for: innovation beyond scope · **AI/ML integration** · state-level
+scalability · **low-bandwidth optimisation** · user-centric design. Global themes: technical
+soundness, scalability, security & access control. **UI/UX is called out as "a significant
+evaluation factor"** — worth 25/100 in Model 2 and material everywhere.
 
 ### System shape
 
@@ -176,7 +218,7 @@ This is what makes the registry a **planning instrument** rather than a list.
 
 ---
 
-## 4. Pillar 2 — Federation fabric  *(Model 3)*
+## 4. Pillar 2 — Federation fabric  *(Model 4 integration depth)*
 
 ### Adapter framework
 One interface, four implementations + one stub. Onboarding a vendor = writing an adapter, never
