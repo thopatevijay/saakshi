@@ -16,7 +16,7 @@ export default async function LoginPage({
     <main className="flex min-h-dvh items-center justify-center px-6 py-12">
       <div className="w-full max-w-sm">
         <header className="mb-8 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">साक्षी · the witness</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-400">साक्षी · the witness</p>
           <h1 className="mt-2 text-2xl font-semibold text-slate-100">SAAKSHI</h1>
           <p className="mt-2 text-sm text-slate-400">
             Camera registry, federation and video analytics

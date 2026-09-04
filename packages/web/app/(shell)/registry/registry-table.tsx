@@ -44,7 +44,7 @@ export function RegistryTable({
         <caption className="sr-only">
           Cameras in the registry with their measured trust score
         </caption>
-        <thead className="bg-slate-900/60 text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-slate-900/60 text-xs uppercase tracking-wide text-slate-400">
           <tr>
             <th scope="col" className="px-4 py-3 font-medium">
               Camera
@@ -73,7 +73,7 @@ export function RegistryTable({
               <tr key={camera.id} className="hover:bg-slate-900/40">
                 <td className="px-4 py-3">
                   <span className="block font-medium text-slate-200">{camera.externalId}</span>
-                  <span className="block text-xs text-slate-500">{camera.name}</span>
+                  <span className="block text-xs text-slate-400">{camera.name}</span>
                 </td>
                 <td className="px-4 py-3 text-slate-400">{camera.district ?? '—'}</td>
                 <td className="px-4 py-3 text-slate-400">{camera.adapterKind}</td>

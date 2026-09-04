@@ -10,7 +10,7 @@ export function Header({ user }: { user: SessionUser }) {
       <div className="ml-auto flex items-center gap-4">
         <p className="text-right text-sm leading-tight">
           <span className="block font-medium text-slate-200">{user.name}</span>
-          <span className="block text-xs text-slate-500">
+          <span className="block text-xs text-slate-400">
             {user.badgeNo} · <span className="uppercase tracking-wide">{user.role}</span>
             {user.departmentCode === null ? '' : ` · ${user.departmentCode}`}
           </span>

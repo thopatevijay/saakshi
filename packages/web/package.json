@@ -9,7 +9,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "generate:api": "tsx scripts/generate-api-types.mts",
     "test": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "a11y": "node scripts/a11y.mjs",
+    "responsive": "node scripts/responsive.mjs"
   },
   "dependencies": {
     "@saakshi/shared": "*",

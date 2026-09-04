@@ -30,7 +30,7 @@ export function CameraSearch() {
           setValue(event.target.value);
         }}
         placeholder="Search cameras — cam01, Paldi, Ahmedabad"
-        className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-600 focus-visible:border-sky-500 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-500"
+        className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-400 focus-visible:border-sky-500 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-500"
       />
     </form>
   );

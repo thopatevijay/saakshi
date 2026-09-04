@@ -23,7 +23,7 @@ export function LoginForm({ next }: { next: string }) {
           required
           placeholder="GP-OPR-1042"
           aria-describedby={state.error === null ? undefined : 'login-error'}
-          className="mt-1.5 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 placeholder:text-slate-600 focus-visible:border-sky-500 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-500"
+          className="mt-1.5 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100 placeholder:text-slate-400 focus-visible:border-sky-500 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-500"
         />
       </div>
 
@@ -56,7 +56,7 @@ export function LoginForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-sky-600 px-4 py-2.5 font-medium text-white hover:bg-sky-500 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+        className="w-full rounded-md bg-sky-700 px-4 py-2.5 font-medium text-white hover:bg-sky-600 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
       >
         {pending ? 'Signing in…' : 'Sign in'}
       </button>

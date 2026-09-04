@@ -23,7 +23,7 @@ export function SideNav({ role }: { role: UserRole }) {
         href="/registry"
         className="mb-6 block rounded-md px-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
       >
-        <span className="block text-[0.6rem] uppercase tracking-[0.25em] text-slate-500">
+        <span className="block text-[0.6rem] uppercase tracking-[0.25em] text-slate-400">
           साक्षी
         </span>
         <span className="block text-lg font-semibold text-slate-100">SAAKSHI</span>
@@ -50,7 +50,7 @@ export function SideNav({ role }: { role: UserRole }) {
         })}
       </ul>
 
-      <p className="mt-auto px-3 pt-6 text-xs text-slate-600">
+      <p className="mt-auto px-3 pt-6 text-xs text-slate-400">
         Signed in as <span className="uppercase tracking-wide">{role}</span>
       </p>
     </nav>
