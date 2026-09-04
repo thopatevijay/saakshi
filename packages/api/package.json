@@ -12,15 +12,21 @@
     "db": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "@fastify/jwt": "^10.2.2",
+    "@fastify/multipart": "^10.1.1",
+    "@fastify/swagger": "^9.8.1",
+    "@fastify/swagger-ui": "^6.1.1",
     "@saakshi/shared": "*",
-    "drizzle-orm": "^0.45.2",
     "dotenv": "^17.2.2",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.6.0",
+    "fastify-type-provider-zod": "^7.0.0",
     "pino": "^9.9.0",
     "postgres": "^3.4.9",
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "autocannon": "^8.0.0",
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.20.6"
   }
