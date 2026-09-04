@@ -7,8 +7,13 @@ opencv-python>=4.10
 numpy>=2.0
 
 # Detection + tracking. YOLO11 via ultralytics; ByteTrack ships inside supervision.
+#
+# Upper bound on supervision: `ByteTrack` is deprecated as of 0.28 and announced for removal in
+# 0.31, and 0.30.1 ships no replacement — `supervision.tracker.byte_tracker.core.ByteTrack` is the
+# same deprecated object. An unbounded `>=` would break the analytics worker on the next release.
+# BL-01 carries the note; picking a successor tracker is not this ticket's scope.
 ultralytics>=8.3
-supervision>=0.23
+supervision>=0.23,<0.31
 
 # PyAV: PTS-accurate demuxing. Timing comes from PTS, never frame arrival time.
 av>=13.0
@@ -18,6 +23,10 @@ requests>=2.32
 
 # PostgreSQL driver for the prober's writes. `[binary]` so a fresh clone needs no libpq toolchain.
 psycopg[binary]>=3.2
+
+# Valkey client for the `sightings` event bus. Valkey speaks the redis wire protocol, which is why
+# the redis client is the correct dependency rather than a separate one.
+redis>=5.0
 
 # Tests. The prober's CV signals are pure functions over frames, which is what makes the tamper and
 # connect-burst acceptance criteria provable offline rather than only against a live feed.

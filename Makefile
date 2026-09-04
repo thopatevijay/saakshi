@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: help up down logs ps psql migrate rollback db-reset db-status install dev build \
-        typecheck lint format test venv venv-create verify clean
+        typecheck lint format test venv venv-create verify clean models
 
 PY := ./.venv/bin/python
 # python3.13 by name, not `python3`: Homebrew's default is 3.14 + PEP 668 and has no reliable
@@ -65,6 +65,12 @@ format:  ## Prettier write
 
 test:  ## Vitest
 	npm run test
+
+models:  ## Fetch the YOLO11 detector weights into models/ (gitignored, never committed)
+	@mkdir -p models
+	@test -f models/yolo11n.pt || $(PY) -c "from ultralytics import YOLO; import shutil; \
+	  p = YOLO('yolo11n.pt').ckpt_path; shutil.copy(p, 'models/yolo11n.pt'); print('fetched', p)"
+	@ls -la models/yolo11n.pt
 
 venv:  ## Report the Python interpreter and key CV package versions
 	$(PY) -V
