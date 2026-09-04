@@ -100,7 +100,37 @@ export async function defaultFetchCatalogue(url: string, cookie: string): Promis
   if (!response.ok) {
     throw new CatalogueFetchError(`upstream returned ${String(response.status)}`);
   }
-  return response.json();
+
+  // Read as text and parse here rather than calling `response.json()`.
+  //
+  // With an expired session cookie the sandbox serves its **login page with HTTP 200** — not a 401,
+  // not a redirect the fetch layer can see. `response.json()` then dies on `Unexpected token '<'`,
+  // which tells an operator nothing and, worse, discards the body: the one failure most likely to
+  // happen on evaluation day would have produced no persisted evidence at all. It is an unknown
+  // payload shape, so it is reported as one, with what actually arrived.
+  const contentType = response.headers.get('content-type') ?? 'unknown';
+  const body = await response.text();
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    const looksLikeHtml = /^\s*<(!doctype|html)/i.test(body);
+    throw new UnknownCatalogueShapeError(
+      `catalogue did not return JSON (content-type: ${contentType}). ` +
+        (looksLikeHtml
+          ? 'The body is an HTML page, which is what this gateway serves — with HTTP 200 — when ' +
+            'the session cookie is missing or expired. Refresh SENTINEL_PORTAL_COOKIE. '
+          : '') +
+        'The response body has been persisted on the failed sync run.',
+      {
+        httpStatus: response.status,
+        contentType,
+        // A preview, not the page. Enough to recognise a login form; not enough to make the report
+        // table expensive to read.
+        bodyPreview: body.slice(0, 8_000),
+        bodyBytes: body.length,
+      },
+    );
+  }
 }
 
 /** The columns catalogue sync is allowed to write. Everything absent from here is local. */
@@ -257,9 +287,9 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
     payload = await fetcher(options.source, options.cookie ?? '');
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown error';
-    // No payload arrived, so there is nothing to persist for inspection — but the failed run is
-    // still recorded, because "the sync did not run" and "the sync ran and found nothing" are
-    // different facts and the report has to be able to tell them apart.
+    // A non-JSON body (the login page) is an unknown *shape*, not an unreachable upstream — it
+    // carries a payload, and AC 5 says that payload is kept.
+    const shapeFailure = err instanceof UnknownCatalogueShapeError;
     await recordFailure(db, {
       runId,
       source: options.source,
@@ -267,11 +297,15 @@ export async function syncCatalogue(db: Db, options: SyncOptions): Promise<SyncR
       trigger: options.trigger,
       startedAt,
       startedAtMs,
-      error: `catalogue fetch failed: ${message}`,
+      error: shapeFailure ? message : `catalogue fetch failed: ${message}`,
       shape: null,
-      rawPayload: null,
+      // Nothing arrived at all, so there is nothing to persist — but the failed run is still
+      // recorded, because "the sync did not run" and "the sync ran and found nothing" are
+      // different facts and the report has to be able to tell them apart.
+      rawPayload: shapeFailure ? err.payload : null,
     });
-    throw err instanceof CatalogueFetchError ? err : new CatalogueFetchError(message);
+    if (shapeFailure || err instanceof CatalogueFetchError) throw err;
+    throw new CatalogueFetchError(message);
   }
 
   let parsed;

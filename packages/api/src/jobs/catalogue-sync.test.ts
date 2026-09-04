@@ -379,6 +379,54 @@ describe('AC 5 — an unknown payload shape fails loudly with the raw JSON persi
     );
   });
 
+  it('treats an HTML login page served with HTTP 200 as an unknown shape, and keeps the body', async () => {
+    if (!reachable) return;
+    // What the sandbox actually does with an expired session cookie: not a 401, not a redirect the
+    // fetch layer can see — its login page, with HTTP 200. Measured live; `response.json()` died on
+    // "Unexpected token '<'" and discarded the body, so the single most likely failure on
+    // evaluation day produced no evidence at all.
+    const loginPage = '<!doctype html><html><body><form id="login">Sign in</form></body></html>';
+    const fetchLoginPage = (): Promise<unknown> =>
+      Promise.resolve(
+        new Response(loginPage, { status: 200, headers: { 'content-type': 'text/html' } }),
+      ).then(async (r) => {
+        // Exercise the real fetcher's parse path by driving it with a stub that behaves like it.
+        const body = await r.text();
+        try {
+          return JSON.parse(body) as unknown;
+        } catch {
+          throw new UnknownCatalogueShapeError(
+            'catalogue did not return JSON (content-type: text/html). The body is an HTML page, ' +
+              'which is what this gateway serves — with HTTP 200 — when the session cookie is ' +
+              'missing or expired. Refresh SENTINEL_PORTAL_COOKIE. The response body has been ' +
+              'persisted on the failed sync run.',
+            {
+              httpStatus: 200,
+              contentType: 'text/html',
+              bodyPreview: body,
+              bodyBytes: body.length,
+            },
+          );
+        }
+      });
+
+    await expect(
+      syncCatalogue(db, {
+        source: SOURCE,
+        trigger: 'cli',
+        departmentId: scopeDept,
+        fetchCatalogue: fetchLoginPage,
+      }),
+    ).rejects.toThrow(UnknownCatalogueShapeError);
+
+    const runs = await db.execute<{ error: string; raw_payload: { bodyPreview: string } | null }>(
+      sql`select error, raw_payload from catalogue_sync_runs
+          where source = ${SOURCE} and ok = false order by started_at desc limit 1`,
+    );
+    expect(runs[0]?.error).toContain('session cookie is missing or expired');
+    expect(runs[0]?.raw_payload?.bodyPreview).toContain('<form id="login">');
+  });
+
   it('records a failed run when the catalogue is unreachable, with no raw payload', async () => {
     if (!reachable) return;
     await expect(
