@@ -19,22 +19,28 @@
   },
   "signals": {
     "reachability": {
-      "weight": 30,
+      "weight": 20,
       "$rationale": [
-        "The heaviest weight, because a camera that cannot be reached or decoded contributes",
-        "nothing at all — every other signal is a refinement on top of it. A registry that lists",
-        "dead cameras is worse than no registry, and this is the weight that says so.",
+        "A camera that cannot be reached contributes nothing, so this must carry weight — but 20,",
+        "not the 30 it started at, because of what this signal actually does in practice.",
+        "An unreachable camera is banded `dead` before any arithmetic runs, so for every camera",
+        "that reaches the scorer this signal is full marks. Its weight is therefore a FLOOR that",
+        "every working camera collects for free. At 30 that floor was too generous: cam22, whose",
+        "blur of 0.011 means it can produce no readable image at all, still scored 60 — a camera",
+        "that answers the phone should not be five-eighths of the way to trusted.",
         "Scored 0 when connectable but not decodable: answering the phone is not the same as",
         "being usable."
       ]
     },
     "focus": {
-      "weight": 25,
+      "weight": 30,
       "curve": "log10",
       "floor": 10.0,
       "target": 250.0,
       "$rationale": [
-        "Out-of-focus cameras produce no plate reads, so focus is second only to reachability.",
+        "The heaviest weight, because focus is the signal that most directly decides whether this",
+        "camera can do the job at all: an out-of-focus camera produces no plate reads no matter how",
+        "reliably it answers.",
         "LOG scale, and this is the point D1-05's handoff is emphatic about: blur_score spans",
         "0.011 to 5794.088 across this estate — five orders of magnitude. On a linear map the",
         "estate MEDIAN of 298.6 would score 5% of full marks and almost every working camera",
@@ -78,7 +84,7 @@
       ]
     },
     "frameRate": {
-      "weight": 10,
+      "weight": 15,
       "adequateMin": 12.0,
       "unusableMax": 4.0,
       "divergencePenalty": 0.5,
