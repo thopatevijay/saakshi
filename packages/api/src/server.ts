@@ -1,5 +1,38 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, {
+  type FastifyBaseLogger,
+  type FastifyInstance,
+  type RawServerDefault,
+} from 'fastify';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import fastifyJwt from '@fastify/jwt';
+import fastifyMultipart from '@fastify/multipart';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import {
+  createJsonSchemaTransform,
+  serializerCompiler,
+  validatorCompiler,
+  hasZodFastifySchemaValidationErrors,
+  type ZodTypeProvider,
+} from 'fastify-type-provider-zod';
+import type { FastifyError } from 'fastify';
 import type { Env } from './env.js';
+import type { Db } from './db/client.js';
+import { registerCameraRoutes } from './routes/cameras.js';
+import { registerDepartmentRoutes } from './routes/departments.js';
+
+/**
+ * The app type with the zod type provider attached. Route handlers get `request.body`,
+ * `request.query` and `request.params` typed from their own schemas — that inference is the reason
+ * the provider is worth having, and it only reaches handlers registered on *this* type.
+ */
+export type App = FastifyInstance<
+  RawServerDefault,
+  IncomingMessage,
+  ServerResponse<IncomingMessage>,
+  FastifyBaseLogger,
+  ZodTypeProvider
+>;
 
 export interface HealthResponse {
   status: 'ok';
@@ -10,23 +43,107 @@ export interface HealthResponse {
 
 const VERSION = '0.1.0';
 
-export function buildServer(env: Env): FastifyInstance {
+export interface ServerOptions {
+  env: Env;
+  /** Omitted for a bare health-only server; the registry routes need a connection. */
+  db?: Db;
+  fetchCatalogue?: (url: string, cookie: string) => Promise<unknown>;
+}
+
+export async function buildServer(options: ServerOptions): Promise<App> {
+  const { env, db } = options;
+
   const app = Fastify({
     logger: {
       level: env.NODE_ENV === 'test' ? 'silent' : 'info',
-      // Redaction is set up here, at the bootstrap, rather than remembered later.
       redact: ['req.headers.authorization', 'req.headers.cookie'],
     },
+    // 6 MB: a 100k-row CSV export re-imported in one request is ~4 MB. Larger estates page.
+    bodyLimit: 6 * 1024 * 1024,
+  }).withTypeProvider<ZodTypeProvider>();
+
+  // One set of zod schemas drives validation, response serialisation and the OpenAPI document, so
+  // the spec cannot describe something the server does not actually do.
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+
+  app.setErrorHandler((error: FastifyError, request, reply) => {
+    if (hasZodFastifySchemaValidationErrors(error)) {
+      return reply.code(400).send({
+        error: 'validation_failed',
+        message: 'request did not match the schema',
+        // Field-level detail, so a rejected onboarding call says which field and why rather than
+        // just "400". The bulk importer reports the same shape.
+        //
+        // The field comes from `instancePath`, which fastify-type-provider-zod v7 emits as a JSON
+        // pointer ('/declaredResolution', '/endpoints/hls') — not from `params`, which carries the
+        // zod issue's metadata (expected type, regex pattern) and no path at all.
+        details: error.validation.map((entry) => ({
+          field: entry.instancePath.replace(/^\//, '').replaceAll('/', '.') || '(root)',
+          message: entry.message ?? 'invalid value',
+        })),
+      });
+    }
+    request.log.error(error);
+    const status = error.statusCode ?? 500;
+    return reply.code(status).send({
+      error: status >= 500 ? 'internal_error' : 'bad_request',
+      message: status >= 500 ? 'internal error' : error.message,
+    });
   });
 
-  app.get('/health', (): HealthResponse => {
-    return {
+  await app.register(fastifyJwt, { secret: env.JWT_SECRET });
+  await app.register(fastifyMultipart, { limits: { fileSize: 6 * 1024 * 1024, files: 1 } });
+
+  await app.register(fastifySwagger, {
+    openapi: {
+      info: {
+        title: 'SAAKSHI Registry API',
+        description:
+          'Camera registry, onboarding and export. Model 1 names three onboarding paths — bulk ' +
+          'import, manual entry and API — and all three are served here.',
+        version: VERSION,
+      },
+      servers: [{ url: `http://localhost:${String(env.API_PORT)}`, description: 'local' }],
+      components: {
+        securitySchemes: {
+          bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+      tags: [
+        {
+          name: 'cameras',
+          description: 'Registry CRUD, bulk import, catalogue onboarding, export',
+        },
+        { name: 'departments', description: 'Owning departments' },
+        { name: 'health', description: 'Liveness' },
+      ],
+    },
+    transform: createJsonSchemaTransform({ skipList: ['/api/v1/docs/*', '/api/v1/docs'] }),
+  });
+
+  await app.register(fastifySwaggerUi, { routePrefix: '/api/v1/docs' });
+
+  app.get(
+    '/health',
+    { schema: { tags: ['health'], summary: 'Liveness probe' } },
+    (): HealthResponse => ({
       status: 'ok',
       service: 'saakshi-api',
       version: VERSION,
       uptimeS: Math.round(process.uptime()),
-    };
-  });
+    }),
+  );
+
+  if (db !== undefined) {
+    registerCameraRoutes(app, {
+      db,
+      env,
+      ...(options.fetchCatalogue !== undefined ? { fetchCatalogue: options.fetchCatalogue } : {}),
+    });
+    registerDepartmentRoutes(app, { db });
+  }
 
   return app;
 }
