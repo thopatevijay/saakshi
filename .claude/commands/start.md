@@ -29,6 +29,10 @@ Repo: `thopatevijay/saakshi`
 6. Commits: conventional messages, **no Claude co-author trailer, no "generated with" line**.
    Prefer several small commits over one large one.
 7. Never commit `.env`, `.dev-refs.md`, `recon-out/`, model weights, or any secret.
+8. **`.env` is off limits.** Never Read/Grep/Glob/Edit/Write it, never `cat`/`head`/`grep` it, and
+   never echo a secret value. Load it only as `set -a; . ./.env; set +a`. To check a variable is
+   set, print its length — `[ -n "$V" ] && echo "set (${#V})"` — never `${V:-MISSING}`, which
+   expands the value. See the STRICT RULE in `CLAUDE.md`.
 
 ---
 

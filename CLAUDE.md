@@ -66,6 +66,26 @@ proprietary is load-bearing: with `ollama` or `none` the system is fully functio
   (night, two-wheelers, oblique angles). Honest numbers are a scoring asset.
 - ANPR is the **only** mandatory analytic. Everything else is bonus.
 
+## STRICT RULE — `.env` is off limits
+
+**Never open, read, print, copy, or search `.env` (or any `.env.*` except `.env.example`).**
+Enforced by `permissions.deny` in `.claude/settings.json`; this section is the second layer, because
+permission rules only load for sessions that started after the file existed.
+
+- Do **not** use Read, Grep, Glob, Edit or Write on `.env`.
+- Do **not** `cat` / `head` / `tail` / `less` / `grep` / `sed` / `awk` / `cp` it from Bash.
+- Do **not** `echo`, `printenv`, or otherwise print a secret **value** — not to check it, not to
+  confirm it loaded, not "just this once". Print a length or a boolean instead:
+  `[ -n "$VAR" ] && echo "set (${#VAR} chars)"`.
+- **Beware shell fallbacks**: `${VAR:-MISSING}` expands the value. Use `${VAR:+set}` instead.
+  This exact mistake leaked a live session cookie into a transcript on 2026-09-04.
+- The **one** permitted use is loading it for a tool to consume:
+  `set -a; . ./.env; set +a` — the values enter the environment, never the transcript.
+- If you need a value, ask the user. Never infer, echo, or reconstruct one.
+- To change `.env`, tell the user what to add. Do not edit it.
+
+`.env.example` is committed and safe to read and edit; keep it in sync with the keys the code reads.
+
 ## Never
 
 - Commit `.env`, `.dev-refs.md`, `.prp/`, `recon-out/`, model weights, or any secret
