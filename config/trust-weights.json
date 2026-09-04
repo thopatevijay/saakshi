@@ -1,0 +1,117 @@
+{
+  "$comment": [
+    "Trust score weights and curves (D1-06). Calibrated against the real ranges D1-05 measured",
+    "across all 30 sandbox cameras, not invented. docs/trust-score.md section 3 carries the",
+    "rationale for every number here.",
+    "",
+    "This file is config, not code: the acceptance criterion is that changing a weight changes the",
+    "scores with no code change, and trust-score.test.ts proves it by scoring identical signals",
+    "under two different weight sets.",
+    "",
+    "THE RULE THAT MATTERS MOST: a signal that cannot be judged is excluded from the denominator,",
+    "never scored zero. Unmeasurable is not bad. See `applicability` on each signal."
+  ],
+  "version": 1,
+  "bands": {
+    "$comment": "Ticket-specified. trusted >= 70, degraded 40-69, untrusted < 40, dead = unreachable.",
+    "trusted": 70,
+    "degraded": 40
+  },
+  "signals": {
+    "reachability": {
+      "weight": 30,
+      "$rationale": [
+        "The heaviest weight, because a camera that cannot be reached or decoded contributes",
+        "nothing at all — every other signal is a refinement on top of it. A registry that lists",
+        "dead cameras is worse than no registry, and this is the weight that says so.",
+        "Scored 0 when connectable but not decodable: answering the phone is not the same as",
+        "being usable."
+      ]
+    },
+    "focus": {
+      "weight": 25,
+      "curve": "log10",
+      "floor": 10.0,
+      "target": 250.0,
+      "$rationale": [
+        "Out-of-focus cameras produce no plate reads, so focus is second only to reachability.",
+        "LOG scale, and this is the point D1-05's handoff is emphatic about: blur_score spans",
+        "0.011 to 5794.088 across this estate — five orders of magnitude. On a linear map the",
+        "estate MEDIAN of 298.6 would score 5% of full marks and almost every working camera",
+        "would read as broken.",
+        "floor 10.0: below this the image carries no detectable structure. cam22 (0.011) and",
+        "cam09 (2.047) are the two real cameras under it, and both are independently unusable.",
+        "target 250.0: the level at which focus stops being the limiting factor. Set just BELOW\n        the measured estate median of 298.6 on purpose - putting the target exactly at the median\n        would leave half the estate short of full marks for being typical."
+      ]
+    },
+    "light": {
+      "weight": 20,
+      "darkMax": 40.0,
+      "usableMin": 60.0,
+      "blownMin": 235.0,
+      "$rationale": [
+        "Half an estate being useless after dark, with nobody knowing which half, is exactly the",
+        "blindness this pillar exists to expose.",
+        "darkMax 40.0: effectively black, scored zero. The recording runs ~21:00-09:00 and the",
+        "measured night frames sit near luma 90 — this estate is streetlit, not pitch dark, so a",
+        "threshold that fired on darkness would condemn most of it for most of its footage.",
+        "cam09 (8.40) and cam07 (38.22) are the two real cameras below it.",
+        "usableMin 60.0: full marks above this. The measured median is 92.7, so a typical camera",
+        "is comfortably clear and the ramp only bites on genuinely dim ones.",
+        "blownMin 235.0: a lamp or headlight staring into the lens is as unreadable as darkness."
+      ]
+    },
+    "tamper": {
+      "weight": 15,
+      "cleanMax": 0.05,
+      "severeMin": 0.33,
+      "$rationale": [
+        "Occlusion, freezing and spray paint. Weighted below focus and light because on this",
+        "estate it is the rarest failure: 24 of 30 cameras measured exactly 0.000.",
+        "cleanMax 0.05 / severeMin 0.35 are RE-DERIVED from measured data, which BL-01 assigned to",
+        "this ticket. The prober's own display flag sits at 0.60 and NOTHING on a real estate",
+        "reached it — the observed maximum is 0.388. A bar nothing can clear is not a detector.",
+        "0.33 puts BOTH genuinely degraded cameras (cam22 at 0.388, cam09 at 0.335) at or past",
+        "full penalty, where they belong, while 24 clean cameras at 0.000 are untouched.",
+        "This curve is the trust score's own; the prober's flag is a separate display concern and",
+        "is deliberately not changed from another ticket's worker."
+      ]
+    },
+    "frameRate": {
+      "weight": 10,
+      "adequateMin": 12.0,
+      "unusableMax": 4.0,
+      "divergencePenalty": 0.5,
+      "$rationale": [
+        "Two things at once: is the rate adequate for ANPR, and did the department's claim match.",
+        "adequateMin 12.0: below roughly 12 fps a vehicle crossing the frame yields too few",
+        "candidate frames for multi-frame plate voting (D2-01). Six real cameras sit under it,",
+        "cam30 lowest at 4.36.",
+        "unusableMax 4.0: at or below this a vehicle can cross the scene between frames.",
+        "divergencePenalty 0.5: halves this signal when measured and declared disagree by more",
+        "than the prober's threshold. A penalty, not a zero — a camera running at half its claimed",
+        "rate is still a working camera, it is the REGISTRY that is wrong, and the delta is",
+        "reported as a registry-accuracy finding rather than pretending the lens is at fault.",
+        "On this estate every declared_fps is NULL because the catalogue supplies only {id,name},",
+        "so nothing is currently penalised here — a camera whose owner declared nothing cannot be",
+        "caught lying, and that ABSENCE is itself the Pillar 1 finding."
+      ]
+    },
+    "clock": {
+      "weight": 10,
+      "driftMaxMs": 2000,
+      "applicability": "live-only",
+      "$rationale": [
+        "A camera with a wrong clock corrupts every route reconstruction it contributes to — it is",
+        "the one signal whose failure poisons OTHER cameras' answers rather than only its own,",
+        "which is why it carries weight despite being inapplicable here.",
+        "applicability live-only, and this is load-bearing: on a VOD source the same arithmetic",
+        "measures how fast the file was pulled. D1-05 measured 24,505 to 161,162 ms across this",
+        "estate — that is the gateway throttling, not thirty broken clocks.",
+        "Every sandbox row is VOD, so this weight is EXCLUDED from the denominator and the",
+        "remaining 90 are renormalised to 100. It is not scored as a loss. Scoring it would mean",
+        "every camera silently forfeits 10 points for being a recording behind a slow link."
+      ]
+    }
+  }
+}
