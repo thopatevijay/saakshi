@@ -8,7 +8,10 @@ services:
       POSTGRES_PASSWORD: saakshi
       POSTGRES_DB: saakshi
     ports: ["5432:5432"]
-    volumes: ["dbdata:/home/postgres/pgdata/data"]
+    volumes:
+      - "dbdata:/home/postgres/pgdata/data"
+      # Runs once, only when the data directory is empty. See db/init/00-extensions.sql.
+      - "./db/init:/docker-entrypoint-initdb.d:ro"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U saakshi"]
       interval: 5s
@@ -19,6 +22,10 @@ services:
     command: valkey-server --appendonly yes
     ports: ["6379:6379"]
     volumes: ["valkeydata:/data"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      retries: 20
 
   minio:
     image: minio/minio
@@ -28,17 +35,45 @@ services:
       MINIO_ROOT_PASSWORD: saakshi-dev-secret
     ports: ["9000:9000", "9001:9001"]
     volumes: ["miniodata:/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 5s
+      retries: 20
+
+  # One-shot: create the evidence bucket so a clean clone needs no console click.
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 saakshi saakshi-dev-secret &&
+      mc mb --ignore-existing local/saakshi-evidence &&
+      mc ls local
+      "
+    restart: "no"
 
   # Stream gateway / federation adapter target.
   # Same tool the organisers use to serve the sandbox: RTSP in -> HLS/WHEP out.
   mediamtx:
-    image: bluenviron/mediamtx:latest
+    # The `-ffmpeg` tag is Alpine-based. The plain `latest` tag is built FROM scratch: it has no
+    # shell and no wget, so a container healthcheck is impossible on it (verified 2026-09-04).
+    # The bundled ffmpeg also serves the video wall's transcode paths (D3-07).
+    image: bluenviron/mediamtx:latest-ffmpeg
     environment:
       MTX_PROTOCOLS: tcp
+      MTX_METRICS: "yes"
     ports:
       - "8554:8554"   # RTSP
       - "8889:8889"   # WebRTC / WHEP
       - "8888:8888"   # HLS
+      - "9998:9998"   # Prometheus metrics (auth-gated) — consumed by D3-10
+    healthcheck:
+      # TCP liveness on the primary ingest port. /metrics is auth-gated and returns 401, so it is
+      # not a usable probe target.
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8554"]
+      interval: 5s
+      retries: 20
 
   # Travel-time / road-graph engine for route reconstruction.
   # Prepare once:
