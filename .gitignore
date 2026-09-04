@@ -25,3 +25,4 @@ models/
 .dev-refs.md
 .prp/
 .claude/settings.local.json
+.claude/worktrees/
