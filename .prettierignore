@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+.next/
+.venv/
+recon-out/
+data/
+evidence/
+package-lock.json
+*.md
