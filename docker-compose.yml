@@ -7,23 +7,23 @@ services:
       POSTGRES_USER: saakshi
       POSTGRES_PASSWORD: saakshi
       POSTGRES_DB: saakshi
-    ports: ["5432:5432"]
+    ports: ['5432:5432']
     volumes:
-      - "dbdata:/home/postgres/pgdata/data"
+      - 'dbdata:/home/postgres/pgdata/data'
       # Runs once, only when the data directory is empty. See db/init/00-extensions.sql.
-      - "./db/init:/docker-entrypoint-initdb.d:ro"
+      - './db/init:/docker-entrypoint-initdb.d:ro'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U saakshi"]
+      test: ['CMD-SHELL', 'pg_isready -U saakshi']
       interval: 5s
       retries: 20
 
   valkey:
     image: valkey/valkey:8-alpine
     command: valkey-server --appendonly yes
-    ports: ["6379:6379"]
-    volumes: ["valkeydata:/data"]
+    ports: ['6379:6379']
+    volumes: ['valkeydata:/data']
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: ['CMD', 'valkey-cli', 'ping']
       interval: 5s
       retries: 20
 
@@ -33,10 +33,10 @@ services:
     environment:
       MINIO_ROOT_USER: saakshi
       MINIO_ROOT_PASSWORD: saakshi-dev-secret
-    ports: ["9000:9000", "9001:9001"]
-    volumes: ["miniodata:/data"]
+    ports: ['9000:9000', '9001:9001']
+    volumes: ['miniodata:/data']
     healthcheck:
-      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      test: ['CMD-SHELL', 'mc ready local || exit 1']
       interval: 5s
       retries: 20
 
@@ -51,7 +51,7 @@ services:
       mc mb --ignore-existing local/saakshi-evidence &&
       mc ls local
       "
-    restart: "no"
+    restart: 'no'
 
   # Stream gateway / federation adapter target.
   # Same tool the organisers use to serve the sandbox: RTSP in -> HLS/WHEP out.
@@ -62,16 +62,16 @@ services:
     image: bluenviron/mediamtx:latest-ffmpeg
     environment:
       MTX_PROTOCOLS: tcp
-      MTX_METRICS: "yes"
+      MTX_METRICS: 'yes'
     ports:
-      - "8554:8554"   # RTSP
-      - "8889:8889"   # WebRTC / WHEP
-      - "8888:8888"   # HLS
-      - "9998:9998"   # Prometheus metrics (auth-gated) — consumed by D3-10
+      - '8554:8554' # RTSP
+      - '8889:8889' # WebRTC / WHEP
+      - '8888:8888' # HLS
+      - '9998:9998' # Prometheus metrics (auth-gated) — consumed by D3-10
     healthcheck:
       # TCP liveness on the primary ingest port. /metrics is auth-gated and returns 401, so it is
       # not a usable probe target.
-      test: ["CMD", "nc", "-z", "127.0.0.1", "8554"]
+      test: ['CMD', 'nc', '-z', '127.0.0.1', '8554']
       interval: 5s
       retries: 20
 
@@ -85,9 +85,9 @@ services:
   osrm:
     image: osrm/osrm-backend
     command: osrm-routed --algorithm mld /data/gujarat-latest.osrm
-    volumes: ["./data:/data"]
-    ports: ["5000:5000"]
-    profiles: ["routing"]
+    volumes: ['./data:/data']
+    ports: ['5000:5000']
+    profiles: ['routing']
 
 volumes:
   dbdata:
