@@ -1,0 +1,51 @@
+externalId,name,departmentId,lat,lon,address,district,cameraType,mount,geometryClass,declaredCodec,declaredFps,declaredResolution,vendor,vmsPlatform,retentionDays,storageType,adapterKind
+GJ-AHM-0001,Chiman bhai Bridge,,23.026336,72.514452,"Chiman bhai Bridge, Ahmedabad, Gujarat",Ahmedabad,analog,static,anpr_viable,h264,30,640x480,Axis,CP Plus Orange,7,cloud,hls
+GJ-AHM-0002,Janpath Crossing,,23.023667,72.569358,"Janpath Crossing, Ahmedabad, Gujarat",Ahmedabad,ip,static,detection_only,h264,20,1280x960,Dahua,CP Plus Orange,90,local,hls
+GJ-AHM-0003,ONGC Office Circle,,23.046995,72.529055,"ONGC Office Circle, Ahmedabad, Gujarat",Ahmedabad,analog,static,unclassified,h264,18,1280x960,Honeywell,Hikvision iVMS-4200,15,local,hls
+GJ-AHM-0004,Paldi Circle,,23.008368,72.556489,"Paldi Circle, Ahmedabad, Gujarat",Ahmedabad,analog,static,anpr_viable,h264,25,640x480,Axis,CP Plus Orange,15,local,hls
+GJ-AHM-0005,Visat Teen Rasta,,23.085620,72.581095,"Visat Teen Rasta, Ahmedabad, Gujarat",Ahmedabad,ip,mobile,detection_only,h264,30,1280x960,Axis,Milestone XProtect,90,local,hls
+GJ-AHM-0006,CN Vidhyalaya P2 RLVD,,23.039577,72.547820,"CN Vidhyalaya P2 RLVD, Ahmedabad, Gujarat",Ahmedabad,ip,mobile,unclassified,h265,20,1280x720,Bosch,Hikvision iVMS-4200,30,cloud,onvif
+GJ-AHM-0007,Delight P1 RLVD,,23.037754,72.558988,"Delight P1 RLVD, Ahmedabad, Gujarat",Ahmedabad,ip,static,anpr_viable,h264,25,960x576,Bosch,Hikvision iVMS-4200,30,cloud,onvif
+GJ-AHM-0008,Nehrunagar Circle,,23.011164,72.533987,"Nehrunagar Circle, Ahmedabad, Gujarat",Ahmedabad,ip,static,detection_only,h265,20,854x480,Hikvision,Milestone XProtect,30,cloud,onvif
+GJ-AHM-0009,Shivranjani Crossroads,,23.014161,72.524623,"Shivranjani Crossroads, Ahmedabad, Gujarat",Ahmedabad,ip,static,unclassified,h265,25,1280x960,Honeywell,Hikvision iVMS-4200,30,cloud,hls
+GJ-AHM-0010,Iskcon Crossroads,,23.022012,72.507349,"Iskcon Crossroads, Ahmedabad, Gujarat",Ahmedabad,ip,mobile,anpr_viable,h264,25,1920x1080,Bosch,CP Plus Orange,15,local,hls
+GJ-AHM-0011,Vastrapur Lake,,23.036445,72.528283,"Vastrapur Lake, Ahmedabad, Gujarat",Ahmedabad,analog,static,detection_only,h264,30,960x576,Bosch,Genetec Security Center,15,local,hls
+GJ-AHM-0012,Gurukul Road,,23.046726,72.538985,"Gurukul Road, Ahmedabad, Gujarat",Ahmedabad,ip,static,unclassified,h264,12,854x480,Hikvision,Milestone XProtect,90,cloud,hls
+GJ-AHM-0013,Sabarmati Riverfront N,,23.063092,72.582419,"Sabarmati Riverfront N, Ahmedabad, Gujarat",Ahmedabad,ip,static,anpr_viable,h265,10,854x480,CP Plus,CP Plus Orange,15,cloud,hls
+GJ-AHM-0014,Kalupur Station Approach,,23.029917,72.604701,"Kalupur Station Approach, Ahmedabad, Gujarat",Ahmedabad,analog,static,detection_only,h264,12,854x480,Axis,Hikvision iVMS-4200,7,local,hls
+GJ-AHM-0015,Sarangpur Bridge,,23.026343,72.597604,"Sarangpur Bridge, Ahmedabad, Gujarat",Ahmedabad,ip,mobile,unclassified,h264,20,854x480,CP Plus,Hikvision iVMS-4200,30,local,hls
+GJ-GAN-0016,Tri Mandir Adalaj Tollnaka,,23.161717,72.582816,"Tri Mandir Adalaj Tollnaka, Gandhinagar, Gujarat",Gandhinagar,ip,static,anpr_viable,h264,10,640x480,Dahua,CP Plus Orange,15,local,hls
+GJ-GAN-0017,Sector 21 Circle,,23.215413,72.634441,"Sector 21 Circle, Gandhinagar, Gujarat",Gandhinagar,ip,static,detection_only,h264,10,1920x1080,CP Plus,Milestone XProtect,30,local,onvif
+GJ-GAN-0018,Infocity Crossroads,,23.187913,72.627584,"Infocity Crossroads, Gandhinagar, Gujarat",Gandhinagar,ip,mobile,unclassified,h264,10,1280x960,CP Plus,Hikvision iVMS-4200,30,local,rtsp
+GJ-GAN-0019,Sargasan Circle,,23.173502,72.627190,"Sargasan Circle, Gandhinagar, Gujarat",Gandhinagar,ip,mobile,anpr_viable,h265,20,1920x1080,Dahua,Milestone XProtect,7,local,hls
+GJ-GAN-0020,Ch-0 Highway Junction,,23.228348,72.650476,"Ch-0 Highway Junction, Gandhinagar, Gujarat",Gandhinagar,ip,mobile,detection_only,h264,18,1920x1080,Bosch,Hikvision iVMS-4200,30,local,rtsp
+GJ-JUN-0021,Timbavadi Gate,,21.512290,70.459418,"Timbavadi Gate, Junagadh, Gujarat",Junagadh,ip,static,unclassified,h265,10,1920x1080,Axis,Milestone XProtect,30,local,rtsp
+GJ-JUN-0022,Majewadi Gate,,21.521196,70.460181,"Majewadi Gate, Junagadh, Gujarat",Junagadh,ip,static,anpr_viable,h264,30,640x480,Honeywell,CP Plus Orange,7,local,hls
+GJ-JUN-0023,New Bypass 66KV FIX-2,,21.496838,70.438614,"New Bypass 66KV FIX-2, Junagadh, Gujarat",Junagadh,ip,mobile,detection_only,h265,18,1920x1080,Hikvision,CP Plus Orange,7,local,hls
+GJ-JUN-0024,Char Chowk Road,,21.515499,70.456362,"Char Chowk Road, Junagadh, Gujarat",Junagadh,ip,static,unclassified,h264,10,854x480,Bosch,Genetec Security Center,30,local,hls
+GJ-JUN-0025,Dolatpara Chokdi,,21.481582,70.466225,"Dolatpara Chokdi, Junagadh, Gujarat",Junagadh,ip,mobile,anpr_viable,h264,20,960x576,Dahua,Genetec Security Center,90,local,hls
+GJ-GIR-0026,Hero Showroom Gir Somnath,,20.912494,70.364748,"Hero Showroom Gir Somnath, Gir Somnath, Gujarat",Gir Somnath,ip,static,detection_only,h264,12,640x480,CP Plus,Genetec Security Center,30,local,hls
+GJ-JUN-0027,Tankal Crossing,,21.501823,70.484779,"Tankal Crossing, Junagadh, Gujarat",Junagadh,ip,mobile,unclassified,h264,30,640x480,Hikvision,CP Plus Orange,15,local,hls
+GJ-RAJ-0028,Kalwa Chowk,,22.303552,70.795223,"Kalwa Chowk, Rajkot, Gujarat",Rajkot,ip,static,anpr_viable,h264,20,640x480,Bosch,Hikvision iVMS-4200,30,local,rtsp
+GJ-RAJ-0029,Trikon Baug,,22.299582,70.801654,"Trikon Baug, Rajkot, Gujarat",Rajkot,ip,static,detection_only,h264,10,960x576,Dahua,Genetec Security Center,30,cloud,hls
+GJ-RAJ-0030,Gondal Road Bridge,,22.269279,70.791968,"Gondal Road Bridge, Rajkot, Gujarat",Rajkot,ip,static,unclassified,h265,20,1280x960,Hikvision,CP Plus Orange,7,local,hls
+GJ-AHM-0031,Chiman bhai Bridge #2,,23.026816,72.516372,"Chiman bhai Bridge #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,anpr_viable,h264,25,1920x1080,Bosch,CP Plus Orange,30,cloud,rtsp
+GJ-AHM-0032,Janpath Crossing #2,,23.021116,72.574895,"Janpath Crossing #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,detection_only,h265,25,640x480,Honeywell,Hikvision iVMS-4200,15,local,rtsp
+GJ-AHM-0033,ONGC Office Circle #2,,23.047930,72.533543,"ONGC Office Circle #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,unclassified,h264,12,1280x720,Hikvision,Genetec Security Center,30,local,hls
+GJ-AHM-0034,Paldi Circle #2,,23.013648,72.557600,"Paldi Circle #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,anpr_viable,h265,10,1280x720,CP Plus,Genetec Security Center,15,cloud,hls
+GJ-AHM-0035,Visat Teen Rasta #2,,23.087599,72.587025,"Visat Teen Rasta #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,detection_only,h264,30,640x480,Bosch,Hikvision iVMS-4200,7,local,rtsp
+GJ-AHM-0036,CN Vidhyalaya P2 RLVD #2,,23.035254,72.554250,"CN Vidhyalaya P2 RLVD #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,unclassified,h264,10,1280x960,CP Plus,Hikvision iVMS-4200,30,cloud,hls
+GJ-AHM-0037,Delight P1 RLVD #2,,23.037578,72.562886,"Delight P1 RLVD #2, Ahmedabad, Gujarat",Ahmedabad,analog,static,anpr_viable,h264,10,1280x960,Honeywell,Genetec Security Center,15,local,hls
+GJ-AHM-0038,Nehrunagar Circle #2,,23.009045,72.531599,"Nehrunagar Circle #2, Ahmedabad, Gujarat",Ahmedabad,ip,mobile,detection_only,h264,12,960x576,Bosch,Milestone XProtect,7,cloud,hls
+GJ-AHM-0039,Shivranjani Crossroads #2,,23.010168,72.526853,"Shivranjani Crossroads #2, Ahmedabad, Gujarat",Ahmedabad,analog,static,unclassified,h265,10,854x480,Dahua,CP Plus Orange,7,local,hls
+GJ-AHM-0040,Iskcon Crossroads #2,,23.023073,72.505906,"Iskcon Crossroads #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,anpr_viable,h265,18,640x480,Dahua,CP Plus Orange,30,cloud,onvif
+GJ-AHM-0041,Vastrapur Lake #2,,23.035122,72.530187,"Vastrapur Lake #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,detection_only,h264,10,854x480,CP Plus,Genetec Security Center,30,local,rtsp
+GJ-AHM-0042,Gurukul Road #2,,23.047504,72.540118,"Gurukul Road #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,unclassified,h264,20,1280x720,CP Plus,Genetec Security Center,90,local,hls
+GJ-AHM-0043,Sabarmati Riverfront N #2,,23.059267,72.582662,"Sabarmati Riverfront N #2, Ahmedabad, Gujarat",Ahmedabad,analog,mobile,anpr_viable,h264,12,1280x960,Dahua,Milestone XProtect,7,local,rtsp
+GJ-AHM-0044,Kalupur Station Approach #2,,23.028986,72.598295,"Kalupur Station Approach #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,detection_only,h265,20,1280x960,Dahua,Hikvision iVMS-4200,30,local,hls
+GJ-AHM-0045,Sarangpur Bridge #2,,23.025010,72.590307,"Sarangpur Bridge #2, Ahmedabad, Gujarat",Ahmedabad,ip,static,unclassified,h264,12,854x480,Bosch,Genetec Security Center,7,local,rtsp
+GJ-GAN-0046,Tri Mandir Adalaj Tollnaka #2,,23.163288,72.577136,"Tri Mandir Adalaj Tollnaka #2, Gandhinagar, Gujarat",Gandhinagar,analog,static,anpr_viable,h265,10,960x576,Hikvision,Milestone XProtect,30,local,onvif
+GJ-GAN-0047,Sector 21 Circle #2,,23.217219,72.633459,"Sector 21 Circle #2, Gandhinagar, Gujarat",Gandhinagar,analog,static,detection_only,h264,25,1920x1080,Bosch,Genetec Security Center,90,cloud,hls
+GJ-GAN-0048,Infocity Crossroads #2,,23.187938,72.625256,"Infocity Crossroads #2, Gandhinagar, Gujarat",Gandhinagar,ip,mobile,unclassified,h264,30,960x576,Dahua,CP Plus Orange,90,cloud,hls
+GJ-GAN-0049,Sargasan Circle #2,,23.176867,72.629942,"Sargasan Circle #2, Gandhinagar, Gujarat",Gandhinagar,ip,static,anpr_viable,h265,18,960x576,Bosch,CP Plus Orange,30,local,hls
+GJ-GAN-0050,Ch-0 Highway Junction #2,,23.228942,72.651879,"Ch-0 Highway Junction #2, Gandhinagar, Gujarat",Gandhinagar,ip,static,detection_only,h265,25,1920x1080,CP Plus,Genetec Security Center,30,local,hls

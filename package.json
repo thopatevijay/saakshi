@@ -2,7 +2,7 @@
   "name": "saakshi",
   "private": true,
   "version": "0.1.0",
-  "description": "SAAKSHI — AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
+  "description": "SAAKSHI \u2014 AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -24,7 +24,8 @@
     "db:migrate": "npm run db --workspace @saakshi/api -- migrate",
     "db:rollback": "npm run db --workspace @saakshi/api -- rollback",
     "db:reset": "npm run db --workspace @saakshi/api -- reset",
-    "db:status": "npm run db --workspace @saakshi/api -- status"
+    "db:status": "npm run db --workspace @saakshi/api -- status",
+    "bench:api": "npm run bench:api --workspace @saakshi/api"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

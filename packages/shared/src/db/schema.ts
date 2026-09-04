@@ -76,7 +76,9 @@ export const cameras = pgTable(
   'cameras',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    externalId: text('external_id').notNull().unique(),
+    // Unique per department, not globally: two departments may both call a camera 'cam01'.
+    // The constraint is `UNIQUE NULLS NOT DISTINCT (department_id, external_id)` — see 0010.
+    externalId: text('external_id').notNull(),
     name: text('name').notNull(),
     departmentId: uuid('department_id').references(() => departments.id, { onDelete: 'set null' }),
 
@@ -107,8 +109,13 @@ export const cameras = pgTable(
 
     onboardedAt: ts('onboarded_at').notNull().defaultNow(),
     updatedAt: ts('updated_at').notNull().defaultNow(),
+    // Soft delete. A decommissioned camera is still the provenance of every sighting and alert
+    // already attached to it, so the row never goes.
+    deletedAt: ts('deleted_at'),
   },
   (t) => [
+    uniqueIndex('cameras_department_external_uk').on(t.departmentId, t.externalId),
+    index('cameras_external_id_idx').on(t.externalId),
     index('cameras_department_idx').on(t.departmentId),
     index('cameras_district_idx').on(t.district),
     index('cameras_status_idx').on(t.status),

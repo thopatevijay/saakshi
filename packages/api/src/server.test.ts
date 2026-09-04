@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { FastifyInstance } from 'fastify';
-import { buildServer } from './server.js';
+import { buildServer, type App } from './server.js';
 import { loadEnv } from './env.js';
 
 describe('GET /health', () => {
-  let app: FastifyInstance;
+  let app: App;
 
   beforeAll(async () => {
-    app = buildServer(loadEnv({ NODE_ENV: 'test' }));
+    // No `db`, so the registry routes are not registered: health must not depend on a database.
+    app = await buildServer({ env: loadEnv({ NODE_ENV: 'test' }) });
     await app.ready();
   });
 
@@ -21,6 +21,10 @@ describe('GET /health', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ status: 'ok', service: 'saakshi-api' });
   });
+
+  it('needs no authentication — it is a liveness probe', async () => {
+    expect((await app.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+  });
 });
 
 describe('loadEnv', () => {
@@ -30,5 +34,9 @@ describe('loadEnv', () => {
 
   it('rejects an unknown query compiler provider', () => {
     expect(() => loadEnv({ NODE_ENV: 'test', QUERY_COMPILER: 'gemini' })).toThrow(/QUERY_COMPILER/);
+  });
+
+  it('rejects a JWT secret that is too short to be one', () => {
+    expect(() => loadEnv({ NODE_ENV: 'test', JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);
   });
 });

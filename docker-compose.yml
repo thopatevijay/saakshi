@@ -7,6 +7,11 @@ services:
       POSTGRES_USER: saakshi
       POSTGRES_PASSWORD: saakshi
       POSTGRES_DB: saakshi
+    # The image default is max_connections=100, which DATABASE_POOL_MAX=50 plus a second API
+    # instance plus psql exhausts — and the failure mode is misleading: the API returns 500s that
+    # look like application errors while the log says `FATAL: sorry, too many clients already`.
+    # 300 leaves room for several instances, the workers, and a human with a psql session.
+    command: ['-c', 'max_connections=300']
     ports: ['5432:5432']
     volumes:
       - 'dbdata:/home/postgres/pgdata/data'
