@@ -67,7 +67,7 @@ erDiagram
         numeric trust_score "NULL = never probed"
     }
     camera_health_checks {
-        uuid camera_id PK_FK
+        uuid camera_id PK, FK
         timestamptz checked_at PK "HYPERTABLE, 7d chunks"
         boolean connectable
         boolean decodable
@@ -82,7 +82,7 @@ erDiagram
         jsonb breakdown "explainability"
     }
     camera_coverage {
-        uuid camera_id PK_FK
+        uuid camera_id PK, FK
         geography fov_polygon "Polygon,4326 · GiST"
         bigint covered_road_ids "array"
     }
@@ -120,7 +120,7 @@ erDiagram
         integer sighting_count
     }
     identity_sightings {
-        uuid identity_id PK_FK
+        uuid identity_id PK, FK
         uuid sighting_id PK "no FK"
         timestamptz sighting_ts
         link_method link_method
@@ -158,7 +158,7 @@ erDiagram
         jsonb params
     }
     route_segments {
-        uuid route_id PK_FK
+        uuid route_id PK, FK
         integer seq PK
         uuid from_sighting_id "no FK"
         uuid to_sighting_id "no FK"

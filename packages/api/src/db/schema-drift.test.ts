@@ -66,8 +66,18 @@ beforeAll(async () => {
     await rawSql`select 1`;
     reachable = true;
   } catch {
-    console.warn(
-      '[schema-drift] database unreachable — skipping. Run `make up && npm run db:migrate`.',
+    console.warn('[schema-drift] database unreachable — skipping. Run `make up && make migrate`.');
+    return;
+  }
+
+  // Reachable but unmigrated is a different situation from unreachable, and it must not pass
+  // quietly: an empty database would satisfy nothing here while looking like a clean run.
+  const ledger = await rawSql<{ n: string }[]>`
+    select count(*)::text as n from information_schema.tables
+    where table_schema = 'public' and table_name = 'schema_migrations'`;
+  if (ledger[0]?.n === '0') {
+    throw new Error(
+      'database is reachable but has no migrations applied — run `make migrate` (npm run db:migrate)',
     );
   }
 });
