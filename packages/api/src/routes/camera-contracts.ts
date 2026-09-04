@@ -198,11 +198,25 @@ export const BulkImportReport = z.object({
 });
 export type BulkImportReport = z.infer<typeof BulkImportReport>;
 
+/**
+ * The report an on-demand catalogue sync returns. It is D1-04's `SyncReport` in wire form, and the
+ * identical row is persisted and readable at `GET /api/v1/sync/reports`.
+ *
+ * `created` is D1-02's original field name, kept as an alias of `added` so an existing client does
+ * not break; `added` is the name the persisted report and every downstream consumer use.
+ */
 export const CatalogueOnboardReport = z.object({
+  runId: z.uuid(),
   source: z.string(),
+  /** Which tolerant-parse strategy matched — 'array', 'wrapped:cameras', … */
+  shape: z.string().nullable(),
   fetched: z.number().int().nonnegative(),
   created: z.number().int().nonnegative(),
+  added: z.number().int().nonnegative(),
   updated: z.number().int().nonnegative(),
+  unchanged: z.number().int().nonnegative(),
+  wentAbsent: z.number().int().nonnegative(),
+  returned: z.number().int().nonnegative(),
   rejected: z.array(BulkRowError),
 });
 

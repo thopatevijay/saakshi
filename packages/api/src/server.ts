@@ -20,6 +20,7 @@ import type { Env } from './env.js';
 import type { Db } from './db/client.js';
 import { registerCameraRoutes } from './routes/cameras.js';
 import { registerDepartmentRoutes } from './routes/departments.js';
+import { registerSyncRoutes } from './routes/sync.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -117,6 +118,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
           description: 'Registry CRUD, bulk import, catalogue onboarding, export',
         },
         { name: 'departments', description: 'Owning departments' },
+        { name: 'sync', description: 'Catalogue ingest runs and their reports' },
         { name: 'health', description: 'Liveness' },
       ],
     },
@@ -143,6 +145,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       ...(options.fetchCatalogue !== undefined ? { fetchCatalogue: options.fetchCatalogue } : {}),
     });
     registerDepartmentRoutes(app, { db });
+    registerSyncRoutes(app, { db });
   }
 
   return app;

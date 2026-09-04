@@ -12,7 +12,8 @@
     "db": "tsx src/db/migrate.ts",
     "bench:api": "tsx src/bench/api.ts",
     "test": "vitest run --root ../..",
-    "adapter:probe": "tsx src/adapters/probe-cli.ts"
+    "adapter:probe": "tsx src/adapters/probe-cli.ts",
+    "sync:catalogue": "tsx src/jobs/catalogue-sync-cli.ts"
   },
   "dependencies": {
     "@fastify/jwt": "^10.2.2",

@@ -17,6 +17,7 @@ import {
   Paginated,
 } from './camera-contracts.js';
 import { detectFormat, parseCsv, parseJsonRows, validateBatch } from './bulk-import.js';
+import { syncCatalogue } from '../jobs/catalogue-sync.js';
 import { z } from 'zod';
 
 /**
@@ -363,6 +364,11 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   );
 
   // ── POST /cameras/onboard-from-catalogue ──────────────────────────────────────────────────────
+  //
+  // On-demand catalogue sync. D1-02 shipped this endpoint over `importBatch`, which wrote
+  // `retentionDays: camera.retentionDays ?? null` and so **erased local enrichment on every call**
+  // — exactly what D1-04's AC 3 forbids. It now runs the same `syncCatalogue` job as the CLI and
+  // the scheduler, so there is one implementation of "what a re-sync does" rather than three.
   app.post(
     '/api/v1/cameras/onboard-from-catalogue',
     {
@@ -370,10 +376,11 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
       preHandler: [requireRole(WRITE_ROLES)],
       schema: {
         tags: ['cameras'],
-        summary: 'Pull the upstream catalogue and upsert it into the registry',
+        summary: 'Pull the upstream catalogue and sync it into the registry',
         body: z
           .object({
             departmentId: z.uuid().nullish(),
+            /** Applied to newly created cameras only; never overwrites an operator's choice. */
             adapterKind: z.enum(['hls', 'rtsp', 'onvif', 'whep', 'nvr', 'file']).default('hls'),
           })
           .default({ adapterKind: 'hls' }),
@@ -388,67 +395,50 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
     async (request, reply) => {
       // GET /api/ingest is the contract; the URL pattern is not. It comes from config so a changed
       // upstream shape is a config edit, never a code change.
-      const source = env.SENTINEL_INGEST_URL ?? `https://${env.SENTINEL_HOST}/cameras.json`;
       if (env.SENTINEL_HOST === undefined && env.SENTINEL_INGEST_URL === undefined) {
         return reply.code(502).send({
           error: 'bad_gateway',
           message: 'neither SENTINEL_INGEST_URL nor SENTINEL_HOST is configured',
         });
       }
+      const source = env.SENTINEL_INGEST_URL ?? `https://${String(env.SENTINEL_HOST)}/cameras.json`;
 
-      let payload: unknown;
       try {
-        const fetcher = deps.fetchCatalogue ?? defaultFetchCatalogue;
-        payload = await fetcher(source, env.SENTINEL_PORTAL_COOKIE ?? '');
+        const report = await syncCatalogue(db, {
+          source,
+          trigger: 'api',
+          adapterKind: request.body.adapterKind,
+          departmentId: request.body.departmentId ?? null,
+          ...(env.SENTINEL_PORTAL_COOKIE === undefined
+            ? {}
+            : { cookie: env.SENTINEL_PORTAL_COOKIE }),
+          ...(request.principal === undefined ? {} : { principal: request.principal }),
+          ...(deps.fetchCatalogue === undefined ? {} : { fetchCatalogue: deps.fetchCatalogue }),
+        });
+
+        return {
+          runId: report.runId,
+          source: report.source,
+          shape: report.shape,
+          fetched: report.fetched,
+          // `created` is kept as the alias D1-02 published; `added` is the name the sync report and
+          // every downstream consumer use.
+          created: report.added,
+          added: report.added,
+          updated: report.updated,
+          unchanged: report.unchanged,
+          wentAbsent: report.wentAbsent,
+          returned: report.returned,
+          rejected: report.rejections,
+        };
       } catch (err) {
+        // A failed run is already persisted by the job — including the raw payload when the shape
+        // was the problem — so the operator can read what arrived at GET /api/v1/sync/reports.
         return reply.code(502).send({
           error: 'bad_gateway',
-          message: `catalogue fetch failed: ${err instanceof Error ? err.message : 'unknown'}`,
+          message: err instanceof Error ? err.message : 'catalogue sync failed',
         });
       }
-
-      // The deployed sandbox returns [{id,name}] and nothing else — no codec, no fps, no live
-      // status, despite what the Integrator's Guide describes. Both shapes are accepted, and every
-      // field beyond id/name stays null rather than being invented.
-      const CatalogueEntry = z.object({
-        id: z.union([z.string(), z.number()]).transform(String),
-        name: z.string().optional(),
-      });
-      const entries = z
-        .union([z.array(CatalogueEntry), z.object({ cameras: z.array(CatalogueEntry) })])
-        .transform((v) => (Array.isArray(v) ? v : v.cameras))
-        .safeParse(payload);
-
-      if (!entries.success) {
-        return reply.code(502).send({
-          error: 'bad_gateway',
-          message: 'catalogue payload did not match [{id,name}] or {cameras:[{id,name}]}',
-        });
-      }
-
-      const batch = validateBatch(
-        entries.data.map((e, idx) => ({
-          row: idx + 1,
-          raw: {
-            externalId: e.id,
-            name: e.name ?? e.id,
-            adapterKind: request.body.adapterKind,
-            ...(request.body.departmentId !== null && request.body.departmentId !== undefined
-              ? { departmentId: request.body.departmentId }
-              : {}),
-          },
-        })),
-      );
-
-      const result = await importBatch(db, batch.valid, request.principal, 'catalogue');
-
-      return {
-        source,
-        fetched: entries.data.length,
-        created: result.created,
-        updated: result.updated,
-        rejected: batch.rejected,
-      };
     },
   );
 
@@ -840,17 +830,4 @@ async function importBatch(
 
     return { created, updated };
   });
-}
-
-async function defaultFetchCatalogue(url: string, cookie: string): Promise<unknown> {
-  const response = await fetch(url, {
-    headers: {
-      // Cloudflare rejects a default programmatic UA on the sandbox host, and every path 302s
-      // without the session cookie. Both were established during recon (D0-01).
-      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128',
-      ...(cookie === '' ? {} : { cookie }),
-    },
-  });
-  if (!response.ok) throw new Error(`upstream returned ${String(response.status)}`);
-  return response.json();
 }
