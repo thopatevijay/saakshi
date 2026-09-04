@@ -46,23 +46,46 @@ git clone https://github.com/thopatevijay/saakshi.git && cd saakshi
 cp .env.example .env          # then fill in the Sentinel sandbox values
 make up                       # db · valkey · minio · mediamtx, waits for healthy
 make install                  # creates .venv if missing, then npm workspaces + Python deps
+make migrate                  # schema + seed (5 departments, 4 users)
 make dev                      # API on :4000, web on :3000
 ```
 
 `make install` creates `.venv` on **python3.13** when it does not exist — the venv is gitignored, so
 a fresh clone has none. `make dev` builds `@saakshi/shared` before starting either server; without
 that step `packages/web` cannot resolve the workspace package and returns HTTP 500.
+**`make migrate` is not optional**: the test suite asserts the live schema, so it fails on a
+reachable-but-empty database.
 
 Verify:
 
 ```bash
 make ps                                   # four containers, all (healthy)
+make db-status                            # nine migrations, all applied
 curl -fsS localhost:4000/health           # {"status":"ok","service":"saakshi-api",...}
 curl -fsSI localhost:3000 | head -1       # HTTP/1.1 200 OK
 make verify                               # typecheck + lint + test
 ```
 
 `make help` lists every target.
+
+### Database
+
+Schema, ER diagram and the reasoning behind the three non-obvious decisions:
+[`docs/data-model.md`](docs/data-model.md).
+
+| | |
+|---|---|
+| `make migrate` | apply pending migrations (idempotent) |
+| `make rollback` | revert the newest migration · `ROLLBACK_ALL=1 make rollback` reverts all |
+| `make db-reset` | drop and recreate `public`, then migrate — **destroys all data** |
+| `make db-status` | applied vs pending |
+
+Migrations are paired `db/migrations/NNNN_name.{up,down}.sql`, each applied in one transaction with
+its checksum recorded. Editing an already-applied migration fails loudly rather than leaving two
+databases at the same version with different shapes.
+
+Seed logins are **development only** — all four users have the password `saakshi-dev`. They are not
+deployed; judge credentials are issued separately (D4-02).
 
 ### Services
 

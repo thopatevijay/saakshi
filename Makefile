@@ -1,5 +1,6 @@
 .DEFAULT_GOAL := help
-.PHONY: help up down logs ps psql install dev build typecheck lint format test venv venv-create verify clean
+.PHONY: help up down logs ps psql migrate rollback db-reset db-status install dev build \
+        typecheck lint format test venv venv-create verify clean
 
 PY := ./.venv/bin/python
 # python3.13 by name, not `python3`: Homebrew's default is 3.14 + PEP 668 and has no reliable
@@ -24,6 +25,18 @@ logs:  ## Tail all container logs
 
 psql:  ## Open a psql shell against the local database
 	set -a; . ./.env; set +a; psql "$$DATABASE_URL"
+
+migrate:  ## Apply pending migrations (idempotent)
+	set -a; . ./.env; set +a; npm run db:migrate
+
+rollback:  ## Revert the newest applied migration (ROLLBACK_ALL=1 for every one)
+	set -a; . ./.env; set +a; npm run db:rollback $(if $(ROLLBACK_ALL),-- --all,)
+
+db-reset:  ## Drop and recreate the public schema, then migrate. DESTROYS ALL DATA
+	set -a; . ./.env; set +a; npm run db:reset
+
+db-status:  ## List applied vs pending migrations
+	set -a; . ./.env; set +a; npm run db:status
 
 venv-create:  ## Create .venv on python3.13 if it is missing
 	@test -x $(PY) || { \
