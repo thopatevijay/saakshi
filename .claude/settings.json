@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "claudeMdExcludes": [
+    "/Users/vijay/hackathons/CLAUDE.md",
+    "/Users/vijay/hackathons/CLAUDE.local.md",
+    "/Users/vijay/hackathons/.claude/rules/anchor.md",
+    "/Users/vijay/hackathons/.claude/rules/rust.md",
+    "/Users/vijay/hackathons/.claude/rules/pinocchio.md",
+    "/Users/vijay/hackathons/.claude/rules/dotnet.md",
+    "/Users/vijay/hackathons/.claude/rules/typescript.md"
+  ]
+}

@@ -21,3 +21,4 @@ models/
 *.onnx
 .dev-refs.md
 .prp/
+.claude/settings.local.json
