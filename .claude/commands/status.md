@@ -53,8 +53,12 @@ Produce a short, decision-oriented summary:
 
 1. **Day / milestone position** vs the calendar. The deadline is **7 Sep 2026**, submission by
    midday. State whether we are ahead, on track, or behind — and by how much.
-2. **In flight** — anything with `status:in-progress`. If a PRP exists in `.prp/` for a ticket that
-   is not in flight, that is interrupted work: say so and recommend resuming it.
+2. **In flight** — anything with `status:in-progress`.
+   **Interrupted work** is a PRP in `.prp/` for a ticket that is *not* labelled in-flight, or a
+   remote `feat/*` branch with no open PR. Both mean a session died mid-ticket. Say which, and give
+   the exact recovery: `git checkout <branch>` then `/start <TICKET-ID>` — `/start` is idempotent and
+   resumes an existing branch by reading `git log --oneline main..HEAD` first. Never start a new
+   ticket while interrupted work is outstanding.
 3. **Blocked** — each one, with what would unblock it (read the blocked comment).
 4. **Next up** — the lowest-numbered open ticket whose blockers are all closed. Give the exact
    command: `/start <TICKET-ID>`.

@@ -36,8 +36,19 @@ producing a deliverable.
 
 4. Apply the **triage rule** and act accordingly:
    - **Blocks the current ticket's AC** -> fix it now, and still log it here.
-   - **Breaks a later ticket** -> log here, *and* post a `blocker` comment on that ticket so a
-     future session sees it before starting.
+   - **Breaks a later ticket** -> log here, *and* post a blocker comment on that ticket so a
+     future session sees it before starting. **This is the step that gets skipped, and skipping it
+     is what makes the handoff system fail silently** — a session running `/start D3-06` cold reads
+     *its own* issue's comments, never a closed ticket's handoff:
+
+     ```bash
+     gh issue comment <downstream issue> -R thopatevijay/saakshi \
+       --body "### ⚠ Blocker note from <THIS-TICKET> — read before starting
+     <the specific thing, and what to do instead>"
+     ```
+
+     Resolve the downstream number the same way: `issue-map.json`. If the finding names more than
+     one later ticket, comment on each.
    - **Neither** -> log and defer. Do not touch it.
 
 5. Post the entry:
@@ -55,7 +66,8 @@ EOF
 6. If the finding invalidates something written in `PROJECT.md`, **correct `PROJECT.md` in the same
    commit as the current ticket's work.** A stale spec is worse than no spec — later sessions trust it.
 
-7. Confirm to the user in one line: what was logged, its type, and its action.
+7. Confirm to the user in one line: what was logged, its type, its action, and **which downstream
+   tickets were commented on** (or that none applied).
 
 ## Do not
 

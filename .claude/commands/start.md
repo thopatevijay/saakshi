@@ -151,6 +151,25 @@ Re-read the issue body. Then, **mechanically**:
    git diff --cached --name-only | grep -E '^\.env$|^\.dev-refs\.md$' && echo "SECRET STAGED - STOP"
    ```
 
+### When a gate command is *stale* rather than failing
+
+Gates were written before the code existed, so some describe a system that changed. This has already
+happened three times — a 10-minute window on a sweep that takes 23.6 minutes, a `curl` with no auth
+header written before the RBAC matrix landed, a `status='absent'` against an enum with no such value.
+
+A stale command is **not** licence to skip it. Do all four of these:
+
+1. **Run it verbatim anyway** and record the real output, including the failure.
+2. **Satisfy the underlying checkbox by other means** and show that evidence — the checkbox is the
+   acceptance criterion; the command is one way of reaching it.
+3. **Say plainly in the PR and the done note** that the command as written no longer matches the
+   system, and why. Never quietly widen an interval, add a flag, or weaken auth to make a literal
+   command pass.
+4. **Log it to `BL-01`**, and post a blocker note on any later ticket whose gate has the same shape.
+
+The rule: change the *evidence*, never the *standard*. If satisfying the checkbox is impossible
+rather than merely awkward, that is Phase 8-BLOCKED.
+
 **If any AC or gate command fails: do not proceed to Phase 7.** Either fix it, or go to
 Phase 8-BLOCKED. There is no partial pass.
 
@@ -190,8 +209,26 @@ The **done note** is the durable handoff record. It must contain:
 **This comment is the handoff mechanism.** A future session with zero context reads it. Be specific:
 real measured values, real type shapes, real endpoint contracts — never "see the code".
 
-Then log any findings to the backlog (`/backlog`), and delete `.prp/<TICKET-ID>.md` only after the
-handoff comment is posted — the comment is the durable record, the PRP is scratch.
+Then log findings to the backlog — and **do the cross-ticket half, which is the part that gets
+skipped**:
+
+```bash
+# 1. The running log, always.
+gh issue comment <BL-01 number> -R thopatevijay/saakshi --body "<entry>"
+
+# 2. For every finding that breaks a LATER ticket, comment on THAT ticket too.
+gh issue comment <downstream issue> -R thopatevijay/saakshi \
+  --body "### ⚠ Blocker note from <THIS-TICKET> — read before starting
+  <the specific thing, and what to do instead>"
+```
+
+**Why both.** A future session running `/start D3-06` cold reads **its own** issue's comments. A
+warning that lives only in `BL-01` and in a closed ticket's handoff is a warning it will never see —
+which makes the handoff system *look* like it works while quietly failing. If a finding is worth
+logging and names a downstream ticket, it gets a comment on that ticket. No exceptions.
+
+Delete `.prp/<TICKET-ID>.md` only after the handoff comment is posted — the comment is the durable
+record, the PRP is scratch.
 
 ## Phase 8-BLOCKED — when a ticket cannot complete
 

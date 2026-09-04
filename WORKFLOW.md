@@ -19,6 +19,12 @@ context** and keep building. Nothing important lives in a conversation.
 **The rule:** if a fact matters to a later ticket, it goes in an **issue comment**, not only in a
 gitignored file and never only in a chat.
 
+**The corollary, which is easy to miss:** a fact that matters to *one specific* later ticket goes in
+a comment on **that ticket**, not only on the closing ticket and `BL-01`. A session running
+`/start D3-06` cold reads **its own** issue's comments — it has no reason to open a closed ticket's
+handoff. A warning filed only upstream is a warning that will never be read, which makes the handoff
+system *look* like it works while quietly failing.
+
 ## One-time setup
 
 ```bash
@@ -69,11 +75,19 @@ Findings go to `/backlog` as you hit them. `D4-08` turns them into the deck's
   closed as *deferred* with a roadmap entry; non-bonus ACs may not.
 - Commits: conventional messages, no Claude co-author or "generated with" trailer, small and frequent.
 - Never commit `.env`, `.dev-refs.md`, `recon-out/`, model weights, or any secret.
+- A **stale** gate command — one describing a system that has since changed — is still run verbatim
+  and its real output recorded. Satisfy the underlying checkbox by other means, say so plainly, and
+  log it. **Change the evidence, never the standard.** Never widen an interval, add a flag, or weaken
+  auth to make a literal command pass.
+- A finding that breaks a later ticket gets a comment on **that** ticket as well as on `BL-01`.
 
 ## Resuming cold — what a fresh session does
 
 1. `/status`
-2. If a `.prp/` file exists for a ticket not marked in-flight → interrupted work; resume that branch.
+2. Interrupted work first: a `.prp/` file for a ticket **not** labelled in-flight, or a remote
+   `feat/*` branch with no open PR. Either means a session died mid-ticket —
+   `git checkout <branch>` then `/start <TICKET-ID>`, which resumes an existing branch rather than
+   restarting it. Never open a new ticket while one is half-landed.
 3. Otherwise `/start` the lowest-numbered open ticket whose blockers are all closed.
 4. Before writing code, read the blockers' **handoff comments**. They carry the measured numbers,
    type shapes and endpoint contracts the ticket depends on.
