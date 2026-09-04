@@ -308,8 +308,13 @@ def _probe_open_container(
                 "night_usable": signals.night_usable(luma, blur, thresholds),
             },
             "pts_drift_meaning": (
-                "vod_pull_rate_skew — content was pulled faster than real time; this is a property "
-                "of the network, not of the camera's clock. Do not score it."
+                # Measured on the real estate: cam01 +2,400 ms and cam12 +98,780 ms for ~10 s of
+                # content. Positive, and large — we pulled the recording *slower* than real time,
+                # because the gateway throttles. Calling that a clock fault would condemn the whole
+                # estate for the network's behaviour.
+                "vod_pull_rate_skew — the sign is the direction: positive means the file arrived "
+                "slower than real time (a throttled upstream), negative means faster. Either way "
+                "this is a property of the network, not of the camera's clock. Do not score it."
                 if is_vod
                 else "live_clock_drift — encoder clock against wall clock. Score it: a wrong clock "
                 "corrupts every route reconstruction this camera contributes to."

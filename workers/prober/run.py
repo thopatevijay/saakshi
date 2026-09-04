@@ -21,7 +21,7 @@ import os
 import sys
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
 
 from . import db
@@ -106,16 +106,25 @@ def run_pass(
 
         log.info("pass %s: probing %d cameras, pool=%d", pass_id[:8], len(cameras), pool)
 
+        # Each result is written as it arrives, not batched at the end of the sweep.
+        #
+        # `probe_camera` closes its container before returning, so nothing holds a decoder handle
+        # while the row is written — batching would buy nothing and cost everything: a sweep that
+        # died on camera 28 of 30 would leave no record that the first 27 were ever probed, and at
+        # 80,000 cameras it would hold every result in memory to do it.
+        results: list[ProbeResult] = []
         with ThreadPoolExecutor(max_workers=pool) as executor:
-            results = list(executor.map(lambda c: probe_one(c, thresholds, max_wall_s), cameras))
-
-        # Writes happen after the sweep, on one connection, so a slow database cannot hold decoder
-        # handles open — the leak this ordering prevents is the one the AC names.
-        for index, (camera, result) in enumerate(zip(cameras, results)):
-            stamped = replace(result, breakdown={**result.breakdown, "pass_id": pass_id})
-            db.insert_health_check(conn, camera.id, stamped)
-            results[index] = stamped
-        conn.commit()
+            futures = {
+                executor.submit(probe_one, camera, thresholds, max_wall_s): camera
+                for camera in cameras
+            }
+            for future in as_completed(futures):
+                camera = futures[future]
+                result = future.result()
+                stamped = replace(result, breakdown={**result.breakdown, "pass_id": pass_id})
+                db.insert_health_check(conn, camera.id, stamped)
+                conn.commit()
+                results.append(stamped)
 
     elapsed = time.monotonic() - started
     log.info(

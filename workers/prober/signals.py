@@ -122,10 +122,12 @@ def pts_drift_ms(pts_span_s: float, wall_span_s: float) -> int:
     with a wrong clock corrupts every route reconstruction it contributes to, which is somebody
     else's answer being wrong rather than its own.
 
-    On a **VOD** source — which is what the sandbox serves — the same arithmetic measures how much
-    faster than real time the file was pulled, a property of the network. The number is reported
-    honestly either way and `breakdown.pts_drift_meaning` records which one it is, so D1-06 can
-    score the live case without condemning an entire estate for being a recording.
+    On a **VOD** source — which is what the sandbox serves — the same arithmetic measures pull-rate
+    skew, a property of the network. Positive means the file arrived slower than real time, negative
+    means faster. Measured on this estate: `cam01` +2,400 ms and `cam12` +98,780 ms across ~10 s of
+    content, because the gateway throttles. The number is reported honestly either way and
+    `breakdown.pts_drift_meaning` records which of the two it is, so D1-06 can score the live case
+    without condemning an entire estate for being a recording behind a slow link.
     """
     return int(round((wall_span_s - pts_span_s) * 1000.0))
 
