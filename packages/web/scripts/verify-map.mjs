@@ -38,9 +38,13 @@ if (!databaseUrl) throw new Error('DATABASE_URL is required — this script chec
 
 const psql = (query) =>
   JSON.parse(
-    execFileSync('psql', [databaseUrl, '-tAc', `select coalesce(json_agg(t), '[]') from (${query}) t`], {
-      encoding: 'utf8',
-    }).trim(),
+    execFileSync(
+      'psql',
+      [databaseUrl, '-tAc', `select coalesce(json_agg(t), '[]') from (${query}) t`],
+      {
+        encoding: 'utf8',
+      },
+    ).trim(),
   );
 
 const apiGet = (path) =>
@@ -71,7 +75,9 @@ const dbUnplaced = psql(`
   select count(*)::int as n from cameras where deleted_at is null and location is null`)[0].n;
 
 /** Every feature the map is holding, read straight off the live GeoJSON source. */
-const onMap = await cdp.evaluate(`(() => {
+const onMap = await cdp
+  .evaluate(
+    `(() => {
   const data = window.__saakshiFeatures;
   return JSON.stringify(data.features.map((f) => ({
     externalId: f.properties.externalId,
@@ -79,7 +85,9 @@ const onMap = await cdp.evaluate(`(() => {
     lat: f.geometry.coordinates[1],
     band: f.properties.band,
   })));
-})()`).then(JSON.parse);
+})()`,
+  )
+  .then(JSON.parse);
 
 check(
   onMap.length === inDb.length,
@@ -108,16 +116,16 @@ check(
   `every one of the ${String(inDb.length)} coordinates matches ST_X/ST_Y from PostGIS to 1e-6°`,
 );
 
-const trayCount = await cdp.evaluate(
-  `document.querySelectorAll('[data-unplaced]').length`,
-);
+const trayCount = await cdp.evaluate(`document.querySelectorAll('[data-unplaced]').length`);
 check(
   trayCount === dbUnplaced,
   `the ${String(dbUnplaced)} cameras PostGIS has no location for are listed in the tray, not dropped (${String(trayCount)} rows)`,
 );
 
 // Clustering: statewide must aggregate, street level must not.
-const statewide = await cdp.evaluate(`(async () => {
+const statewide = await cdp
+  .evaluate(
+    `(async () => {
   window.__saakshiMap.jumpTo({ center: [71.7, 22.4], zoom: 6 });
   await new Promise((r) => window.__saakshiMap.once('idle', r));
   const f = window.__saakshiMap.queryRenderedFeatures({ layers: ['clusters', 'camera-pins'] });
@@ -126,14 +134,18 @@ const statewide = await cdp.evaluate(`(async () => {
     clustered: f.reduce((n, x) => n + (x.properties.point_count ?? 0), 0),
     singles: f.filter((x) => x.properties.point_count === undefined).length,
   });
-})()`).then(JSON.parse);
+})()`,
+  )
+  .then(JSON.parse);
 console.log(`  z6  ${JSON.stringify(statewide)}`);
 check(
   statewide.clusters > 0,
   `clustering works at statewide zoom — ${String(statewide.clusters)} clusters covering ${String(statewide.clustered)} cameras`,
 );
 
-const street = await cdp.evaluate(`(async () => {
+const street = await cdp
+  .evaluate(
+    `(async () => {
   window.__saakshiMap.jumpTo({ center: [72.5714, 23.0225], zoom: 14 });
   await new Promise((r) => window.__saakshiMap.once('idle', r));
   const f = window.__saakshiMap.queryRenderedFeatures({ layers: ['clusters', 'camera-pins'] });
@@ -141,7 +153,9 @@ const street = await cdp.evaluate(`(async () => {
     clusters: f.filter((x) => x.properties.point_count !== undefined).length,
     singles: f.filter((x) => x.properties.point_count === undefined).length,
   });
-})()`).then(JSON.parse);
+})()`,
+  )
+  .then(JSON.parse);
 console.log(`  z14 ${JSON.stringify(street)}`);
 check(
   street.singles > 0 && street.clusters === 0,
@@ -180,14 +194,18 @@ check(
 
 // The colour the UI actually painted, read out of the DOM for the tray and out of the paint
 // expression for the map — both keyed on the API's value with no arithmetic in between.
-const colours = await cdp.evaluate(`(() => {
+const colours = await cdp
+  .evaluate(
+    `(() => {
   const paint = window.__saakshiMap.getPaintProperty('camera-pins', 'circle-color');
   const chips = [...document.querySelectorAll('[data-unplaced]')].map((b) => ({
     externalId: b.getAttribute('data-unplaced'),
     dot: b.querySelector('span[style]')?.getAttribute('style') ?? '',
   }));
   return JSON.stringify({ paint, chips });
-})()`).then(JSON.parse);
+})()`,
+  )
+  .then(JSON.parse);
 
 check(
   JSON.stringify(colours.paint).includes('"band"') &&
@@ -219,7 +237,9 @@ const shared = `${base}/registry?district=Ahmedabad&adapterKind=hls&cameraType=i
 await navigate(cdp, shared);
 await ready();
 
-const filtered = await cdp.evaluate(`(() => {
+const filtered = await cdp
+  .evaluate(
+    `(() => {
   const summary = document.querySelector('[data-testid="estate-summary"]').textContent;
   const source = window.__saakshiFeatures;
   return JSON.stringify({
@@ -229,11 +249,15 @@ const filtered = await cdp.evaluate(`(() => {
     mountPressed: [...document.querySelectorAll('[data-layer^="mount:"]')].map((b) => b.getAttribute('data-layer') + '=' + b.getAttribute('aria-pressed')),
     filterValues: [...document.querySelectorAll('[data-filter]')].map((el) => el.getAttribute('data-filter') + '=' + el.value).filter((s) => !s.endsWith('=')),
   });
-})()`).then(JSON.parse);
+})()`,
+  )
+  .then(JSON.parse);
 
 console.log(`  ${filtered.summary}`);
 console.log(`  filters restored: ${filtered.filterValues.join(' · ')}`);
-console.log(`  toggles restored: ${[...filtered.bandPressed, ...filtered.mountPressed].join(' · ')}`);
+console.log(
+  `  toggles restored: ${[...filtered.bandPressed, ...filtered.mountPressed].join(' · ')}`,
+);
 
 // The server-side half: the API returns exactly the same set for the same query.
 const apiFiltered = await apiGet(
@@ -270,10 +294,10 @@ check(
 );
 
 // Now toggle in the browser and confirm the URL follows, then reload and confirm it comes back.
-await cdp.evaluate(
-  `document.querySelector('[data-band="degraded"]').click(); true`,
-);
-await waitFor(cdp, `location.search.includes('degraded')`, { label: 'the URL to record the toggle' });
+await cdp.evaluate(`document.querySelector('[data-band="degraded"]').click(); true`);
+await waitFor(cdp, `location.search.includes('degraded')`, {
+  label: 'the URL to record the toggle',
+});
 const url = await cdp.evaluate('location.href');
 check(url.includes('hideBand='), `a click on the legend rewrote the URL — ${new URL(url).search}`);
 
@@ -294,7 +318,9 @@ await screenshot(cdp, path.join(SHOTS, 'd1-08-registry-map.png'));
 // ── AC 8 · panning stays smooth ─────────────────────────────────────────────────────────────────
 console.log('\nAC 8 · map interaction stays smooth\n');
 
-const frames = await cdp.evaluate(`(async () => {
+const frames = await cdp
+  .evaluate(
+    `(async () => {
   const map = window.__saakshiMap;
   const times = [];
   let last = performance.now();
@@ -328,7 +354,9 @@ const frames = await cdp.evaluate(`(async () => {
     worst: Number(sorted[sorted.length - 1].toFixed(2)),
     over50ms: sorted.filter((t) => t > 50).length,
   });
-})()`).then(JSON.parse);
+})()`,
+  )
+  .then(JSON.parse);
 
 console.log(
   `  ${String(frames.frames)} frames over a 5-leg sweep · p50 ${String(frames.p50)} ms · p95 ${String(frames.p95)} ms · worst ${String(frames.worst)} ms`,

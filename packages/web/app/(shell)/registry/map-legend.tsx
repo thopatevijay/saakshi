@@ -31,7 +31,10 @@ export function MapLegend({
   return (
     <section aria-labelledby="legend-heading" className="space-y-2">
       <div className="flex items-baseline justify-between">
-        <h3 id="legend-heading" className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <h3
+          id="legend-heading"
+          className="text-xs font-semibold uppercase tracking-wide text-slate-400"
+        >
           Trust band
         </h3>
         <span className="text-[11px] text-slate-500">click to hide</span>
@@ -77,9 +80,9 @@ export function MapLegend({
       </ul>
 
       <p className="pt-1 text-[11px] leading-relaxed text-slate-500">
-        Bands come from the API, which resolves <span className="text-slate-400">dead</span> from the
-        latest health check rather than from the stored score — an unreachable camera keeps its last
-        good number. A cluster takes the <span className="text-slate-400">worst</span> band it
+        Bands come from the API, which resolves <span className="text-slate-400">dead</span> from
+        the latest health check rather than from the stored score — an unreachable camera keeps its
+        last good number. A cluster takes the <span className="text-slate-400">worst</span> band it
         contains, never an average.
       </p>
     </section>

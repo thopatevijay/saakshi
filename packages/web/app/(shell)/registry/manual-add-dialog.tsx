@@ -27,10 +27,20 @@ const INITIAL: ManualAddState = { created: null, error: null };
 const INPUT =
   'w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-400';
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Row({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
       {children}
       {hint === undefined ? null : <span className="block text-[11px] text-slate-600">{hint}</span>}
     </label>

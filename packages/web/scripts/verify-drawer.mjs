@@ -54,7 +54,9 @@ for (const externalId of ['cam09', 'cam22']) {
     label: 'the signal rows',
   });
 
-  const rendered = await cdp.evaluate(`(() => {
+  const rendered = await cdp
+    .evaluate(
+      `(() => {
     const cell = (tr, n) => tr.children[n]?.textContent?.trim() ?? '';
     return JSON.stringify({
       band: document.querySelector('[data-drawer-band]')?.getAttribute('data-drawer-band'),
@@ -75,7 +77,9 @@ for (const externalId of ['cam09', 'cam22']) {
       badges: [...document.querySelectorAll('[data-testid="camera-drawer"] span[title]')]
         .map((s) => s.textContent.trim()).filter((t) => t.includes('·')),
     });
-  })()`).then(JSON.parse);
+  })()`,
+    )
+    .then(JSON.parse);
 
   console.log(
     `  ${externalId} · score ${String(trust.score)} · band ${String(trust.band)} · ` +
@@ -107,7 +111,10 @@ for (const externalId of ['cam09', 'cam22']) {
     `${externalId}: trust, catalogue presence and health are three separate badges — ${rendered.badges.join(' | ')}`,
   );
   check(rendered.hasHealth, `${externalId}: the latest health check is rendered`);
-  check(rendered.hasPreview, `${externalId}: the live-preview button is present and disabled (D3-07)`);
+  check(
+    rendered.hasPreview,
+    `${externalId}: the live-preview button is present and disabled (D3-07)`,
+  );
 
   for (const item of rendered.excluded) {
     console.log(`      excluded · ${item.text}`);

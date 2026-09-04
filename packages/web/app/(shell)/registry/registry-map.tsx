@@ -115,10 +115,7 @@ function clusterColourExpression(): unknown[] {
 /** One accumulator per band, so a cluster knows what it is made of. */
 function clusterProperties(): Record<string, unknown> {
   return Object.fromEntries(
-    BAND_KEYS.map((band) => [
-      band,
-      ['+', ['case', ['==', ['get', 'band'], band], 1, 0]],
-    ]),
+    BAND_KEYS.map((band) => [band, ['+', ['case', ['==', ['get', 'band'], band], 1, 0]]]),
   );
 }
 
@@ -261,19 +258,10 @@ export function RegistryMap({
         source: SOURCE,
         filter: ['has', 'point_count'],
         paint: {
-          'circle-color': clusterColourExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
+          'circle-color':
+            clusterColourExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
           'circle-opacity': 0.85,
-          'circle-radius': [
-            'step',
-            ['get', 'point_count'],
-            14,
-            10,
-            18,
-            50,
-            24,
-            200,
-            30,
-          ],
+          'circle-radius': ['step', ['get', 'point_count'], 14, 10, 18, 50, 24, 200, 30],
           'circle-stroke-width': 1.5,
           'circle-stroke-color': '#0b1220',
         },
@@ -311,8 +299,10 @@ export function RegistryMap({
         source: SOURCE,
         filter: ['!', ['has', 'point_count']],
         paint: {
-          'circle-color': bandFillExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
-          'circle-stroke-color': bandStrokeExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
+          'circle-color':
+            bandFillExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
+          'circle-stroke-color':
+            bandStrokeExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
           'circle-stroke-width':
             bandStrokeWidthExpression() as unknown as DataDrivenPropertyValueSpecification<number>,
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 10, 6.5, 14, 9],

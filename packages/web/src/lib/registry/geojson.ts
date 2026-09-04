@@ -92,9 +92,7 @@ export function partition<T extends MappableCamera>(cameras: readonly T[]): Part
  * takes, so a viewport passes straight back without transposing. Unplaced cameras are skipped here
  * and rendered by the tray instead; they are never dropped.
  */
-export function toFeatureCollection(
-  cameras: readonly MappableCamera[],
-): CameraFeatureCollection {
+export function toFeatureCollection(cameras: readonly MappableCamera[]): CameraFeatureCollection {
   return {
     type: 'FeatureCollection',
     features: cameras.filter(isPlaced).map((camera) => ({

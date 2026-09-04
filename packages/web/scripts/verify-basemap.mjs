@@ -46,10 +46,10 @@ await waitFor(cdp, 'window.__saakshiMapIdle === true', { label: 'the map to go i
 
 // Zoom in and pan, so the tile pyramid is actually walked rather than one tile fetched. A run that
 // never moves proves only that the first tile came from the right place.
-await cdp.evaluate(
-  `window.__saakshiMap.jumpTo({ center: [72.5714, 23.0225], zoom: 11 }); true`,
-);
-await waitFor(cdp, 'window.__saakshiMapIdle === true', { label: 'idle after zooming to Ahmedabad' });
+await cdp.evaluate(`window.__saakshiMap.jumpTo({ center: [72.5714, 23.0225], zoom: 11 }); true`);
+await waitFor(cdp, 'window.__saakshiMapIdle === true', {
+  label: 'idle after zooming to Ahmedabad',
+});
 await cdp.evaluate(`window.__saakshiMap.jumpTo({ center: [72.8311, 21.1702], zoom: 10 }); true`);
 await waitFor(cdp, 'window.__saakshiMapIdle === true', { label: 'idle after panning to Surat' });
 await cdp.evaluate(`window.__saakshiMap.jumpTo({ center: [70.8, 22.3], zoom: 8 }); true`);

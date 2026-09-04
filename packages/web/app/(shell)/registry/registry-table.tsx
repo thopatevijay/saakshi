@@ -102,7 +102,9 @@ export function RegistryTable({
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`${CHIP} ${CATALOGUE_STATUS_CHIP[camera.catalogueStatus] ?? ''}`}>
+                  <span
+                    className={`${CHIP} ${CATALOGUE_STATUS_CHIP[camera.catalogueStatus] ?? ''}`}
+                  >
                     {camera.catalogueStatus}
                   </span>
                 </td>

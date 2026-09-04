@@ -84,7 +84,10 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
           </div>
 
           {state.error === null ? null : (
-            <p role="alert" className="rounded-md border border-rose-900 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">
+            <p
+              role="alert"
+              className="rounded-md border border-rose-900 bg-rose-950/40 px-3 py-2 text-xs text-rose-200"
+            >
               {state.error}
             </p>
           )}
@@ -142,14 +145,19 @@ export function ImportDialog({ onClose }: { onClose: () => void }) {
                     <tbody className="divide-y divide-slate-800">
                       {state.report.rejected.map((rejection) => (
                         <tr key={rejection.row} data-rejected-row={rejection.row}>
-                          <td className="px-3 py-1.5 tabular-nums text-slate-300">{rejection.row}</td>
+                          <td className="px-3 py-1.5 tabular-nums text-slate-300">
+                            {rejection.row}
+                          </td>
                           <td className="px-3 py-1.5 text-slate-400">
                             {rejection.externalId ?? '—'}
                           </td>
                           <td className="px-3 py-1.5">
                             <ul className="space-y-0.5">
                               {rejection.errors.map((problem, index) => (
-                                <li key={`${problem.field}-${String(index)}`} className="text-slate-300">
+                                <li
+                                  key={`${problem.field}-${String(index)}`}
+                                  className="text-slate-300"
+                                >
                                   <span className="text-rose-400">{problem.field}</span>{' '}
                                   {problem.message}
                                 </li>

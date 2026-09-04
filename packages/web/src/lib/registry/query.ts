@@ -329,7 +329,8 @@ export interface Visibility {
  * is set.
  */
 export function isVisible(camera: Visibility, layers: LayerState): boolean {
-  const bandKey: BandKey = camera.band !== null && isBandKey(camera.band) ? camera.band : 'unscored';
+  const bandKey: BandKey =
+    camera.band !== null && isBandKey(camera.band) ? camera.band : 'unscored';
   if (layers.band.has(bandKey)) return false;
   if (layers.cameraType.has(camera.cameraType as CameraType)) return false;
   if (layers.mount.has(camera.mount as CameraMount)) return false;

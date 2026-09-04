@@ -46,14 +46,18 @@ export function UnplacedTray({
       className="flex min-h-0 flex-col rounded-lg border border-amber-900/40 bg-amber-950/10"
     >
       <div className="border-b border-amber-900/30 px-4 py-3">
-        <h3 id="unplaced-heading" className="text-xs font-semibold uppercase tracking-wide text-amber-400">
+        <h3
+          id="unplaced-heading"
+          className="text-xs font-semibold uppercase tracking-wide text-amber-400"
+        >
           Not on the map · {cameras.length}
         </h3>
         <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-          The registry holds no coordinates for {cameras.length === 1 ? 'this camera' : 'these cameras'}.
-          They are measured and scored — the gap is location, not health. The upstream catalogue
-          publishes only an id and a name, so a coordinate has to be added by import or by hand
-          before a route can be reconstructed through {cameras.length === 1 ? 'it' : 'them'}.
+          The registry holds no coordinates for{' '}
+          {cameras.length === 1 ? 'this camera' : 'these cameras'}. They are measured and scored —
+          the gap is location, not health. The upstream catalogue publishes only an id and a name,
+          so a coordinate has to be added by import or by hand before a route can be reconstructed
+          through {cameras.length === 1 ? 'it' : 'them'}.
         </p>
       </div>
 

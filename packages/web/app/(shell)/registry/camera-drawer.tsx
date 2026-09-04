@@ -171,13 +171,17 @@ export function CameraDrawer({
                 <Field label="VMS" value={show(camera.vmsPlatform)} />
                 <Field
                   label="Retention"
-                  value={camera.retentionDays === null ? '—' : `${String(camera.retentionDays)} days`}
+                  value={
+                    camera.retentionDays === null ? '—' : `${String(camera.retentionDays)} days`
+                  }
                 />
                 <Field label="Storage" value={show(camera.storageType)} />
               </dl>
 
               <div>
-                <h4 className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">Endpoints</h4>
+                <h4 className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">
+                  Endpoints
+                </h4>
                 {Object.keys(camera.endpoints).length === 0 ? (
                   <p className="text-xs text-slate-500">None recorded.</p>
                 ) : (
@@ -236,7 +240,9 @@ export function CameraDrawer({
                         {delta.fpsDelta === null ? null : (
                           <span
                             className={
-                              Math.abs(delta.fpsDelta) < 1 ? 'ml-1 text-slate-500' : 'ml-1 text-amber-400'
+                              Math.abs(delta.fpsDelta) < 1
+                                ? 'ml-1 text-slate-500'
+                                : 'ml-1 text-amber-400'
                             }
                           >
                             ({delta.fpsDelta > 0 ? '+' : ''}
@@ -257,7 +263,9 @@ export function CameraDrawer({
                     <tr>
                       <td className="py-1.5">Codec</td>
                       <td className="py-1.5">{show(delta.codecDeclared)}</td>
-                      <td className={`py-1.5 ${delta.codecMatches === false ? 'text-amber-400' : ''}`}>
+                      <td
+                        className={`py-1.5 ${delta.codecMatches === false ? 'text-amber-400' : ''}`}
+                      >
                         {show(delta.codecMeasured)}
                       </td>
                     </tr>
@@ -283,13 +291,23 @@ export function CameraDrawer({
                   <Field label="Decodable" value={health.decodable ? 'yes' : 'no'} />
                   <Field
                     label="Measured fps"
-                    value={health.measuredFps === null ? 'could not measure' : health.measuredFps.toFixed(2)}
+                    value={
+                      health.measuredFps === null
+                        ? 'could not measure'
+                        : health.measuredFps.toFixed(2)
+                    }
                   />
                   <Field label="Resolution" value={show(health.actualResolution)} />
                   <Field label="Codec" value={show(health.actualCodec)} />
                   <Field
                     label="Night usable"
-                    value={health.nightUsable === null ? 'not assessed' : health.nightUsable ? 'yes' : 'no'}
+                    value={
+                      health.nightUsable === null
+                        ? 'not assessed'
+                        : health.nightUsable
+                          ? 'yes'
+                          : 'no'
+                    }
                   />
                   <Field
                     label="PTS drift"

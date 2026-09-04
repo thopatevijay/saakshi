@@ -24,13 +24,7 @@ import {
   toCameraListQuery,
   type RegistryFilters,
 } from '@/src/lib/registry/query';
-import type {
-  Camera,
-  CameraPage,
-  ImportState,
-  ManualAddState,
-  SyncState,
-} from './types';
+import type { Camera, CameraPage, ImportState, ManualAddState, SyncState } from './types';
 
 /**
  * A page of cameras for the map and the table.

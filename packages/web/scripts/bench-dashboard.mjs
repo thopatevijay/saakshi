@@ -109,7 +109,9 @@ async function coldLoad() {
   });
   const mapIdleMs = Date.now() - started;
 
-  const timing = await cdp.evaluate(`(() => {
+  const timing = await cdp
+    .evaluate(
+      `(() => {
     const nav = performance.getEntriesByType('navigation')[0];
     const fcp = performance.getEntriesByName('first-contentful-paint')[0];
     return JSON.stringify({
@@ -122,7 +124,9 @@ async function coldLoad() {
       ),
       cameras: Number(document.querySelector('[data-count="total"]')?.textContent ?? 0),
     });
-  })()`).then(JSON.parse);
+  })()`,
+    )
+    .then(JSON.parse);
 
   await cdp.close();
   return { ...timing, wallLoad: loadMs, mapIdle: mapIdleMs };

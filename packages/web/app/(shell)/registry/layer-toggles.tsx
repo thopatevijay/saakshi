@@ -85,10 +85,7 @@ export function LayerToggles({
   return (
     <section aria-labelledby={headingId} className="space-y-4">
       <div>
-        <h3
-          id={headingId}
-          className="text-xs font-semibold uppercase tracking-wide text-slate-400"
-        >
+        <h3 id={headingId} className="text-xs font-semibold uppercase tracking-wide text-slate-400">
           Layers
         </h3>
         <p className="mt-1 text-[11px] text-slate-500">

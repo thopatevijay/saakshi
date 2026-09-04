@@ -208,7 +208,10 @@ describe('toggles compose as AND across dimensions', () => {
 
 describe('URL round trip — the reload guarantee', () => {
   const states: [string, RegistryState][] = [
-    ['empty', { filters: parseFilters(new URLSearchParams()), layers: emptyLayers(), selected: null }],
+    [
+      'empty',
+      { filters: parseFilters(new URLSearchParams()), layers: emptyLayers(), selected: null },
+    ],
     [
       'three filters and two toggles',
       {

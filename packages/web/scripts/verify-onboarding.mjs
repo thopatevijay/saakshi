@@ -91,7 +91,10 @@ await screenshot(cdp, path.join(SHOTS, 'd1-08-import-success.png'));
 // ── The invalid fixture ─────────────────────────────────────────────────────────────────────────
 const invalid = await importFile(path.join(FIXTURES, 'cameras-bulk-invalid.csv'));
 console.log(`  invalid fixture ${JSON.stringify({ ...invalid, rows: invalid.rows.length })}`);
-check(invalid.imported === 47, `47 valid rows still committed (imported ${String(invalid.imported)})`);
+check(
+  invalid.imported === 47,
+  `47 valid rows still committed (imported ${String(invalid.imported)})`,
+);
 check(invalid.rejected === 3, `3 rows rejected (rejected ${String(invalid.rejected)})`);
 check(
   invalid.rows.length === 3,

@@ -115,7 +115,9 @@ await waitFor(cdp, `!!document.querySelector('[data-testid="import-report"]')`, 
   label: 'the re-import report',
 });
 
-const report = await cdp.evaluate(`(() => {
+const report = await cdp
+  .evaluate(
+    `(() => {
   const read = (k) => Number(document.querySelector('[data-report="' + k + '"]').textContent);
   return JSON.stringify({
     received: read('received'),
@@ -124,7 +126,9 @@ const report = await cdp.evaluate(`(() => {
     updated: read('updated'),
     rejected: read('rejected'),
   });
-})()`).then(JSON.parse);
+})()`,
+  )
+  .then(JSON.parse);
 
 console.log(`  re-import: ${JSON.stringify(report)}`);
 await cdp.close();

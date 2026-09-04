@@ -53,7 +53,9 @@ export function FilterPanel({
     options: readonly { value: string; label: string }[],
   ) => (
     <label className="block space-y-1">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        {label}
+      </span>
       <select
         className={SELECT_CLASS}
         data-filter={key}
@@ -171,8 +173,8 @@ export function FilterPanel({
         {trustNarrows ? (
           <p className="text-[11px] leading-relaxed text-amber-500/80">
             A score range excludes never-probed cameras entirely —{' '}
-            <code className="text-amber-400">null</code> matches neither bound. Their absence here is
-            the filter working, not the estate shrinking.
+            <code className="text-amber-400">null</code> matches neither bound. Their absence here
+            is the filter working, not the estate shrinking.
           </p>
         ) : null}
       </fieldset>
