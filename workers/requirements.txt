@@ -15,3 +15,10 @@ av>=13.0
 
 # HLS catalogue fetch and the sandbox cookie handling.
 requests>=2.32
+
+# PostgreSQL driver for the prober's writes. `[binary]` so a fresh clone needs no libpq toolchain.
+psycopg[binary]>=3.2
+
+# Tests. The prober's CV signals are pure functions over frames, which is what makes the tamper and
+# connect-burst acceptance criteria provable offline rather than only against a live feed.
+pytest>=8.3
