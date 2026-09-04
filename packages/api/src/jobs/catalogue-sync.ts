@@ -19,7 +19,7 @@
  * at all — which is what makes the idempotency AC provable rather than merely asserted.
  */
 import { randomUUID } from 'node:crypto';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { cameras, catalogueSyncRuns, departments } from '@saakshi/shared/db';
 import type { AdapterKind } from '@saakshi/shared';
 import type { Db, DbLike } from '../db/client.js';
