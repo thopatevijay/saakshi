@@ -1,2 +1,17 @@
+# Python workers. Install into the repo-local venv, never the system interpreter:
+#   ./.venv/bin/python -m pip install -r workers/requirements.txt
+# See README.md "Python workers" for why (PEP 668 / Homebrew python3.14).
+
+# Frame decode, classical CV, and the trust-score signals (blur, luma, tamper).
 opencv-python>=4.10
+numpy>=2.0
+
+# Detection + tracking. YOLO11 via ultralytics; ByteTrack ships inside supervision.
+ultralytics>=8.3
+supervision>=0.23
+
+# PyAV: PTS-accurate demuxing. Timing comes from PTS, never frame arrival time.
+av>=13.0
+
+# HLS catalogue fetch and the sandbox cookie handling.
 requests>=2.32
