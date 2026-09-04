@@ -12,7 +12,7 @@
  *
  * Requires `make up && make migrate`. Skips loudly when the database is unreachable.
  */
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { createDb, createSql, type Db, type Sql } from '../db/client.js';
 import { loadEnv } from '../env.js';
@@ -117,6 +117,19 @@ beforeAll(async () => {
   if (scopeDept === '' || otherDept === '') {
     throw new Error(`seeded departments ${SCOPE_CODE}/${OTHER_CODE} missing — run make migrate`);
   }
+});
+
+/**
+ * Every test starts from an empty scope.
+ *
+ * Without this the tests share a registry: one that syncs a two-camera catalogue marks the previous
+ * test's cameras absent, and the next one sees them "return". That coupling made the suite
+ * order-dependent — it passed under `vitest <file>` and failed under `vitest --root ../.. <filter>`
+ * on a genuine assertion, which is the worst kind of green.
+ */
+beforeEach(async () => {
+  if (!reachable) return;
+  await db.execute(sql`delete from cameras where external_id like ${`${TAG}%`}`);
 });
 
 afterAll(async () => {
@@ -242,7 +255,7 @@ describe('AC 3 — manually enriched fields survive three consecutive re-syncs',
   it('never overwrites a stored value with a field the catalogue omitted', async () => {
     if (!reachable) return;
     const only = id('declared');
-    await run([{ id: only, name: 'Declared once', fps: 25, codec: 'h264' }]);
+    await run([...THREE, { id: only, name: 'Declared once', fps: 25, codec: 'h264' }]);
     expect((await snapshot(only))?.declared_fps).toBe('25.00');
 
     // The same camera, now without the declared fields — the shape the sandbox actually returns.
@@ -253,12 +266,15 @@ describe('AC 3 — manually enriched fields survive three consecutive re-syncs',
 
   it('scopes absence to one department: another department’s cameras are untouched', async () => {
     if (!reachable) return;
-    // THREE[0] belongs to `otherDept` by now. A sync of this suite's own scope that omits it must
-    // not mark it absent: it is not missing from this catalogue, it is not in this catalogue's
-    // scope at all. Getting this wrong marks a whole estate absent, which is what it did to the 30
-    // sandbox cameras before the suite was scoped.
-    await run(THREE.slice(1));
-    const other = await snapshot(THREE[0]!.id);
+    const foreign = id('foreign');
+    await run([{ id: foreign, name: 'Another department’s camera' }], otherDept);
+
+    // A sync of this suite's own scope, whose catalogue does not mention it, must not mark it
+    // absent: it is not missing from this catalogue, it is not in this catalogue's scope at all.
+    // Getting this wrong marks a whole estate absent — which is what it did to the 30 sandbox
+    // cameras before the suites were scoped.
+    await run(THREE);
+    const other = await snapshot(foreign);
     expect(other?.catalogue_status).toBe('active');
     expect(other?.department_id).toBe(otherDept);
   });
