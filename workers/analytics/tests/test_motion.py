@@ -187,3 +187,24 @@ def test_thumbnail_downscales_and_greys(clips: dict[str, Path]) -> None:
     thumb = thumbnail(image)
     assert thumb.ndim == 2
     assert thumb.shape[1] == DEFAULTS.motion_grey_width
+
+
+def test_a_turbulent_stretch_produces_one_cut_not_one_per_frame() -> None:
+    """The soak found this: `cam08` produced 25 tracking sessions in eleven seconds.
+
+    Clearing the history on a cut leaves the ratio test unarmed, so every subsequent large frame
+    difference clears the absolute floor on its own. A tracker reset 25 times in eleven seconds has
+    not "reset cleanly at the cut" — it has stopped tracking. The refractory period is the fix.
+    """
+    detector = SceneCutDetector()
+    calm = np.full((90, 160), 100, dtype=np.uint8)
+    for _ in range(DEFAULTS.scene_cut_min_history + 4):
+        detector.update(calm.copy())
+    assert detector.cuts == 0
+
+    rng = np.random.default_rng(1)
+    for _ in range(30):
+        detector.update(rng.integers(0, 255, (90, 160), dtype=np.uint8))
+
+    assert detector.cuts <= 4, f"a noisy stretch produced {detector.cuts} cuts"
+    assert detector.cuts >= 1, "the onset of turbulence was not detected at all"

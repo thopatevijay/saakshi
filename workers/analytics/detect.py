@@ -90,6 +90,18 @@ class Detector:
         self.weights = str(weights)
         self.stats = DetectorStats()
         self._lock = threading.Lock()
+        # Model weights are gitignored (they are large binaries, and a weight file in git is one
+        # nobody can audit or reproduce). A fresh clone that has not run `make models` falls back to
+        # the bare name, which ultralytics resolves by downloading — better than a stack trace that
+        # says only "file not found".
+        if not Path(self.weights).exists():
+            fallback = Path(self.weights).name
+            log.warning(
+                "%s not present — falling back to %r, which ultralytics will fetch. "
+                "Run `make models` to keep it in the repo-local models/ directory.",
+                self.weights, fallback,
+            )
+            self.weights = fallback
         self._model = YOLO(self.weights)
         log.info("detector: %s on %s", self.weights, device.description)
 

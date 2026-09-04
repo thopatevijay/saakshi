@@ -138,6 +138,8 @@ class SceneCutDetector:
     cuts: int = 0
     last_diff: float | None = None
     last_median: float | None = None
+    #: Frames still to observe before another cut may fire. See `update`.
+    _refractory: int = field(default=0, repr=False)
 
     def __post_init__(self) -> None:
         if self._history.maxlen != self.thresholds.scene_cut_history:
@@ -155,11 +157,21 @@ class SceneCutDetector:
         # A resolution change is a discontinuity by definition; there is no meaningful ratio to take.
         if diff == float("inf"):
             self._history.clear()
+            self._refractory = self.thresholds.scene_cut_min_history
             self.cuts += 1
             return True
 
         median = statistics.median(self._history) if self._history else None
         self.last_median = median
+
+        if self._refractory > 0:
+            # Refractory period. Clearing the history on a cut leaves the ratio test unarmed, so a
+            # turbulent stretch fired the absolute floor on *every* frame: `cam08` produced 25
+            # "tracking sessions" in eleven seconds during the 20-minute soak, which is the opposite
+            # of resetting cleanly. No second cut may fire until the median has been rebuilt.
+            self._refractory -= 1
+            self._history.append(diff)
+            return False
 
         is_cut = diff >= self.thresholds.scene_cut_diff_min
         if is_cut and len(self._history) >= self.thresholds.scene_cut_min_history:
@@ -171,6 +183,7 @@ class SceneCutDetector:
         if is_cut:
             # The cut itself must not enter the median, or the next frame's baseline is the cut.
             self._history.clear()
+            self._refractory = self.thresholds.scene_cut_min_history
             self.cuts += 1
             return True
 
@@ -180,3 +193,4 @@ class SceneCutDetector:
     def reset(self) -> None:
         self._previous = None
         self._history.clear()
+        self._refractory = 0
