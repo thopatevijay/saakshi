@@ -40,8 +40,9 @@ TypeScript strict (Fastify API, Next.js 15 web, shared zod types) · Python 3.11
 MinIO · MediaMTX · OSRM · MapLibre + self-hosted PMTiles. **npm**, not yarn.
 
 All open source — the challenge's About page states solutions *should* use open-source technologies.
-The only proprietary dependency is the optional NL-query LLM, and it sits behind an interface with an
-Ollama fallback and degrades to a deterministic filter UI.
+The only proprietary dependency is the optional NL-query LLM, and it sits behind a `QueryCompiler`
+interface with four providers (`openai` primary · `anthropic` · `ollama` local · `none`). Nothing
+proprietary is load-bearing: with `ollama` or `none` the system is fully functional and fully open.
 
 ## Domain rules that are easy to get wrong
 

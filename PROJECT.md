@@ -330,12 +330,24 @@ cannot export without a case reference.
 | Observability | **Prometheus + Grafana** | — | Hits the "health monitoring" bonus item directly |
 | Deploy | **Docker Compose** (one command); K8s manifests in the HLD | — | Reviewable by a judge in minutes |
 
-### The one closed-source component, handled honestly
-The natural-language → query compiler uses **Anthropic `claude-sonnet-5`** via `@anthropic-ai/sdk`.
-Because open-source is a stated expectation, it sits behind a `QueryCompiler` interface with an
-**Ollama + local-model fallback**, and the feature degrades to a deterministic filter UI if no model
-is available. The architecture never *depends* on a proprietary cloud service. State this explicitly
-in the deck.
+### Query compiler: provider-neutral by construction
+
+The natural-language → query compiler sits behind a `QueryCompiler` interface with **four**
+implementations: `openai` (primary), `anthropic`, `ollama` (local), and `none` (degrades to the
+deterministic filter UI).
+
+**Primary is OpenAI** — its Structured Outputs with `strict: true` constrains decoding against our
+JSON schema, so schema-invalid output is impossible rather than merely unlikely. Model: a small/fast
+tier (`gpt-4.1-mini` class); latency matters more than reasoning depth for text-to-DSL.
+
+This is not redundancy for its own sake. The challenge requires an *"open, modular, scalable, secure,
+standards-based, and vendor-neutral"* architecture that avoids vendor lock-in. Three working
+providers behind one interface turns that stated principle into a **live demonstration**: change one
+config value, same query, same result. No proprietary service is load-bearing — with
+`QUERY_COMPILER=ollama` or `none`, the system is fully functional and entirely open-source.
+
+Safety never depends on the provider: zod validates every compiled filter, invalid output is
+rejected, the officer edits and approves the filter before it runs, and only the DSL becomes SQL.
 
 ### Third-party services / spend
 
@@ -345,7 +357,7 @@ in the deck.
 | **Map tiles** (MapTiler/Mapbox) | ❌ Not needed — self-hosted PMTiles extract | ₹0 |
 | **Routing API** (Google/Mapbox Directions) | ❌ Not needed — self-hosted OSRM | ₹0 |
 | **OSM data** | Geofabrik `gujarat-latest.osm.pbf` (~150 MB) | Free |
-| **Anthropic API** | Yes, for the NL query compiler. Low volume | ~₹200–400 |
+| **LLM API** (query compiler) | **OpenAI** primary (small/fast tier), Anthropic as the swap demo. Very low volume — a few hundred queries | ~₹200–400 |
 | **Cloud GPU** | *Conditional.* Try local Apple Silicon (MPS) first. If throughput is short, rent **India-region** GPU. **Blocker to test on Day 0: are the sandbox RTSP endpoints reachable from a datacenter IP?** Gov networks frequently block those ranges. Candidates: Jarvislabs / E2E Networks (India), AWS `ap-south-1` g5.xlarge. ~40 GPU-hours | ₹0–5,000 |
 | **Public demo URL** (judges get test creds) | **Cloudflare Tunnel** — free, exposes the local stack without migrating data, and the ingest workers keep their network path to the feeds. Optional Vercel deploy of the frontend on top | ₹0 |
 | **Domain** | Optional vanity domain | ₹0–900 |
