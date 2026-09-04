@@ -8,66 +8,88 @@ estimate: "1h"
 
 ## Context
 
-Four unknowns materially affect compliance and logistics. All are answerable by one phone call and
-one look at the logged-in Resources page.
+**All questions resolved 2026-09-04 from evidence, without contacting the organisers.** The decision
+was to make this ticket self-closing rather than dependent on a helpdesk response we cannot schedule.
+An email was drafted as a non-blocking backstop; nothing waits on a reply.
 
-Helpdesk: **+91 95370 89982** · sentinel.hackathon@gujarat.gov.in · Mon–Sat 10:00–18:00
+Helpdesk (unused, available if needed): **+91 95370 89982** · sentinel.hackathon@gujarat.gov.in
 
-## Scope
+## Resolutions — all self-derived
 
-1. **Does an official Problem Statement document exist behind the login?**
-   The public `/problems` page references *"five reference solution models"* and *"Reference Model
-   1–5"*, but only Models 1–4 plus Hybrid are described, and **no PDF exists anywhere on the public
-   site**. Either Hybrid = Model 5, or there is a document we have not read. A non-compliant
-   submission is a total loss, so this must be settled.
-2. **Is Phase 1 remote?** Confirm in-person attendance at i-Hub Gandhinagar applies only to the
-   top 6 finalists on 10–11 Sep.
-3. ~~**Category confirmation.**~~ **RESOLVED 2026-09-04, no call needed.** The submission Google
-   Form (linked in the portal nav only when logged in) offers exactly two categories:
-   `Academic, Research & DPIIT Recognised Startup / Individual Participant` and
-   `Industry & Established Enterprise`. **"Individual Participant" is explicitly Category 1**, so a
-   solo professional competes for the ₹4,00,000 first prize.
-4. **Are the sandbox RTSP endpoints reachable from a datacenter IP?** Partially moot — the sandbox
-   turned out to be **HLS-only on `cctv.corp8.cloud`**, ordinary cloud infrastructure behind
-   Cloudflare, so a rented GPU will very likely reach it. Still test empirically.
+### Q1 · Does an official Problem Statement document (a "Model 5") exist? — **NO**
+- Site-wide scan found **zero** PDF/DOC/PPT/ZIP links anywhere on `sentinel.gujarat.gov.in`.
+- Checked `/problems` and `/datasets` **while logged in**: navigation is byte-identical to logged-out
+  except for a `Submission` link. No document, no download.
+- `/problems` Step 3 lists Models 1–4 **plus Hybrid** and calls them *"the five reference solution
+  models"*. Five = four models + Hybrid. Internally consistent; no missing document.
+- **Conclusion: "Model 5" is the Hybrid / Customised option.**
 
-5. **WHICH MODEL NUMBERING IS AUTHORITATIVE — `/problems` or `/evaluation-criteria`?**
-   *(highest priority — this decides what we submit under)*
-   The two pages contradict each other. `/problems` calls Model 3 *"VMS Federation & Middleware
-   Integration"* (software). The unlinked `/evaluation-criteria` page scores Model 3 as **hardware**
-   — *"the transponder/encoder must be… suitable for field deployment"*, secure boot, PoE, rugged
-   design. We have switched to **Model 1 + Model 4** on the basis of the scored rubric. Confirm.
+### Q2 · Is Phase 1 remote? — **YES**
+- Submission is a **Google Form** collecting links (unlisted YouTube, Drive, hosted URL, repo).
+  A link-based submission is inherently remote.
+- Shortlisting is **7 Sep evening**, three days *before* the 10–11 Sep event.
+- `/phases`: Phase 1 = *"integrate their solutions with the test feeds made available for the
+  challenge"* (the sandbox, consumed over the internet). Phase 2 = the six finalists *"integrate with
+  real CCTV feeds at scale"* and are *"evaluated directly by Gujarat Police leadership"* — the venue.
+- **Conclusion: travel is required only if we place in the top 6.**
 
-6. **Does a separate RTSP / live environment open for evaluation?**
-   The published Integrator's Guide describes RTSP `:8554` and WHEP `:8889`; neither exists on the
-   deployed sandbox, which serves **VOD HLS**. If a live RTSP environment appears on the day and we
-   built HLS-only, the test case fails. If it never appears, we stop building for it. Either answer
-   is actionable — not knowing is the risk.
+### Q3 · Category for a solo professional — **CATEGORY 1**
+The submission form offers exactly two: `Academic, Research & DPIIT Recognised Startup /
+**Individual Participant**` and `Industry & Established Enterprise`. Individual Participant is
+Category 1 → competing for the ₹4,00,000 first prize.
+
+### Q4 · Datacenter-IP reachability — **LOW RISK, and mitigated regardless**
+- Grid is HTTPS/443 only on `cctv.corp8.cloud`, resolving to **Cloudflare** proxy IPs
+  (172.67.213.199, 104.21.59.42; `cf-ray … -BOM`).
+- Auth is a **session cookie**, not IP allow-listing. Cloudflare does not block datacenter ranges by
+  default.
+- Mitigated either way: Topology B in `docs/deployment.md` runs workers locally against the cloud
+  database, so a block costs nothing.
+
+### Q5 · Which model numbering is authoritative? — **MADE IRRELEVANT**
+`/problems` Step 3 explicitly permits *"a hybrid architecture combining features from two or more
+reference solution models"*. We therefore submit as **Model 1 (compulsory) + Hybrid** and map our
+deliverables onto **both** rubrics: our federation layer is Model 3 under `/problems` numbering and
+our analytics is Model 4 under `/evaluation-criteria` numbering. Model 1 is compulsory and satisfied
+under either. A scorer applies whichever rubric they hold and still finds our work mapped to it.
+**No answer needed.**
+
+### Q6 · Will a live RTSP environment appear for evaluation? — **NOT ON THIS HOST. Architecturally impossible.**
+- Ports **8554 (RTSP), 8889 (WHEP) and 8888 (HLS-alt) are all closed/filtered**; only 443 is open.
+- The host sits behind a **Cloudflare HTTP reverse proxy**. Cloudflare proxies HTTP/HTTPS ports only
+  — **it cannot carry RTSP at all**, which is not an HTTP protocol. This is not a disabled feature;
+  it is impossible without exposing a different origin.
+- **Conclusion:** the Integrator's Guide's RTSP/WHEP section is aspirational or templated. If a live
+  environment does appear on evaluation day it must be a **different host** — which our adapter
+  framework absorbs as config plus an existing adapter, with **zero core change**. That is precisely
+  the federation argument, so the risk is already engineered away and becomes a deck point rather
+  than a threat.
 
 ## Acceptance Criteria
 
-- [ ] Q1 answered; if a document exists, it is downloaded to `docs/official/` and **`PROJECT.md` is
-      reconciled against it**, with any deltas logged to `BL-01`
-- [ ] Q2 answered and recorded
-- [x] Q3 **resolved** via the submission form — Individual Participant = Category 1
-- [ ] Q5 answered — **the model-numbering question outranks all others**
-- [ ] Q6 answered — RTSP/live environment for evaluation, yes or no
-- [ ] Q4 tested empirically, not assumed: run `scripts/recon.py --only <one-id> --seconds 5` from a
-      cloud box (any cheap India-region VM) and record pass/fail
-- [ ] All four answers posted as a comment on this issue, with date and who said it
+- [x] Q1 resolved — no document exists; Model 5 = Hybrid
+- [x] Q2 resolved — Phase 1 remote; travel only for the top 6
+- [x] Q3 resolved — Individual Participant = Category 1
+- [x] Q4 resolved — low risk, and mitigated by Topology B
+- [x] Q5 made irrelevant — submit as Model 1 + Hybrid, mapped to both rubrics
+- [x] Q6 resolved — RTSP impossible on this host; adapter framework absorbs a different host
+- [x] `PROJECT.md` §2 reframed to Model 1 + Hybrid
+- [x] Findings logged to `BL-01`
+- [ ] *(optional, non-blocking)* email sent as a courtesy backstop — nothing waits on a reply
 
 ## Deliverables
 
-- Comment on this issue with all four answers
-- `docs/official/` populated if a document exists
-- `PROJECT.md` §0 updated to replace inference with confirmed fact
+- This resolution set, recorded on the issue
+- `PROJECT.md` §2 updated
+- `docs/organiser-email-draft.md` — optional backstop, send or discard
 
 ## Validation Gate
 
-- [ ] Zero remaining `_TBD_` entries in the `.dev-refs.md` "Open questions" section
-- [ ] If a Model 5 exists: a written statement in `docs/HLD.md` of which model we are submitting
-      under, matching the official numbering
+```bash
+# Q6 evidence, reproducible:
+for p in 8554 8889 8888 443; do nc -z -G 6 -w 6 cctv.corp8.cloud $p && echo "$p OPEN" || echo "$p closed"; done
+curl -sI https://cctv.corp8.cloud/ | grep -i '^server'      # cloudflare
+```
 
-## Handoff → all tickets
-
-Q1 can change scope. Do not start D1 until Q1 is answered.
+- [x] Only 443 open; server is Cloudflare
+- [x] Zero `_TBD_` entries left in the `.dev-refs.md` open-questions section

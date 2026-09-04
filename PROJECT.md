@@ -72,24 +72,34 @@ ones stated between the lines, and they are the ones nobody will build for:
 
 ---
 
-## 2. Locked architecture decision: **Model 1 + Model 4**
+## 2. Locked architecture decision: **Model 1 + Hybrid (scored as Model 4)**
 
 Mandatory registry/GIS foundation, plus **Centralized Analytics & AI Insights** built on a
 vendor-neutral federation layer.
 
-> **Why not Model 3, and why the numbering matters.** The portal carries two model definitions that
-> contradict each other. `/problems` describes Model 3 as *"VMS Federation & Middleware Integration"*
-> — a software layer. But `/evaluation-criteria` (an **unlinked** page, found 2026-09-04, see
-> `BL-01`) scores Model 3 as **hardware**: *"the transponder/encoder must be stable, compatible,
-> compact, and suitable for field deployment"*, secure boot, PoE support, rugged design. We build no
-> hardware, so 60 of its 100 marks would be unreachable. **Escalated to the helpdesk: which
-> numbering is authoritative.** Until answered, we optimise for the scored rubric, which is the
-> document that decides marks.
+> **The numbering contradiction, and why it no longer blocks us.** The portal carries two model
+> definitions that disagree. `/problems` describes Model 3 as *"VMS Federation & Middleware
+> Integration"* — software. The unlinked `/evaluation-criteria` page scores Model 3 as **hardware**:
+> *"the transponder/encoder must be stable, compatible, compact, and suitable for field deployment"*,
+> secure boot, PoE, rugged design.
+>
+> **We resolved this ourselves rather than waiting on the organisers.** `/problems` Step 3 explicitly
+> permits *"a hybrid architecture combining features from two or more reference solution models"*.
+> So we submit as **Model 1 (compulsory) + Hybrid**, and map our deliverables onto **both** rubrics:
+>
+> - Under `/problems` numbering, our adapter framework **is** Model 3 — VMS federation middleware.
+> - Under `/evaluation-criteria` numbering, our analytics and alerting **are** Model 4 — Centralized
+>   Analytics & AI Insights.
+>
+> Model 1 is compulsory and satisfied under either reading. Declaring Hybrid is sanctioned by the
+> official problem statement, costs nothing, and means **a scorer applies whichever rubric they hold
+> and still finds our work mapped to it.** We build no hardware and say so plainly.
 
-### Why Model 1 + Model 4 fits what we are building
+### Why this fits what we are building
 
 On `/evaluation-criteria` the models read as **complementary layers, not four alternatives** — Model
 4 is explicitly scored on how well it *"integrates Cameras, Registry (M1) and Control Room (M2)"*.
+We optimise against the Model 1 and Model 4 rubrics because those are the ones that award marks.
 
 | Model 1 rubric | Marks | Our answer |
 |---|---|---|
