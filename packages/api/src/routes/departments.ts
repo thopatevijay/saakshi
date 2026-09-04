@@ -12,7 +12,7 @@ export function registerDepartmentRoutes(app: App, deps: { db: Db }): void {
   app.get(
     '/api/v1/departments',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(READ_ROLES)],
       schema: {
         tags: ['departments'],

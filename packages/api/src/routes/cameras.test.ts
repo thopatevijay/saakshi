@@ -201,6 +201,29 @@ describe('POST /api/v1/cameras — manual onboarding', () => {
     });
     expect(res.statusCode).toBe(401);
   });
+
+  it('401s for a validly signed token whose subject is not a real user', async () => {
+    if (!reachable) return;
+    // A signed token stays cryptographically valid after its officer is deactivated, and
+    // `audit_log.actor_id` references `users(id)` — so before this check the mutation failed on the
+    // foreign key and surfaced as a 500. An unknown principal is an authentication problem.
+    const ghost = app.jwt.sign({
+      sub: '00000000-0000-4000-8000-0000000000ff',
+      badgeNo: 'GHOST-0001',
+      role: 'admin',
+      departmentId: null,
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/cameras',
+      headers: { authorization: `Bearer ${ghost}` },
+      payload: { externalId: `${TAG}-ghost`, name: 'Ghost', adapterKind: 'hls' },
+    });
+
+    expect(res.statusCode).toBe(401);
+    expect(res.json<{ message: string }>().message).toMatch(/not an active user/);
+  });
 });
 
 describe('GET /api/v1/cameras — list, filters, pagination, bbox', () => {

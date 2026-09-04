@@ -171,7 +171,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.get(
     '/api/v1/cameras',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(READ_ROLES)],
       schema: {
         tags: ['cameras'],
@@ -218,7 +218,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.get(
     '/api/v1/cameras/export',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(READ_ROLES)],
       schema: {
         tags: ['cameras'],
@@ -304,7 +304,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.post(
     '/api/v1/cameras/bulk',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(WRITE_ROLES)],
       schema: {
         tags: ['cameras'],
@@ -366,7 +366,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.post(
     '/api/v1/cameras/onboard-from-catalogue',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(WRITE_ROLES)],
       schema: {
         tags: ['cameras'],
@@ -456,7 +456,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.post(
     '/api/v1/cameras',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(WRITE_ROLES)],
       schema: {
         tags: ['cameras'],
@@ -540,7 +540,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.get(
     '/api/v1/cameras/:id',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(READ_ROLES)],
       schema: {
         tags: ['cameras'],
@@ -625,7 +625,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.patch(
     '/api/v1/cameras/:id',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(WRITE_ROLES)],
       schema: {
         tags: ['cameras'],
@@ -697,7 +697,7 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
   app.delete(
     '/api/v1/cameras/:id',
     {
-      onRequest: [authenticate()],
+      onRequest: [authenticate(db)],
       preHandler: [requireRole(DELETE_ROLES)],
       schema: {
         tags: ['cameras'],
