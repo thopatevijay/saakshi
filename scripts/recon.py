@@ -1,31 +1,33 @@
 #!/usr/bin/env python3
 """
-SAAKSHI Day-0 reconnaissance.
+SAAKSHI Day-0 reconnaissance — Sentinel camera grid (cctv.corp8.cloud).
 
-Answers the questions that decide the whole build, before a line of feature code:
-  1. What cameras exist?           -> pulls the /api/ingest catalogue (the contract)
-  2. Do they actually work?        -> RTSP/TCP connect + decode per camera
-  3. Is the declared metadata true?-> measured FPS / resolution / codec vs declared
-  4. Are plates readable?          -> sharpness + brightness score + a saved sample frame
-  5. Which 10-12 do we demo on?    -> ranked shortlist
+Answers the questions that decide the build, before a line of feature code:
+  1. What cameras exist?        -> GET /cameras.json  (id + name only; nothing else is declared)
+  2. Do they decode?            -> ffprobe each HLS playlist
+  3. What are they really?      -> measured codec / resolution / fps / duration, not declared
+  4. Are plates readable?       -> samples DAY and NIGHT frames, scores sharpness + brightness
+  5. Which cameras do we demo?  -> ranked shortlist
+
+Reality of this sandbox (differs from the published Integrator's Guide — see BL-01):
+  * HLS only. No RTSP (:8554), no WHEP (:8889), no /api/ingest.
+  * VOD, not live: PLAYLIST-TYPE:VOD with ENDLIST, fully seekable, 7200 x ~6s = 12.0 h per camera.
+  * AES-128 encrypted (key at /enc.key) — ffmpeg handles this transparently.
+  * Auth: `sentinel=<token>` cookie required; every path 302s without it.
+  * Cloudflare rejects ffmpeg's default UA — a browser User-Agent is mandatory.
+  * Footage window 13-06-2026 21:00 -> 14-06-2026 09:00, so ~9 of 12 h are NIGHT.
+    Daylight is roughly offsets 32400-43200 s. Sampling only the start gives a night-only view.
 
 Usage:
-    pip install opencv-python requests
-    python scripts/recon.py --ingest http://<host>/api/ingest --seconds 12
-    python scripts/recon.py --ingest ... --only 3,7,11        # re-probe specific cameras
-
-Outputs to recon-out/:
-    catalogue.json   raw /api/ingest response
-    report.json      full per-camera probe results
-    report.csv       same, spreadsheet-friendly
-    frames/<id>.jpg  one sample frame per camera -> eyeball plate visibility yourself
+    pip install opencv-python requests            # ffmpeg must be on PATH
+    set -a; . ./.env; set +a
+    python3 scripts/recon.py
+    python3 scripts/recon.py --only cam12,cam14 --offsets 39600
 """
 from __future__ import annotations
 
-import argparse, csv, json, os, statistics, sys, time
+import argparse, csv, json, os, statistics, subprocess, sys
 from pathlib import Path
-
-os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
 
 try:
     import cv2, requests
@@ -33,182 +35,202 @@ except ImportError:
     sys.exit("pip install opencv-python requests")
 
 OUT = Path("recon-out"); FRAMES = OUT / "frames"
+UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36")
+# Durations vary 1.0-24.5 h across the estate, so absolute offsets are meaningless: on a short
+# camera a fixed 39600 s "day" seek lands past the end and ffmpeg silently clamps, mislabelling a
+# night frame as daylight. Sample at FRACTIONS of each camera's own duration instead, then pick
+# day/night by measured brightness — which needs no knowledge of when the recording started.
+SAMPLE_FRACTIONS = (0.08, 0.35, 0.62, 0.90)
 
 
-def fetch_catalogue(url: str, cookie: str | None) -> list[dict]:
-    headers = {"Cookie": cookie} if cookie else {}
-    r = requests.get(url, headers=headers, timeout=30)
-    r.raise_for_status()
-    data = r.json()
+def env(name: str, default: str = "") -> str:
+    return os.environ.get(name, default)
+
+
+def hdrs() -> list[str]:
+    """ffmpeg/ffprobe args carrying auth + a browser UA (Cloudflare rejects the default)."""
+    return ["-user_agent", UA, "-headers", f"Cookie: {env('SENTINEL_PORTAL_COOKIE')}\r\n"]
+
+
+def m3u8(cam_id: str) -> str:
+    return f"https://{env('SENTINEL_HOST','cctv.corp8.cloud')}/{cam_id}/index.m3u8"
+
+
+def catalogue() -> list[dict]:
+    url = env("SENTINEL_INGEST_URL") or f"https://{env('SENTINEL_HOST')}/cameras.json"
+    r = requests.get(url, headers={"Cookie": env("SENTINEL_PORTAL_COOKIE"), "User-Agent": UA},
+                     timeout=30, allow_redirects=False)
+    if r.status_code != 200:
+        sys.exit(f"catalogue -> HTTP {r.status_code}. Cookie expired or missing "
+                 f"(must be `sentinel=<token>`). Re-copy it from DevTools.")
     OUT.mkdir(exist_ok=True)
-    (OUT / "catalogue.json").write_text(json.dumps(data, indent=2))
-    # Be liberal: the payload shape is not documented.
-    for key in ("cameras", "data", "streams", "items", "results"):
-        if isinstance(data, dict) and isinstance(data.get(key), list):
-            return data[key]
-    if isinstance(data, list):
-        return data
-    if isinstance(data, dict):
-        vals = [v for v in data.values() if isinstance(v, dict)]
-        if vals:
-            return vals
-    raise SystemExit(f"Could not find a camera list in the response. Inspect {OUT/'catalogue.json'}")
+    (OUT / "catalogue.json").write_text(json.dumps(r.json(), indent=2))
+    return r.json()
 
 
-def pick(cam: dict, *names, default=None):
-    for n in names:
-        if n in cam and cam[n] not in (None, ""):
-            return cam[n]
-    return default
+def playlist_stats(cam_id: str) -> dict:
+    """Segment count and true duration, straight from the VOD playlist."""
+    try:
+        r = requests.get(m3u8(cam_id), headers={"Cookie": env("SENTINEL_PORTAL_COOKIE"),
+                                                "User-Agent": UA}, timeout=30)
+        text = r.text
+        durs = [float(x.split(":")[1].rstrip(",")) for x in text.splitlines()
+                if x.startswith("#EXTINF")]
+        return {"segments": len(durs), "duration_s": round(sum(durs)),
+                "is_vod": "#EXT-X-ENDLIST" in text,
+                "encrypted": "#EXT-X-KEY" in text}
+    except Exception as e:
+        return {"segments": 0, "duration_s": 0, "is_vod": None, "encrypted": None,
+                "playlist_error": str(e)[:80]}
 
 
-def rtsp_url(cam: dict, host: str | None) -> str | None:
-    for k in ("rtsp", "rtsp_url", "rtspUrl", "url"):
-        v = cam.get(k)
-        if isinstance(v, str) and v.startswith("rtsp://"):
-            return v
-    for v in cam.values():                       # nested urls dict
-        if isinstance(v, dict):
-            for k2 in ("rtsp", "rtsp_url", "rtspUrl"):
-                if isinstance(v.get(k2), str) and v[k2].startswith("rtsp://"):
-                    return v[k2]
-    cid = pick(cam, "id", "camera_id", "stream_id", "streamId")
-    return f"rtsp://{host}:8554/stream/{cid}" if host and cid is not None else None
+def probe(cam_id: str) -> dict:
+    """Measured stream properties. Nothing here is declared by the catalogue."""
+    cmd = ["ffprobe", "-hide_banner", "-loglevel", "error", *hdrs(),
+           "-select_streams", "v:0", "-show_entries",
+           "stream=codec_name,width,height,avg_frame_rate", "-of", "json", "-i", m3u8(cam_id)]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+        st = (json.loads(r.stdout or "{}").get("streams") or [{}])[0]
+        fr = st.get("avg_frame_rate", "0/1")
+        num, _, den = fr.partition("/")
+        fps = round(float(num) / float(den), 2) if den and float(den) else None
+        return {"codec": st.get("codec_name"), "width": st.get("width"),
+                "height": st.get("height"), "fps": fps,
+                "probe_error": (r.stderr or "").strip()[:100] or None}
+    except Exception as e:
+        return {"codec": None, "width": None, "height": None, "fps": None,
+                "probe_error": str(e)[:100]}
 
 
-def probe(cam: dict, host: str | None, seconds: float) -> dict:
-    cid = pick(cam, "id", "camera_id", "stream_id", "streamId", default="?")
-    url = rtsp_url(cam, host)
-    row = {
-        "id": cid,
-        "name": pick(cam, "name", "title", "location", "camera_name", default=""),
-        "department": pick(cam, "department", "dept", "owner", default=""),
-        "declared_codec": pick(cam, "codec", "video_codec", default=""),
-        "declared_fps": pick(cam, "fps", "framerate", "frame_rate", default=""),
-        "declared_res": pick(cam, "resolution", default=""),
-        "live_flag": pick(cam, "live", "status", "is_live", default=""),
-        "rtsp_url": url or "",
-        "connectable": False, "decodable": False,
-        "reported_fps": None, "measured_fps": None, "fps_matches_declared": None,
-        "width": None, "height": None,
-        "frames": 0, "first_frame_ms": None,
-        "sharpness": None, "brightness": None,
-        "pts_span_s": None, "pts_available": False,
-        "plate_score": None, "verdict": "", "error": "",
-    }
-    if not url:
-        row["error"] = "no rtsp url resolvable"; return row
+def grab(cam_id: str, offset: int, label: str) -> Path | None:
+    out = FRAMES / f"{cam_id}_{label}.jpg"
+    FRAMES.mkdir(parents=True, exist_ok=True)
+    cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", *hdrs(),
+           "-ss", str(offset), "-i", m3u8(cam_id), "-frames:v", "1", "-q:v", "2", "-y", str(out)]
+    try:
+        subprocess.run(cmd, capture_output=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        return None
+    return out if out.exists() and out.stat().st_size > 0 else None
 
-    t0 = time.time()
-    cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
-    if not cap.isOpened():
-        row["error"] = "VideoCapture failed to open (blocked port? wrong host? auth?)"
-        cap.release(); return row
-    row["connectable"] = True
-    row["reported_fps"] = round(cap.get(cv2.CAP_PROP_FPS) or 0, 2)  # do NOT trust this
 
-    sharps, lumas, pts, n = [], [], [], 0
-    deadline, first = time.time() + seconds, None
-    while time.time() < deadline:
-        ok, frame = cap.read()
-        if not ok:
-            if n == 0:
-                row["error"] = "opened but no decodable frame"
-            break
-        if first is None:
-            first = time.time()
-            row["first_frame_ms"] = int((first - t0) * 1000)
-            row["decodable"] = True
-            row["height"], row["width"] = frame.shape[:2]
-            FRAMES.mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(str(FRAMES / f"{cid}.jpg"), frame)
-        n += 1
-        p = cap.get(cv2.CAP_PROP_POS_MSEC)
-        if p and p > 0:
-            pts.append(p)
-        if n % 5 == 0:                                    # sample, don't grind
-            g = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            sharps.append(cv2.Laplacian(g, cv2.CV_64F).var())
-            lumas.append(float(g.mean()))
-    cap.release()
-
-    row["frames"] = n
-    if not row["decodable"]:
-        return row
-
-    wall = max(time.time() - (first or t0), 1e-6)
-    row["measured_fps"] = round(n / wall, 2)
-    if row["reported_fps"]:
-        row["fps_matches_declared"] = abs(row["measured_fps"] - row["reported_fps"]) < 2.0
-    if len(pts) > 1:
-        row["pts_available"] = True
-        row["pts_span_s"] = round((max(pts) - min(pts)) / 1000.0, 2)
-    if sharps:
-        row["sharpness"] = round(statistics.median(sharps), 1)
-        row["brightness"] = round(statistics.median(lumas), 1)
-        # Crude plate-readability proxy: sharp enough, lit enough, enough pixels.
-        px = (row["width"] or 0) * (row["height"] or 0)
-        s = min(row["sharpness"] / 150.0, 1.0)
-        b = 1.0 if 55 <= row["brightness"] <= 200 else 0.35
-        r = min(px / (1920 * 1080), 1.0)
-        row["plate_score"] = round(100 * (0.5 * s + 0.2 * b + 0.3 * r), 1)
-        row["verdict"] = ("GOOD - demo candidate" if row["plate_score"] >= 55 else
-                          "MARGINAL" if row["plate_score"] >= 35 else "POOR for ANPR")
-    return row
+def score_frame(path: Path) -> dict:
+    """Crude plate-readability proxy. The automated number is a hint; your eyes decide."""
+    img = cv2.imread(str(path))
+    if img is None:
+        return {}
+    h, w = img.shape[:2]
+    # Ignore the burned-in timestamp/name overlays at top and bottom when scoring.
+    core = img[int(h * 0.15):int(h * 0.88), :]
+    g = cv2.cvtColor(core, cv2.COLOR_BGR2GRAY)
+    sharp = float(cv2.Laplacian(g, cv2.CV_64F).var())
+    bright = float(g.mean())
+    return {"sharpness": round(sharp, 1), "brightness": round(bright, 1)}
+    # NOTE: deliberately no composite "plate score". The previous heuristic
+    # (0.5*sharpness + 0.2*brightness + 0.3*pixels) rewarded wide, sharp, 1080p scenes — i.e. exactly
+    # the PTZ traffic-overview cameras where plates are a few pixels — and ranked the genuinely
+    # ANPR-viable toll/RLVD cameras BELOW them. A misleading number is worse than none.
+    # Rank by geometry, judged by eye; confirm with a real plate detector in D2-01.
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ingest", required=True, help="full /api/ingest URL")
-    ap.add_argument("--host", help="stream host, if URLs must be constructed")
-    ap.add_argument("--cookie", help="portal session cookie, if required")
-    ap.add_argument("--seconds", type=float, default=12.0, help="probe seconds per camera")
-    ap.add_argument("--only", help="comma-separated camera ids to probe")
+    ap.add_argument("--only", help="comma-separated camera ids")
+    ap.add_argument("--offsets", help="comma-separated seconds; default night+predawn+day")
     args = ap.parse_args()
 
-    host = args.host or args.ingest.split("//", 1)[-1].split("/", 1)[0].split(":")[0]
-    cams = fetch_catalogue(args.ingest, args.cookie)
+    if not env("SENTINEL_PORTAL_COOKIE"):
+        sys.exit("SENTINEL_PORTAL_COOKIE not set. Run:  set -a; . ./.env; set +a")
+
+    cams = catalogue()
     if args.only:
         keep = {s.strip() for s in args.only.split(",")}
-        cams = [c for c in cams if str(pick(c, "id", "camera_id", "stream_id")) in keep]
-
-    print(f"catalogue: {len(cams)} cameras · host {host} · {args.seconds}s each "
-          f"(~{len(cams)*args.seconds/60:.1f} min)\n")
+        cams = [c for c in cams if c["id"] in keep]
+    plan = (args.offsets if args.offsets
+            else ", ".join(f"{int(f*100)}%" for f in SAMPLE_FRACTIONS))
+    print(f"{len(cams)} cameras · sampling at {plan} of each camera's own duration\n")
 
     rows = []
     for i, cam in enumerate(cams, 1):
-        r = probe(cam, host, args.seconds)
-        rows.append(r)
-        print(f"[{i:>3}/{len(cams)}] id={str(r['id']):<8} "
-              f"{'OK ' if r['decodable'] else 'DEAD'} "
-              f"{str(r['width'] or '?')}x{str(r['height'] or '?'):<6} "
-              f"fps decl={r['reported_fps']} meas={r['measured_fps']:<6} "
-              f"sharp={r['sharpness']} plate={r['plate_score']} {r['verdict']} {r['error']}")
+        cid = cam["id"]
+        row = {"id": cid, "name": cam.get("name", ""), **playlist_stats(cid), **probe(cid)}
+        dur = row.get("duration_s") or 0
+
+        # Sample at fractions of THIS camera's duration. Explicit offsets override.
+        if args.offsets:
+            points = [(f"t{o}", int(o)) for o in args.offsets.split(",")]
+        elif dur > 60:
+            points = [(f"p{int(f*100):02d}", int(dur * f)) for f in SAMPLE_FRACTIONS]
+        else:
+            points = [("p50", max(1, dur // 2))]
+
+        samples = []
+        for label, off in points:
+            f = grab(cid, off, label)
+            sc = score_frame(f) if f else {}
+            if sc:
+                samples.append({"label": label, "offset_s": off, "path": str(f), **sc})
+
+        row["samples"] = samples
+        row["decodable"] = bool(samples)
+        if samples:
+            # Brightness separates daylight from night far more reliably than any offset guess.
+            day = max(samples, key=lambda x: x["brightness"])
+            night = min(samples, key=lambda x: x["brightness"])
+            row.update({
+                "day_offset_s": day["offset_s"], "day_brightness": day["brightness"],
+                "day_sharpness": day["sharpness"], "day_frame": day["path"],
+                "night_brightness": night["brightness"],
+                "brightness_range": round(day["brightness"] - night["brightness"], 1),
+                # A camera whose brightest and darkest samples barely differ never saw daylight
+                # (or is indoors / IR-only). That is itself a finding.
+                "saw_daylight": (day["brightness"] - night["brightness"]) > 25 and day["brightness"] > 70,
+            })
+            Path(day["path"]).replace(FRAMES / f"{cid}_day.jpg")
+            row["day_frame"] = str(FRAMES / f"{cid}_day.jpg")
+        rows.append(row)
+        print(f"[{i:>2}/{len(cams)}] {cid} {str(row['codec']):>5} "
+              f"{row['width']}x{row['height']} {row['fps']}fps {dur/3600:>4.1f}h  "
+              f"day@{row.get('day_offset_s','-')}s bright={row.get('day_brightness','-')} "
+              f"range={row.get('brightness_range','-')} "
+              f"{'DAYLIGHT' if row.get('saw_daylight') else 'no-daylight'}  {row['name'][:30]}")
 
     OUT.mkdir(exist_ok=True)
     (OUT / "report.json").write_text(json.dumps(rows, indent=2))
+    keys = sorted({k for r in rows for k in r})
     with (OUT / "report.csv").open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
+        w = csv.DictWriter(f, fieldnames=keys); w.writeheader(); w.writerows(rows)
 
     live = [r for r in rows if r["decodable"]]
-    liars = [r for r in live if r["fps_matches_declared"] is False]
-    ranked = sorted((r for r in live if r["plate_score"] is not None),
-                    key=lambda r: -r["plate_score"])
+    day_ok = [r for r in live if r.get("saw_daylight")]
+    print(f"\n{'='*78}\nSUMMARY")
+    print(f"  catalogued            {len(rows)}")
+    print(f"  decodable             {len(live)}")
+    print(f"  dead / unreachable    {len(rows)-len(live)}")
+    print(f"  genuine daylight frame{len(day_ok):>4}   (brightness range > 25 and day > 70)")
+    print(f"  never saw daylight    {len(live)-len(day_ok):>4}   <- short recordings / night-only / IR")
+    print(f"  codecs                {sorted({r['codec'] for r in live if r['codec']})}")
+    print(f"  resolutions           {sorted({f'{r["width"]}x{r["height"]}' for r in live})}")
+    print(f"  frame rates           {sorted({r['fps'] for r in live if r['fps']})}")
+    durs = [r["duration_s"] for r in live if r["duration_s"]]
+    if durs:
+        print(f"  duration              {min(durs)/3600:.1f}-{max(durs)/3600:.1f} h")
 
-    print(f"\n{'='*70}\nSUMMARY")
-    print(f"  catalogued        {len(rows)}")
-    print(f"  decodable         {len(live)}")
-    print(f"  dead / unreachable{len(rows)-len(live):>4}")
-    print(f"  declared FPS wrong{len(liars):>4}   <- registry-truth evidence for the deck")
-    print(f"  no PTS available  {sum(1 for r in live if not r['pts_available']):>4}")
-    print("\nTOP DEMO CANDIDATES (eyeball recon-out/frames/<id>.jpg before trusting these):")
-    for r in ranked[:12]:
-        print(f"  id={str(r['id']):<8} plate={r['plate_score']:<6} "
-              f"{r['width']}x{r['height']} sharp={r['sharpness']} "
-              f"bright={r['brightness']} {r['name'][:34]}")
+    print("\nPER-CAMERA — judge ANPR viability BY EYE from recon-out/frames/<id>_day.jpg.")
+    print("There is deliberately no composite score: sharpness x resolution ranks wide PTZ")
+    print("overview cameras above the toll/RLVD cameras that actually read plates.\n")
+    print(f"  {'id':<7}{'res':<11}{'fps':>4}{'dur_h':>7}{'day@s':>8}{'bright':>8}{'range':>7}  daylight  name")
+    for r in sorted(live, key=lambda r: r["id"]):
+        print(f"  {r['id']:<7}{str(r['width'])+'x'+str(r['height']):<11}{r['fps'] or 0:>4.0f}"
+              f"{(r['duration_s'] or 0)/3600:>7.1f}{r.get('day_offset_s',0):>8}"
+              f"{r.get('day_brightness',0):>8.1f}{r.get('brightness_range',0):>7.1f}"
+              f"  {'yes' if r.get('saw_daylight') else 'NO ':>7}   {r['name'][:32]}")
+
     print(f"\nwrote {OUT/'report.json'}, {OUT/'report.csv'}, {FRAMES}/")
-    print("Next: open the frames. If plates are unreadable across the board, re-weight to "
-          "Pillars 1/2/4 per PROJECT.md Day-0 contingency.")
+    print("Next: open the day frames. Look for vehicles passing CLOSE, SLOW and NEAR-FRONTAL")
+    print("(toll lanes, stop lines). Record the Go / re-weight decision on the D0-01 issue.")
 
 
 if __name__ == "__main__":

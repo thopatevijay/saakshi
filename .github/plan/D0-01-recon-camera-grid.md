@@ -11,63 +11,93 @@ estimate: "2h"
 This is the single ticket that can invalidate the architecture. The whole ANPR-led plan assumes the
 sandbox feeds have readable plates. **No feature code is written until this ticket closes.**
 
-`scripts/recon.py` already exists. This ticket is about running it, interpreting it, and recording
-the outcome as fact.
+**The deployed sandbox does not match the published Integrator's Guide.** Verified 2026-09-04, full
+detail in `BL-01`. `scripts/recon.py` has been rewritten for the reality:
 
-Per the organisers' integrator guide: `GET /api/ingest` is **the contract**; the URL pattern is not.
-Camera IDs and the camera set can change.
+| | Reality | Guide claimed |
+|---|---|---|
+| Host | `cctv.corp8.cloud` (HTTPS/443, Cloudflare) | `<host>` placeholder |
+| Catalogue | `GET /cameras.json` → `[{id,name}]` **only** | `/api/ingest` with codec, fps, live status, 3 URLs |
+| Stream | `/<id>/index.m3u8` | `/live/stream/<id>/index.m3u8` (404) |
+| RTSP / WHEP | **absent** | `:8554` / `:8889` |
+| Nature | **VOD**, `PLAYLIST-TYPE:VOD` + `ENDLIST`, seekable | "live… no seeking, no byte-range" |
+
+Also established: 30 cameras `cam01`–`cam30`; 7,200 × ~6 s segments = **12.0 h each**; AES-128
+encrypted (key at `/enc.key`, handled transparently by ffmpeg); auth via a **`sentinel=<token>`
+cookie** (every path 302s without it); and **Cloudflare rejects ffmpeg's default UA**, so a browser
+User-Agent is mandatory.
+
+**The footage window is `13-06-2026 21:00` → `14-06-2026 09:00` — roughly 9 of 12 hours are dark.**
+Sampling only the start of the file gives a night-only view of the estate. Daylight sits at roughly
+offsets 32400–43200 s.
 
 ## Scope
 
-- Log into the portal, obtain the sandbox host and any required session cookie
-- Run `scripts/recon.py` across **every** camera in the catalogue
-- Eyeball every saved frame in `recon-out/frames/` — the automated plate score is a proxy, not truth
-- Record the results in `.dev-refs.md`
-- Decide the demo camera shortlist
+- `set -a; . ./.env; set +a` then run `scripts/recon.py` across **every** camera
+- The script samples each camera at three offsets (night · pre-dawn · **day**) and measures codec,
+  resolution, true fps and duration — none of which the catalogue declares
+- **Eyeball every day frame in `recon-out/frames/`.** The automated plate score is a proxy, not truth
+- Record results in `.dev-refs.md` **and** as a comment on this issue (the file is gitignored)
+- Choose the demo camera shortlist
 
 ## Out of scope
 
 - Any inference beyond the recon script's own sampling
 - Any DB writes (no schema exists yet)
+- Fixing the adapter framework for HLS — that is `D1-03`
 
 ## Acceptance Criteria
 
-- [ ] `recon-out/catalogue.json` captured — the raw `/api/ingest` payload
-- [ ] `recon-out/report.json` + `report.csv` produced for **all** catalogued cameras
-- [ ] One sample frame saved per decodable camera and **visually reviewed by a human**
-- [ ] Counts recorded: total catalogued · decodable · dead · declared-FPS-wrong · PTS unavailable
-- [ ] Codec mix recorded (H.264 vs H.265 split) and resolution spread recorded
-- [ ] **10–12 demo cameras selected** and written into the `.dev-refs.md` table with reasons
-- [ ] Datacenter-IP reachability tested (see D0-02) and the GPU decision recorded
-- [ ] **Go / re-weight decision recorded** in this issue as a comment:
-      - *Go* — enough cameras have readable plates; proceed with the plan as written
-      - *Re-weight* — plates largely unreadable; shift emphasis to Pillars 1/2/4, route inference
-        carries Pillar 3, and ANPR claims are scaled to measured reality
+- [ ] `recon-out/catalogue.json` captured — the raw `/cameras.json` payload
+- [ ] `recon-out/report.json` + `report.csv` produced for **all 30** cameras
+- [ ] Day **and** night frames sampled per camera and **visually reviewed by a human**
+- [ ] Measured properties recorded per camera: codec, resolution, fps, duration, segment count.
+      Note the resolution spread — `cam01` is 1920x1080 and `cam12` is 1280x720, so the estate is
+      genuinely heterogeneous (evidence for Pillar 1 and for D1-09's per-camera batch shapes)
+- [ ] **10–12 demo cameras selected**, written into `.dev-refs.md` with reasons, and posted here
+- [ ] Cameras classified by geometry, because it drives everything downstream:
+      - **ANPR-viable** — aimed at stop lines / toll lanes (e.g. `cam14` Delight RLVD,
+        `cam12` Adalaj Tollnaka): vehicles pass close, slow, near-frontal
+      - **Detection-only** — wide or PTZ overview (e.g. `cam01` Chiman bhai Bridge): plates are a
+        few pixels; useful for vehicle detection and counting, not ANPR
+- [ ] **PTZ cameras identified** (the burned-in overlay names them, e.g. `CSITMS-32_PTZ2`) and
+      flagged — their field of view changes during the recording
+- [ ] Datacenter-IP reachability tested (D0-02 Q4) and the GPU decision recorded. `corp8.cloud` is
+      ordinary cloud infrastructure, so this is likely to pass — but test, do not assume
+- [ ] **Go / re-weight decision recorded** as a comment:
+      - *Go* — enough ANPR-viable cameras; proceed as planned
+      - *Re-weight* — shift emphasis to Pillars 1/2/4, route inference carries Pillar 3, and ANPR
+        claims scale to measured reality
 
 ## Deliverables
 
-- `recon-out/` (gitignored) with catalogue, report, frames
-- `.dev-refs.md` — sandbox host, endpoints, camera count, codec mix, demo camera table
-- A comment on this issue containing the summary table and the Go/re-weight decision
+- `recon-out/` (gitignored) — catalogue, report, day/night frames
+- `.dev-refs.md` — host, endpoints, cookie handling, camera table
+- A comment on this issue with the summary table, the camera classification, and the decision
 
 ## Validation Gate
 
 ```bash
-test -s recon-out/catalogue.json && test -s recon-out/report.csv \
-  && ls recon-out/frames/*.jpg | wc -l
+set -a; . ./.env; set +a
+python3 scripts/recon.py
+test -s recon-out/catalogue.json && test -s recon-out/report.csv
+ls recon-out/frames/*_day.jpg | wc -l          # one daylight frame per decodable camera
 python3 - <<'PY'
-import json; r=json.load(open('recon-out/report.json'))
-live=[x for x in r if x['decodable']]
-assert len(live)>=8, f"only {len(live)} decodable cameras — escalate to helpdesk before proceeding"
-print(f"OK: {len(live)}/{len(r)} decodable")
+import json; r = json.load(open('recon-out/report.json'))
+live = [x for x in r if x['decodable']]
+assert len(live) >= 24, f"only {len(live)}/30 decodable — escalate to helpdesk"
+anpr = [x for x in live if (x['best_plate_score'] or 0) >= 55]
+print(f"decodable {len(live)}/{len(r)} · ANPR-candidate {len(anpr)}")
+print("resolutions:", {f"{x['width']}x{x['height']}" for x in live})
 PY
 ```
 
-- [ ] At least 8 cameras decodable, or a helpdesk ticket raised and logged in `BL-01`
-- [ ] Demo shortlist committed to `.dev-refs.md` (file is gitignored — so also paste the table into
-      this issue as a comment, so any future session can recover it)
+- [ ] At least 24 of 30 decodable, or a helpdesk ticket raised and logged in `BL-01`
+- [ ] At least 4 cameras judged **by eye** to have ANPR-viable geometry, or the re-weight decision
+      is taken deliberately and recorded
 
-## Handoff → D1-03, D1-05, D2-01
+## Handoff → D1-03, D1-04, D1-05, D1-09, D2-01
 
-The demo camera IDs, codec mix, and resolution spread determine adapter test cases and inference
-batch shapes. **Post them as an issue comment**, not only to the gitignored file.
+Post as a comment: the demo camera ids with their classification, the codec/resolution spread, and
+the daylight offset window. Adapter tests, batch shapes, trust-score calibration and the ANPR
+evaluation set all depend on these.
