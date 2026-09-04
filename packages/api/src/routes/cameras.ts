@@ -66,22 +66,27 @@ type CameraSelect = {
   [K in keyof typeof CAMERA_COLUMNS]: unknown;
 };
 
-/** Shapes a raw row into the response contract. jsonb and numeric need explicit coercion. */
+const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+
+/**
+ * Shapes a raw row into the response contract.
+ *
+ * Coercion, not validation. `numeric` columns come back from postgres-js as strings and jsonb as
+ * `unknown`, so both need converting — but the response is **not** parsed here, because the
+ * serializer compiler already validates every response against this exact schema on the way out.
+ * Doing it in the handler as well validated each row twice, which at fifty rows a request and
+ * 2,000 requests a second was measurable: it was most of the per-request CPU in the benchmark.
+ */
 function toCameraResponse(row: CameraSelect): z.infer<typeof CameraResponse> {
-  return CameraResponse.parse({
+  return {
     ...row,
     endpoints: (row.endpoints ?? {}) as Record<string, string>,
-    lat: row.lat === null || row.lat === undefined ? null : Number(row.lat),
-    lon: row.lon === null || row.lon === undefined ? null : Number(row.lon),
-    declaredFps:
-      row.declaredFps === null || row.declaredFps === undefined ? null : Number(row.declaredFps),
-    trustScore:
-      row.trustScore === null || row.trustScore === undefined ? null : Number(row.trustScore),
-    retentionDays:
-      row.retentionDays === null || row.retentionDays === undefined
-        ? null
-        : Number(row.retentionDays),
-  });
+    lat: num(row.lat),
+    lon: num(row.lon),
+    declaredFps: num(row.declaredFps),
+    trustScore: num(row.trustScore),
+    retentionDays: num(row.retentionDays),
+  } as z.infer<typeof CameraResponse>;
 }
 
 /**

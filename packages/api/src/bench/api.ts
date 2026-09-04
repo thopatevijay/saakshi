@@ -26,8 +26,11 @@ const CONCURRENCY = Number(process.env['BENCH_CONNECTIONS'] ?? 500);
 const DURATION_S = Number(process.env['BENCH_DURATION'] ?? 10);
 const PORT = Number(process.env['BENCH_PORT'] ?? 4100);
 
-const env = loadEnv({ ...process.env, NODE_ENV: 'production' });
-const rawSql = createSql(env.DATABASE_URL, 20);
+// NODE_ENV=test silences the request logger. Not cosmetic: at 37,000 req/s pino was writing
+// ~370,000 log lines per scenario, and the measurement then reports the cost of stdout rather than
+// the cost of the API. A production deployment logs to a transport, not to a benchmark's stdout.
+const env = loadEnv({ ...process.env, NODE_ENV: 'test' });
+const rawSql = createSql(env.DATABASE_URL, env.DATABASE_POOL_MAX);
 const db = createDb(rawSql);
 
 async function countCameras(): Promise<number> {

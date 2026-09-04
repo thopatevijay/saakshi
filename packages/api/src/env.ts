@@ -8,6 +8,11 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().min(1).default('postgres://saakshi:saakshi@localhost:5432/saakshi'),
+  // Connections per API instance. Sized against expected concurrency: at ~1 ms per query, N
+  // connections serve roughly N,000 req/s, and anything beyond that queues — which is latency the
+  // database never sees. Keep the total across instances below Postgres `max_connections` (100 on
+  // the compose stack).
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(200).default(50),
   VALKEY_URL: z.string().min(1).default('redis://localhost:6379'),
   MINIO_ENDPOINT: z.string().min(1).default('http://localhost:9000'),
   MINIO_BUCKET: z.string().min(1).default('saakshi-evidence'),

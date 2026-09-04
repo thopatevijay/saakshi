@@ -4,7 +4,7 @@ import { buildServer } from './server.js';
 import { createDb, createSql } from './db/client.js';
 
 const env = loadEnv();
-const sql = createSql(env.DATABASE_URL);
+const sql = createSql(env.DATABASE_URL, env.DATABASE_POOL_MAX);
 const app = await buildServer({ env, db: createDb(sql) });
 
 try {
