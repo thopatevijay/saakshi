@@ -28,7 +28,8 @@
     "bench:api": "npm run bench:api --workspace @saakshi/api",
     "adapter:probe": "npm run adapter:probe --workspace @saakshi/api --",
     "sync:catalogue": "npm run sync:catalogue --workspace @saakshi/api --",
-    "trust:recompute": "npm run trust:recompute --workspace @saakshi/api --"
+    "trust:recompute": "npm run trust:recompute --workspace @saakshi/api --",
+    "consume:sightings": "npm run consume:sightings --workspace @saakshi/api --"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
