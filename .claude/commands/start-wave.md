@@ -84,17 +84,44 @@ If a wave is wider than three, run it in batches of three. Merge each batch befo
 **The live-feed semaphore is 1.** Tickets flagged `[LIVE FEED]` touch the sandbox. Never run two of
 them concurrently, even inside a batch of three — pair one live-feed ticket with two that are not.
 
-Spawn each worker with the Agent tool, `isolation: "worktree"`, giving it:
+Spawn each worker with the Agent tool and `isolation: "worktree"`.
 
-- the ticket id **and its issue number**;
-- its **pre-allocated migration prefix** — "if you create a migration it MUST be `<NNNN>_*.sql`,
-  never the next number you see on disk";
-- its **`DATABASE_URL`** — "use only this database; never the default";
-- whether it holds the live-feed semaphore;
-- the **hot-file rule** below;
-- the instruction to follow `.claude/commands/start.md` **in full**, with one change: it must
-  **stop after pushing its branch and opening its PR**, and must **not merge**. Merging is the
-  manager's, in wave order.
+**The worker runs the real `/start` contract, not a paraphrase of it.** Its first instruction is to
+invoke the `start` skill for its ticket, which loads `.claude/commands/start.md` verbatim — the same
+254-line contract every sequential ticket has followed. Nothing about the standard changes because
+the work is parallel.
+
+Give each worker exactly this, filled in from the planner's output:
+
+> Invoke the `start` skill with `<TICKET-ID>` and follow it. **Phases 0 through 6 apply exactly as
+> written** — orient, blocker check, branch, PRP, post the start note, implement, and the full
+> Phase 6 verification gate. Then these overrides apply:
+>
+> **Phase 7 is REPLACED. Do not merge. Do not close the issue. Do not change labels to `status:done`.**
+> Stop after: `git add -A` → commit → `git push -u origin <branch>` → `gh pr create`. The PR body
+> must still carry everything Phase 7 requires, **including the full handoff section** — the manager
+> posts it to the issue after merging, so a handoff missing from your PR body is a handoff lost.
+> Report the PR number in your final summary.
+>
+> **Merging is the manager's, in wave order.** Your migration number was allocated on the assumption
+> that PRs land in the planner's sequence; a self-merge breaks that sequence for every other worker.
+>
+> - **Migration prefix:** if you create a migration it MUST be `<NNNN>_*.sql`. Never take the next
+>   number you see on disk — another worker owns it right now.
+> - **Database:** `DATABASE_URL=<worker_db_url>`. Use only this. Never the default; another worker's
+>   gate is running against it.
+> - **Live feed:** `<held | not held>`. If you do not hold it, do not touch the sandbox gateway —
+>   no `sync:catalogue`, no prober sweep, no adapter probe against `SENTINEL_HOST`.
+> - **Read your own issue's comments before writing code.** Earlier tickets have posted blocker
+>   notes there; they carry the constraint that would otherwise cost you a rewrite.
+> - Then the hot-file rule below.
+>
+> If you cannot finish, use `/start`'s **Phase 8-BLOCKED** unchanged — push WIP, label
+> `status:blocked`, post the blocked note. Report that you are blocked; do not report success.
+
+**Why Phase 7 is the only thing overridden.** Everything before it is what makes a ticket correct —
+reading the inherited handoffs, proving each AC with evidence, running the gate verbatim. Only the
+*landing* is a shared-resource operation, and shared resources are the manager's job.
 
 ### The hot-file rule, given to every worker
 
@@ -140,8 +167,24 @@ its ticket with `status:blocked` and the real error. **Never start the next wave
 
 ## Step 5 — Close out the wave
 
-For every merged ticket the worker will already have posted its handoff and closed its issue. Verify
-it did — a missing handoff is the one failure that silently degrades the *next* wave:
+Workers deliberately do **not** close their own issues, so this is yours. For each merged ticket, in
+the same order:
+
+```bash
+gh issue comment <n> -R thopatevijay/saakshi --body "<handoff, taken from the PR body>"
+gh issue edit <n> -R thopatevijay/saakshi --remove-label "status:in-progress" --add-label "status:done"
+gh issue close <n> -R thopatevijay/saakshi --reason completed
+```
+
+**The handoff comment is not paperwork — it is what the next wave reads.** A ticket closed without
+one silently degrades every ticket that depends on it, and the degradation shows up as a bug someone
+rediscovers rather than as a missing file. If a worker's PR body has no handoff section, reconstruct
+it from the diff and its final report before closing.
+
+Then post any cross-ticket blocker notes the workers surfaced — `/backlog`'s rule applies unchanged:
+a finding that breaks a later ticket gets a comment on **that** ticket, not only on `BL-01`.
+
+Verify the wave is genuinely closed out:
 
 ```bash
 for n in <issue numbers>; do
@@ -149,8 +192,6 @@ for n in <issue numbers>; do
     --jq '"#\(.number) \(.state) \([.labels[].name]|join(",")) comments=\(.comments|length)"'
 done
 ```
-
-Any ticket closed without a handoff comment: write one yourself from its PR body before proceeding.
 
 Then report the wave to the user — merged, blocked, gate result — and start the next wave.
 
