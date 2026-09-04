@@ -42,6 +42,9 @@ import {
 /** How long a window `probe()` decodes to count frames. Long enough to span a 6 s GOP twice. */
 const FPS_WINDOW_S = 4;
 
+/** Bytes of playlist read before giving up on finding the header tags. */
+const PLAYLIST_PREFIX_BYTES = 4_096;
+
 export interface HlsAdapterOptions {
   /** Session cookie. Read from config, never hardcoded, never logged. */
   cookie?: string | undefined;
@@ -94,7 +97,22 @@ export function createHlsAdapter(options: HlsAdapterOptions = {}): HlsAdapter {
     return url;
   };
 
-  /** Reads the playlist directly to answer questions ffprobe does not expose. */
+  /**
+   * Reads only the **head** of the playlist, to answer what ffprobe does not expose: is it VOD, and
+   * are the segments encrypted.
+   *
+   * Reading a prefix rather than the whole file is not a micro-optimisation. A 12-hour playlist is
+   * 14,408 lines / 7,200 segments, and a probe was downloading all of it **three times** — once
+   * here, once for ffprobe, once for the fps measurement. When the gateway degraded (a playlist
+   * fetch that took seconds in the morning was still incomplete after 120 s), that tripled cost was
+   * the difference between probing and timing out. D1-05 re-probes every camera on a schedule, so
+   * this compounds across the estate.
+   *
+   * Correct by the HLS spec, not just cheap: `#EXT-X-PLAYLIST-TYPE:VOD` appears in the header and
+   * *means* the playlist is complete and immutable — which is exactly the property a seek needs.
+   * `#EXT-X-KEY` is likewise a header tag. `#EXT-X-ENDLIST` lives at the end of the file and is only
+   * consulted as a fallback, for a playlist that omits `PLAYLIST-TYPE`.
+   */
   const inspectPlaylist = async (
     url: string,
   ): Promise<{ seekable: boolean; encrypted: boolean; ok: boolean; status: number }> => {
@@ -106,13 +124,33 @@ export function createHlsAdapter(options: HlsAdapterOptions = {}): HlsAdapter {
         },
         redirect: 'manual',
       });
-      const body = response.ok ? await response.text() : '';
+
+      if (!response.ok || response.body === null) {
+        return { ok: response.ok, status: response.status, seekable: false, encrypted: false };
+      }
+
+      // Read the prefix, then abandon the rest of the transfer.
+      // Typed explicitly: undici's ReadableStream is `any`-typed in this TS/lib combination, and
+      // an implicit `any` here would silently defeat the strict settings everywhere else.
+      const reader = (response.body as ReadableStream<Uint8Array>).getReader();
+      const decoder = new TextDecoder();
+      let head = '';
+      try {
+        while (head.length < PLAYLIST_PREFIX_BYTES) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          head += decoder.decode(value, { stream: true });
+          if (head.includes('#EXT-X-ENDLIST')) break;
+        }
+      } finally {
+        await reader.cancel();
+      }
+
       return {
-        ok: response.ok,
+        ok: true,
         status: response.status,
-        // ENDLIST is what makes a seek meaningful: a live playlist has no fixed origin to seek from.
-        seekable: body.includes('#EXT-X-ENDLIST') || body.includes('PLAYLIST-TYPE:VOD'),
-        encrypted: body.includes('#EXT-X-KEY'),
+        seekable: head.includes('#EXT-X-PLAYLIST-TYPE:VOD') || head.includes('#EXT-X-ENDLIST'),
+        encrypted: head.includes('#EXT-X-KEY'),
       };
     } catch {
       return { ok: false, status: 0, seekable: false, encrypted: false };

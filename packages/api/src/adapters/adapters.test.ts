@@ -597,8 +597,7 @@ describe.skipIf(!liveAvailable)('HLS adapter against the real Sentinel sandbox',
       await rm(seekPath, { force: true });
       await rm(startPath, { force: true });
     }
-  }, // Generous: a 7,200-segment playlist over a throttled gateway measured 295s for one probe.
-  900_000);
+  }, 900_000); // Generous: a 7,200-segment playlist over a throttled gateway measured 295s for one probe.
 
   it('health() reports a live camera as connectable and decodable', async () => {
     const sample = await adapter.health(hlsCfg('cam01'));
