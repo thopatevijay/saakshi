@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./db": {
+      "types": "./dist/db/index.d.ts",
+      "default": "./dist/db/index.js"
     }
   },
   "main": "./dist/index.js",
@@ -20,6 +24,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "zod": "^4.1.11"
   }
 }
