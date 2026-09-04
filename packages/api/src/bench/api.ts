@@ -125,9 +125,36 @@ async function run(scenario: Scenario, token: string): Promise<Result> {
   };
 }
 
+/**
+ * Refuses to measure against a database that cannot accept the connections this run needs.
+ *
+ * Learned the hard way: an interrupted benchmark leaves its pool open, and once
+ * `max_connections` is exhausted the API returns 500s that look exactly like application failures.
+ * One polluted run reported 27,180 "failed responses" that were nothing of the kind. Better to
+ * refuse than to publish a number that means something else.
+ */
+async function assertConnectionHeadroom(): Promise<void> {
+  const rows = await db.execute<{ max_connections: string; used: string }>(sql`
+    select current_setting('max_connections') as max_connections,
+           (select count(*)::text from pg_stat_activity) as used`);
+  const max = Number(rows[0]?.max_connections ?? 0);
+  const used = Number(rows[0]?.used ?? 0);
+  const needed = env.DATABASE_POOL_MAX;
+
+  console.log(`  connections: ${String(used)}/${String(max)} used · this run needs ${String(needed)}`);
+  if (used + needed > max) {
+    throw new Error(
+      `not enough connection headroom (${String(used)} in use of ${String(max)}, need ` +
+        `${String(needed)}). An interrupted run probably leaked its pool: ` +
+        `\`docker compose restart db\` and try again.`,
+    );
+  }
+}
+
 async function main(): Promise<void> {
   console.log('SAAKSHI registry API benchmark\n');
 
+  await assertConnectionHeadroom();
   if (process.env['BENCH_SKIP_SEED'] !== '1') await seed(TARGET_ROWS);
   const rows = await countCameras();
   console.log(`  registry size: ${rows.toLocaleString('en-IN')} live cameras\n`);
@@ -252,4 +279,15 @@ async function main(): Promise<void> {
   if (!cleanOk || !rowsOk) process.exitCode = 1;
 }
 
-await main();
+// Release the pool on interrupt too, so a Ctrl-C does not poison the next run.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    void rawSql.end({ timeout: 2 }).finally(() => process.exit(130));
+  });
+}
+
+try {
+  await main();
+} finally {
+  await rawSql.end({ timeout: 5 });
+}
