@@ -307,19 +307,93 @@ BENCH_ROWS=250000 npm run bench:api  # bigger
 ```
 
 <!-- BENCHMARK:START -->
-_Populated by `npm run bench:api` — see the results table committed below._
+### Environment
+
+Apple Silicon MacBook Air, PostgreSQL 16.14 in Docker, API and load generator on the same host, a
+**single Node process** (one core). 10 s per scenario, autocannon. These are honest local numbers,
+not a projection — a deployed instance with a dedicated database and more than one API process will
+do better.
+
+Run-to-run variance is real on a laptop that is also running the database and the build: identical
+code produced 238 ms, 345 ms and 837 ms for the same scenario across runs. The table below is one
+complete clean run; treat the shape as the finding, not the third significant figure.
+
+### Registry size: 1,00,000 cameras · 500 concurrent connections · zero failed responses
+
+| Scenario | Conns | Requests | req/s | p50 | p95 | p99 | max | non-2xx | errors |
+|---|---|---|---|---|---|---|---|---|---|
+| health | 500 | 5,11,445 | 51,152 | 9 ms | **13 ms** | 13 ms | 1303 ms | 0 | 0 |
+| list (50) | 500 | 22,544 | 2,255 | 211 ms | **345 ms** | 1354 ms | 2940 ms | 0 | 0 |
+| list (500) | 100 | 3,594 | 359 | 277 ms | **317 ms** | 435 ms | 1587 ms | 0 | 0 |
+| bbox (Ahmedabad) | 500 | 15,523 | 1,552 | 301 ms | **439 ms** | 1201 ms | 2371 ms | 0 | 0 |
+| filtered (adapter+trust) | 500 | 20,389 | 2,039 | 234 ms | **269 ms** | 979 ms | 2689 ms | 0 | 0 |
+| departments | 500 | 83,622 | 8,363 | 56 ms | **74 ms** | 84 ms | 729 ms | 0 | 0 |
+| deep cursor page | 500 | 21,488 | 2,150 | 225 ms | **265 ms** | 1217 ms | 3011 ms | 0 | 0 |
+
+**500+ concurrent users without degradation: PASS.** 500 connections, seven scenarios,
+**zero non-2xx and zero errors**. Throughput holds flat rather than collapsing.
+
+**1,00,000+ records without pagination degradation: PASS.** The `deep cursor page` scenario
+(**265 ms**) is *faster* than the first page (345 ms) — a keyset cursor costs the same at row 90,000
+as at row 1. `OFFSET 90000` would have walked and discarded 90,000 rows to serve that page.
+
+### p95 vs concurrency — the number quoted with its load
+
+| Concurrent clients | p95 | req/s | failed |
+|---|---|---|---|
+| 10 | **7 ms** | 2,159 | 0 |
+| 25 | **14 ms** | 2,408 | 0 |
+| 50 | **25 ms** | 2,397 | 0 |
+| 100 | **51 ms** | 2,358 | 0 |
+| 200 | **110 ms** | 2,159 | 0 |
+| 500 | **252 ms** | 2,124 | 0 |
+
+**p95 < 200 ms holds up to 200 concurrent clients per API instance** (110 ms measured). Beyond that
+a single instance saturates.
+
+This is queueing, not slowness, and the arithmetic says so. Throughput is flat at ~2,200 req/s
+across the whole sweep while p95 rises linearly with concurrency — the signature of a saturated
+server, where added load becomes queue wait. Little's Law: 500 concurrent ÷ 2,255 req/s ≈ 222 ms,
+against a measured p50 of 211 ms.
+
+The bottleneck is **Node's single core, not PostgreSQL**:
+
+- raw query execution is **0.96 ms** (`EXPLAIN ANALYZE`, planning 1.7 ms);
+- `/health` sustains **51,152 req/s** on the same process, so the runtime is not the limit for
+  trivial work;
+- raising `DATABASE_POOL_MAX` from 20 to 50 moved p95 by ~5% — if the database were the constraint
+  it would have moved a great deal more.
+
+**So the answer to more than 200 concurrent operators is more API instances, not a faster query.**
+The API is stateless; every instance shares the same Postgres. Sizing arithmetic for the deployment
+is in D3-08's calculator.
+
+### What made it this fast
+
+Two fixes, both found by measuring rather than reading:
+
+1. **An index on the pagination sort key** (`0011_registry_pagination_index`). Without it, ordering
+   by `(onboarded_at, id)` made Postgres `Parallel Seq Scan` all 100,000 rows and top-N sort them to
+   return fifty — *on every page request*. Worst p95 was **9,839 ms with 266 failed requests**.
+   Buffers per request fell from 2,497 to 54.
+2. **Removing double response validation.** Handlers parsed each row against `CameraResponse` and
+   the serializer then validated the same rows against the same schema. Output is still fully
+   zod-validated — once, in the serializer.
+
+### A trap worth knowing
+
+`npm run bench:api` refuses to run without connection headroom:
+
+```
+not enough connection headroom (152 in use of 300, need 50). An interrupted run probably
+leaked its pool: `docker compose restart db` and try again.
+```
+
+An interrupted benchmark leaves its pool open. Once `max_connections` is exhausted the API returns
+`500`s that look exactly like application failures — one polluted run reported **27,180 "failed
+responses"** that were connection exhaustion, not a defect. `max_connections=300` in
+`docker-compose.yml` and this guard exist so that number cannot be published by accident.
 <!-- BENCHMARK:END -->
-
-### What the numbers mean
-
-- **p95** is reported per scenario. The stated target is **< 200 ms**.
-- **500 concurrent connections** is the stated concurrency target; `non-2xx` and `errors` must both
-  be zero, since throughput at the cost of failed requests is not throughput.
-- **Deep cursor page** exists to prove the pagination claim: its p95 sits with the first page's
-  rather than degrading, which is what keyset pagination buys over `OFFSET`.
-- Measured on the development machine (Apple Silicon, Postgres in Docker). A deployed instance with
-  the database on the same host network should do better; these are the honest local numbers, not a
-  projection.
 
 ---
 

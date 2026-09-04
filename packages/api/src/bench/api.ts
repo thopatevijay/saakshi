@@ -141,7 +141,9 @@ async function assertConnectionHeadroom(): Promise<void> {
   const used = Number(rows[0]?.used ?? 0);
   const needed = env.DATABASE_POOL_MAX;
 
-  console.log(`  connections: ${String(used)}/${String(max)} used · this run needs ${String(needed)}`);
+  console.log(
+    `  connections: ${String(used)}/${String(max)} used · this run needs ${String(needed)}`,
+  );
   if (used + needed > max) {
     throw new Error(
       `not enough connection headroom (${String(used)} in use of ${String(max)}, need ` +
@@ -237,7 +239,9 @@ async function main(): Promise<void> {
   await app.close();
   await rawSql.end();
 
-  console.log(`\n  Registry size: ${rows.toLocaleString('en-IN')} cameras · ${String(DURATION_S)}s per scenario\n`);
+  console.log(
+    `\n  Registry size: ${rows.toLocaleString('en-IN')} cameras · ${String(DURATION_S)}s per scenario\n`,
+  );
   console.log('| Scenario | Conns | Requests | req/s | p50 | p95 | p99 | max | non-2xx | errors |');
   console.log('|---|---|---|---|---|---|---|---|---|---|');
   for (const r of [...results, ...sweep]) {
@@ -251,9 +255,13 @@ async function main(): Promise<void> {
   const worst = results.reduce((a, b) => (b.p95 > a.p95 ? b : a));
   const failures = results.filter((r) => r.non2xx > 0 || r.errors > 0);
 
-  console.log(`\n  worst p95: ${String(worst.p95)} ms (${worst.name}) · target < ${String(P95_TARGET_MS)} ms`);
+  console.log(
+    `\n  worst p95: ${String(worst.p95)} ms (${worst.name}) · target < ${String(P95_TARGET_MS)} ms`,
+  );
   console.log(`  concurrency: ${String(CONCURRENCY)} connections`);
-  console.log(`  failed responses: ${String(failures.reduce((n, r) => n + r.non2xx + r.errors, 0))}`);
+  console.log(
+    `  failed responses: ${String(failures.reduce((n, r) => n + r.non2xx + r.errors, 0))}`,
+  );
 
   const cleanOk = failures.length === 0;
   const rowsOk = rows >= 100_000;
