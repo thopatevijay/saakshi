@@ -38,16 +38,47 @@ git add -A && git commit -m "chore: project plan, workflow and scaffold" && git 
 `bootstrap_github.py` is **idempotent**. Edit a ticket in `.github/plan/`, re-run it, and the issue
 body syncs. The plan in git and the plan on GitHub never drift.
 
-## The four commands
+## The five commands
 
 | Command | What it does |
 |---|---|
 | `/start <TICKET-ID>` | Branch → read issue + inherited handoffs → write PRP → implement → verify every AC → run the validation gate → commit → push → PR → squash-merge → close with a handoff comment |
+| `/start-wave <MILESTONE>` | A whole milestone in dependency-ordered waves: parallel workers in isolated worktrees and databases, merged and gated by a manager |
 | `/gate <GATE-ID>` | Verify a whole day from a **clean state** before the next day begins |
 | `/backlog "<finding>"` | Log a bug/gap/pitfall/constraint to `BL-01` without derailing the ticket in flight |
 | `/status` | Rebuild the full picture from GitHub + git and name the single next command |
 
 Both `/start D2-04` and `/start 27` work.
+
+### When to use `/start-wave` instead of `/start`
+
+Run `python3 scripts/waves.py <MILESTONE>` first — it is free and read-only. It computes the
+dependency waves, pre-allocates a migration number per ticket, assigns each worker its own database,
+and flags the tickets that need the live sandbox.
+
+**Parallelism only pays where the graph is wide.** Measured across this plan:
+
+| Milestone | Tickets | Waves | Widest wave | Use |
+|---|---|---|---|---|
+| `D1` | 9 | 6 | 3 | `/start` — nearly a chain |
+| `D2` | 8 | 5 | 3 | `/start` — ANPR → normalise → fuzzy → alerts → queue is sequential |
+| `D3` | 11 | **2** | **8** | **`/start-wave`** — the big win |
+| `D4` | 8 | **2** | **6** | **`/start-wave`** |
+
+A milestone whose waves are mostly width 1–2 gains nothing: the coordination overhead exceeds the
+saving. The planner prints the shape; believe it rather than the ticket count.
+
+### Three limits that are not negotiable
+
+- **Three concurrent workers, maximum.** Past three, the shared Postgres and the sandbox gateway
+  dominate. The gateway degrades roughly tenfold under sustained load — **4.2 s → 63 s** measured on
+  the same 1.3 KB fetch — and every concurrent measurement then describes our own load rather than
+  the estate. On a build where the measurements *are* the product, that is not a speed/quality
+  trade; it is just damage.
+- **One live-feed ticket at a time**, regardless of the concurrency cap.
+- **Never overlap waves.** Wave N+1 reads wave N's handoff comments. Starting early throws away the
+  mechanism that makes this workflow produce good work — a worker with no handoff to read
+  rediscovers the same traps, or doesn't.
 
 ## The loop
 
