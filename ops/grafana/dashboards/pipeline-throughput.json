@@ -1,0 +1,1143 @@
+{
+  "uid": "saakshi-pipeline",
+  "title": "SAAKSHI \u00b7 Pipeline Throughput",
+  "description": "Declared vs measured vs effective frame rate, gateway starvation, motion gating, ANPR throughput and the bus.",
+  "tags": [
+    "saakshi",
+    "pipeline"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 31,
+      "type": "text",
+      "title": "Declared vs measured vs effective \u2014 the finding this system exists to make visible",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 5
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Three different frame rates, and confusing any two of them produces a false capacity claim.\n\n| | what it is | where it comes from |\n|---|---|---|\n| **declared** | what the camera or its container *claims* | the stream header, and `cameras.declared_fps` when the catalogue supplies one \u2014 on the Sentinel sandbox it does not, so this column comes from the header |\n| **measured** | what the stream actually *carries*, counted from PTS with the connect burst discarded | the prober and the analytics worker |\n| **effective** | what we actually *receive*, frames per wall second | the analytics worker |\n\nMeasured on the government sandbox: `cam01` declares 30, carries 14.99, delivers **4.00**. Across eight cameras, measured fps ran 15\u201330 while effective fps ran **1.92\u20134.00** \u2014 the gateway throttles roughly tenfold. **Any capacity claim about the department feed must use the effective column.** Any claim about our hardware must use a local MediaMTX run, where the same pipeline sustained 199.78 aggregate fps across eight cameras."
+      }
+    },
+    {
+      "id": 37,
+      "type": "timeseries",
+      "title": "The three rates, per camera",
+      "description": "The single most valuable panel on this board. A measured line far below its declared line is a camera that lies about itself; an effective line far below its measured line is a gateway that throttles us. Those are different problems with different owners, and one fps number cannot tell them apart.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 16,
+        "h": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_worker_camera_declared_fps",
+          "legendFormat": "declared {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_prober_camera_declared_fps",
+          "legendFormat": "declared (prober) {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_worker_camera_measured_fps",
+          "legendFormat": "measured {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_prober_camera_measured_fps",
+          "legendFormat": "measured (prober) {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "J"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_worker_camera_effective_fps",
+          "legendFormat": "effective {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "K"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "type": "stat",
+      "title": "Throttle factor (measured / effective)",
+      "description": "How many times more content the streams carry than we receive. ~1 on local MediaMTX; ~10 through the government gateway.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 5,
+        "w": 8,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "avg(saakshi_worker_camera_measured_fps / clamp_min(saakshi_worker_camera_effective_fps, 0.01))",
+          "legendFormat": "throttle",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "M"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "type": "stat",
+      "title": "Upstream-bound share of wall time",
+      "description": "A slow gateway looks exactly like a broken worker, and one latency number cannot tell them apart. This is the fraction of wall time our threads spent blocked inside decode() \u2014 the gateway's time, not ours. Measured at 92% over a 22-minute soak on the sandbox, with ZERO reconnects. Above ~70% there is nothing to fix in this pipeline.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 9,
+        "w": 8,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(saakshi_worker_camera_upstream_wait_seconds_total[5m])) / clamp_min(sum(rate(saakshi_worker_camera_upstream_wait_seconds_total[5m])) + sum(rate(saakshi_worker_camera_loop_self_seconds_total[5m])), 0.001) * 100",
+          "legendFormat": "upstream",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "O"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "type": "timeseries",
+      "title": "Starvation ratio per camera",
+      "description": "Per camera: seconds blocked upstream over total seconds. Near 1 = the gateway is starving that camera. Near 0 with a low frame rate = our loop is the bottleneck.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "rate(saakshi_worker_camera_upstream_wait_seconds_total[5m]) / clamp_min(rate(saakshi_worker_camera_upstream_wait_seconds_total[5m]) + rate(saakshi_worker_camera_loop_self_seconds_total[5m]), 0.001)",
+          "legendFormat": "{{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "Q"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "type": "timeseries",
+      "title": "Seconds since the last frame",
+      "description": "Individual healthy stalls of 54.6 s have been measured on this estate with zero reconnects, which is why the starvation alert sits at 120 s and the camera-down alert is built on session state instead.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_worker_camera_seconds_since_frame",
+          "legendFormat": "{{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "S"
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "type": "timeseries",
+      "title": "Frames decoded and inferences run",
+      "description": "The gap between the first two is the motion gate doing its job.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(saakshi_worker_camera_frames_decoded_total[2m]))",
+          "legendFormat": "frames/s decoded",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "U"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(saakshi_worker_camera_inferences_total[2m]))",
+          "legendFormat": "inferences/s",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "V"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(saakshi_worker_camera_detections_total[2m]))",
+          "legendFormat": "detections/s",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "W"
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "type": "timeseries",
+      "title": "Motion-gate skip ratio",
+      "description": "Fraction of considered frames never inferred. Measured 32.5% on live traffic cameras and 59.9% on a synthetic mix \u2014 that is the compute the gate saves, and it is a sizing-model input, not a cosmetic number.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_worker_camera_motion_gate_skip_ratio",
+          "legendFormat": "{{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "Y"
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "type": "timeseries",
+      "title": "Read rate against each camera's OWN baseline",
+      "description": "Per-camera yield spreads 500x in one city at one hour \u2014 33,548 sightings on cam04 against 67 on cam03 over the same 22 minutes, and cam03 was not broken: it decoded 5,582 frames cleanly at 23.16 fps and simply sees almost no vehicles. The read-rate collapse alert therefore compares each camera against its own 24-hour median, never against an estate-wide floor.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_sightings_per_min",
+          "legendFormat": "now {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_sightings_baseline_per_min",
+          "legendFormat": "baseline {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "type": "timeseries",
+      "title": "ANPR reads per minute",
+      "description": "ANPR is the only mandatory analytic, so this is the mandatory throughput number. Two series because the live one disappears when the consumer exits and the stored one does not.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "rate(saakshi_consumer_plate_reads_inserted_total[5m]) * 60",
+          "legendFormat": "live (consumer)",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_plate_reads_per_min",
+          "legendFormat": "stored (last 5 min)",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "E"
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "type": "heatmap",
+      "title": "Plate read confidence distribution",
+      "description": "A DISTRIBUTION, NOT AN ACCURACY CLAIM. Confidence is what the OCR reports about itself; measured precision and recall \u2014 including where they fail, at night, on two-wheelers and at oblique angles \u2014 live in docs/anpr-accuracy.md.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 12,
+        "h": 8
+      },
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {
+          "mode": "scheme",
+          "scheme": "Oranges",
+          "steps": 32
+        },
+        "yAxis": {
+          "unit": "short"
+        },
+        "legend": {
+          "show": true
+        },
+        "tooltip": {
+          "show": true
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(increase(saakshi_plate_read_confidence_bucket[5m])) by (le)",
+          "legendFormat": "{{le}}",
+          "range": true,
+          "instant": false,
+          "format": "heatmap",
+          "refId": "G"
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "type": "timeseries",
+      "title": "Detector latency",
+      "description": "Device-side only. Measured 18.91 ms p50 / 47.02 ms p95 for YOLO11n on Apple Silicon MPS across eight concurrent cameras. Kept apart from wall-clock fps because on a throttled gateway they answer different questions.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 35,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_worker_inference_latency_ms",
+          "legendFormat": "{{quantile}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "I"
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "type": "timeseries",
+      "title": "Bus depth and lag",
+      "description": "Lag rises when nothing is draining the stream; pending rises when something is attached but stuck. The alert needs both to tell those apart.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_bus_stream_length",
+          "legendFormat": "{{stream}} length",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "K"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_bus_group_lag_entries",
+          "legendFormat": "{{stream}}/{{group}} lag",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "L"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_bus_group_pending_entries",
+          "legendFormat": "{{stream}}/{{group}} pending",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "M"
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "type": "timeseries",
+      "title": "Video-wall relay against the department gateway",
+      "description": "Every cache hit is a request the department gateway never saw. D3-07 measured a 6-second HLS segment arriving in 22\u201349 s, so the relay is the difference between nine tiles and nine copies of the stream.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 43,
+        "w": 12,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_relay_hits",
+          "legendFormat": "cache hits",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "O"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_relay_misses",
+          "legendFormat": "misses",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "P"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_relay_upstream_requests",
+          "legendFormat": "upstream requests",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "Q"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_relay_queued",
+          "legendFormat": "queued",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "R"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_relay_in_flight",
+          "legendFormat": "in flight",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "S"
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "type": "timeseries",
+      "title": "Database backends and object-store writes",
+      "description": "Backends measured server-side from pg_stat_activity, because the number that exhausts max_connections is the server's, not the client pool's.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_db_backends",
+          "legendFormat": "pg {{state}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "U"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_db_pool_max",
+          "legendFormat": "configured pool max",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "V"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "deriv(saakshi_evidence_objects_stored[10m]) * 60",
+          "legendFormat": "{{kind}} written/min",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "W"
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  }
+}

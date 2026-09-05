@@ -34,6 +34,38 @@ webrtcIPsFromInterfaces: yes
 metrics: yes
 metricsAddress: :9998
 
+# MediaMTX's default permits `metrics` only from 127.0.0.1, and Prometheus scrapes from a sibling
+# container, so its source address is the Docker bridge and the endpoint answers 401. Verified on
+# 2026-09-05: `curl localhost:9998/metrics` -> `{"status":"error","error":"authentication error"}`.
+#
+# Declaring `authInternalUsers` REPLACES the built-in list wholesale, so the two default entries are
+# restored verbatim below — dropping the first would break every adapter test, which publishes and
+# reads anonymously against `saakshi-test`. The third entry is the only addition: a read-only
+# `metrics` permission, no API and no pprof, so a scraper cannot control the gateway.
+#
+# The password is a local development value, like the MinIO one in `docker-compose.yml`. A
+# deployment overrides it; `docs/observability.md` says so.
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+  - user: any
+    pass:
+    ips: ['127.0.0.1', '::1']
+    permissions:
+      - action: api
+      - action: metrics
+      - action: pprof
+  - user: prometheus
+    pass: saakshi-dev-metrics
+    ips: []
+    permissions:
+      - action: metrics
+
 paths:
   # ── Test source for the adapter suite ────────────────────────────────────────────────────────
   # A 640x360 25 fps H.264 pattern with a burnt-in timer. Deliberately *not* a still image: the

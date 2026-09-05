@@ -1,0 +1,18 @@
+# Dashboards are files in the repo, not objects in a database.
+#
+# `allowUiUpdates: false` is the point: a board edited in the browser and never committed is a board
+# that vanishes the next time the volume is recreated, and nobody finds out until the demo. Edit the
+# JSON, restart the container, and the change is in git.
+apiVersion: 1
+
+providers:
+  - name: saakshi
+    orgId: 1
+    folder: SAAKSHI
+    type: file
+    disableDeletion: false
+    allowUiUpdates: false
+    updateIntervalSeconds: 10
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

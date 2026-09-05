@@ -1,0 +1,936 @@
+{
+  "uid": "saakshi-estate-health",
+  "title": "SAAKSHI \u00b7 Estate Health",
+  "description": "Per-camera connectivity, trust and health across the estate, plus observed uptime against the stated >99% target.",
+  "tags": [
+    "saakshi",
+    "estate"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "What this board claims, and what it does not",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Uptime here is measured, not targeted.** The left-hand stat is `avg_over_time(up{job=\"saakshi-api\"}[$__range]) * 100` \u2014 the fraction of scrapes in the *dashboard's own time range* that reached the API. The stat beside it is the stated PROJECT.md target of **> 99%**, drawn as a separate number so the two can never be confused. If the observed figure is below the target, this board says so.\n\n**Estate availability is a different question from ours.** `saakshi_estate_camera_uptime_ratio` is the fraction of *probed* cameras whose newest health check was connectable \u2014 a property of the department's estate and its network, not of this software. A camera that has never been probed is in neither number."
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Observed API uptime (this time range)",
+      "description": "Measured from Prometheus' own scrape results over the dashboard's range. Red below the stated 99% target. Short ranges are noisy by construction: one missed scrape in a 10-minute window is 2.5%.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 5,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 99
+              }
+            ]
+          },
+          "decimals": 3
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "avg_over_time(up{job=\"saakshi-api\"}[$__range]) * 100",
+          "legendFormat": "observed",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Stated target",
+      "description": "PROJECT.md's stated benchmark. A constant, exported so the panel next to it can be compared against something written down rather than remembered.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 5,
+        "y": 4,
+        "w": 4,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_uptime_target_ratio * 100",
+          "legendFormat": "target",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "E"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Cameras connectable at last probe",
+      "description": "Of the cameras that have been probed. Never-probed cameras are excluded \u2014 'not measured' is not 'down'.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 9,
+        "y": 4,
+        "w": 5,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_estate_camera_uptime_ratio * 100",
+          "legendFormat": "estate",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "G"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Audit chain entries",
+      "description": "Length of the tamper-evident chain (D3-04).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 4,
+        "w": 5,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_audit_chain_entries",
+          "legendFormat": "entries",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "I"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Audit chain forks",
+      "description": "Two entries claiming the same predecessor. There is no acceptable non-zero value.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 4,
+        "w": 5,
+        "h": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_audit_chain_forks",
+          "legendFormat": "forks",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "K"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Component reachability",
+      "description": "1 = the scrape succeeded. The API is always-on; the analytics and prober jobs are BATCH processes, so 0 there normally means 'no run in flight', not a crash. Only the API has a component-down alert rule, for exactly that reason.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "up{job=~\"saakshi-.*|mediamtx\"}",
+          "legendFormat": "{{job}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "M"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "bargauge",
+      "title": "Cameras by trust band",
+      "description": "'unscored' is its own band. A camera that has never been probed is not a low-scoring camera and is never folded into 'untrusted'.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 6,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_estate_cameras_by_band",
+          "legendFormat": "{{band}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "O"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "bargauge",
+      "title": "Cameras by catalogue status",
+      "description": "Presence in the upstream catalogue \u2014 independent of health. A camera can be listed and dead, or delisted and still serving.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 9,
+        "w": 6,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_estate_cameras",
+          "legendFormat": "{{catalogue_status}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "Q"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Trust score per camera",
+      "description": "Absent, not zero, for a camera that has never been scored. The trust-drop alert fires on a fall of more than 20 points from the camera's OWN 6-hour maximum, not against a fixed floor.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "min": 0,
+          "max": 100
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_trust_score",
+          "legendFormat": "{{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "S"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "table",
+      "title": "Cameras whose frame rate could not be measured",
+      "description": "THIS IS NOT A LIST OF CAMERAS AT 0 FPS. A null measured_fps means 'could not measure', and the reason label says why. The same camera has measured unmeasurable after a 516-second probe and 20 fps after an 85-second one \u2014 same code, same camera, different network.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 15,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_fps_unmeasurable",
+          "legendFormat": "{{camera}}",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "refId": "U"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "stack": true,
+              "component": true,
+              "Value": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Age of the newest health check",
+      "description": "A full 30-camera sweep takes 23.6 minutes at pool 4, so a healthy estate legitimately spans that much. A camera far above the rest is a camera the sweep is not reaching.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 12,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_health_age_seconds",
+          "legendFormat": "{{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "W"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "type": "table",
+      "title": "PTS drift, with its meaning",
+      "description": "pts_drift_ms means TWO different things and the meaning label says which per camera. meaning=\"live\" is encoder clock drift and is worth alerting on \u2014 a wrong camera clock corrupts every route reconstruction it contributes to. meaning=\"vod\" is pull-rate skew and means nothing; every sandbox row is VOD, and the drift alert rule deliberately selects only meaning=\"live\".",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 23,
+        "w": 12,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_pts_drift_ms",
+          "legendFormat": "{{camera}}",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "refId": "Y"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "stack": true,
+              "component": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "type": "timeseries",
+      "title": "Image-quality signals",
+      "description": "Blur is deliberately not on the same axis: it spans five orders of magnitude across this estate (0.011 to 5794) and must not be scaled linearly beside anything.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 12,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_luma_mean",
+          "legendFormat": "luma {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_tamper_score * 100",
+          "legendFormat": "tamper x100 {{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "type": "timeseries",
+      "title": "Blur score (log-scale spread is the point)",
+      "description": "Variance of Laplacian. Measured range across 30 real cameras: 0.011 to 5794.088.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 29,
+        "w": 12,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_camera_blur_score",
+          "legendFormat": "{{camera}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "D"
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  }
+}

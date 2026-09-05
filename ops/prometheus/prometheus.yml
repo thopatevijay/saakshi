@@ -1,0 +1,74 @@
+# Prometheus scrape configuration for SAAKSHI (D3-10).
+#
+# Six jobs, because SAAKSHI is six processes and a dashboard that could not tell them apart would be
+# useless the first time one of them died:
+#
+#   saakshi-api        the Fastify API — HTTP rate/latency/errors, and every estate gauge it reads
+#                      out of Postgres (per-camera trust, health, read rate, audit chain, relay)
+#   saakshi-consumer   `npm run consume:sightings` — the ONLY process positioned to measure
+#                      PTS -> alert end to end, because it is where an alert is created
+#   saakshi-analytics  `python -m workers.analytics.run --metrics-port` — per-camera decode,
+#                      inference and starvation counters
+#   saakshi-prober     `python -m workers.prober.run --metrics-port` — per-camera health signals
+#   mediamtx           our own stream gateway, for the view from the other side of the wire
+#   prometheus         itself, so a scrape failure is visible in the same place as everything else
+#
+# **The four SAAKSHI jobs run on the host, not in this network.** `host.docker.internal` is the
+# Docker Desktop name for the host; `extra_hosts` in `docker-compose.yml` gives Linux the same name.
+# The alternative — running the API and the workers as compose services — would mean rebuilding an
+# image on every code change, which is the wrong trade for a stack a developer runs all day.
+#
+# **A worker that is not running scrapes DOWN, and that is correct.** The workers are batch
+# processes, so `up{job="saakshi-analytics"} == 0` normally means "no analytics run in flight",
+# not "the analytics worker crashed". The `SaakshiComponentDown` rule therefore covers the API only;
+# `docs/observability.md` says why, and the Estate Health board shows the worker jobs as an
+# up/down strip rather than alerting on them.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    stack: saakshi
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: saakshi-api
+    static_configs:
+      - targets: ['host.docker.internal:4000']
+        labels:
+          component: api
+
+  - job_name: saakshi-consumer
+    static_configs:
+      - targets: ['host.docker.internal:9464']
+        labels:
+          component: sightings-consumer
+
+  - job_name: saakshi-analytics
+    static_configs:
+      - targets: ['host.docker.internal:9465']
+        labels:
+          component: analytics-worker
+
+  - job_name: saakshi-prober
+    static_configs:
+      - targets: ['host.docker.internal:9466']
+        labels:
+          component: prober-worker
+
+  # The gateway's own view. Its counters are bytes and sessions, which is the half of a stall our
+  # own metrics cannot see: a camera that stops publishing shows here before it shows anywhere else.
+  - job_name: mediamtx
+    static_configs:
+      - targets: ['mediamtx:9998']
+        labels:
+          component: gateway
+    basic_auth:
+      username: prometheus
+      password: saakshi-dev-metrics
