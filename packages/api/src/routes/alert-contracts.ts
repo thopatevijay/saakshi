@@ -21,9 +21,21 @@ export const AlertListQuery = z.object({
   category: WatchlistCategory.optional(),
   matchType: z.enum(['exact', 'fuzzy']).optional(),
   cameraId: z.uuid().optional(),
+  /**
+   * Every alert raised on a camera belonging to this department.
+   *
+   * Resolved server-side rather than by the client filtering a page it already has: the queue is
+   * keyset-paginated, so a client-side department filter would drop rows out of a page and then
+   * page past them, and the queue would appear to end early. Added by D2-07, whose filter row the
+   * ticket specifies as severity · category · camera · **department** · time range · match type ·
+   * status.
+   */
+  departmentId: z.uuid().optional(),
   watchlistEntryId: z.uuid().optional(),
   /** Alerts whose most recent sighting is at or after this instant. */
   since: z.iso.datetime().optional(),
+  /** Alerts whose most recent sighting is at or before this instant. Pairs with `since`. */
+  until: z.iso.datetime().optional(),
   /**
    * `severity` sorts by the policy's strict category rank and then by severity, which is the
    * control-room order; `recent` is newest activity first, which is the monitoring order.
