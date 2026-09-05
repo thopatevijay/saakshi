@@ -170,7 +170,6 @@ describe('AC 2 — the same vehicle at the same camera 20 times in 5 minutes is 
     expect(new Date(String(alert?.ts)).toISOString()).toBe(timestamps[0]);
     expect(new Date(String(alert?.last_seen_at)).toISOString()).toBe(timestamps[19]);
 
-    // eslint-disable-next-line no-console
     console.log(
       `  [AC 2] 20 sightings in 5 min → ${String(rows.length)} alert, ` +
         `sighting_count ${String(alert?.sighting_count)}, ` +
@@ -264,7 +263,6 @@ describe('AC 3 — the same vehicle at a different camera is a new alert', () =>
     expect(keys).toHaveLength(2);
     for (const key of keys) expect(key.dedupe_key.startsWith(`${entryId}:`)).toBe(true);
 
-    // eslint-disable-next-line no-console
     console.log(
       `  [AC 3] same plate, two cameras → ${String(keys.length)} dedupe keys, ` +
         `${String(onA.length + onB.length)} alerts`,

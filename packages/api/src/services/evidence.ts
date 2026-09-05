@@ -189,7 +189,24 @@ export class EvidenceStore {
     };
     // `fetch` refuses a body on GET/HEAD even when it is empty, and under
     // `exactOptionalPropertyTypes` an explicit `undefined` is not the same as omitting the key.
-    if (options.method !== 'GET' && options.method !== 'HEAD') init.body = body;
+    //
+    // A detached `ArrayBuffer` rather than the `Buffer` itself.
+    //
+    // Under the API's node-only `lib`, a `Buffer` is a fine `BodyInit`. But `packages/web` also
+    // compiles this file — `scripts/generate-api-types.mts` imports `buildServer`, and D2-06's
+    // alert routes put the evidence store into that graph — and it compiles with `lib: DOM`, where
+    // `BodyInit` is the DOM's and neither `Buffer<ArrayBufferLike>` nor `Uint8Array<ArrayBufferLike>`
+    // is assignable to it (the DOM's `ArrayBufferView` is parameterised on `ArrayBuffer`, and a
+    // node Buffer's backing store is `ArrayBufferLike`). A plain `ArrayBuffer` is a `BodyInit`
+    // under both.
+    //
+    // It costs one copy of the object being uploaded. These are plate and vehicle crops — tens of
+    // kilobytes — and the copy is bounded by the same 6 MB body limit the API already enforces.
+    if (options.method !== 'GET' && options.method !== 'HEAD') {
+      const bytes = new Uint8Array(body.byteLength);
+      bytes.set(body);
+      init.body = bytes.buffer;
+    }
     return fetch(url, init);
   }
 

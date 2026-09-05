@@ -95,6 +95,12 @@ async function seedSighting(options: {
   return { id: row.id, ts: row.ts, trackId };
 }
 
+/** The slice of a byte stream reader this suite uses — see the note at its call site. */
+interface ByteReader {
+  read(): Promise<{ done: boolean; value?: Uint8Array }>;
+  cancel(): Promise<void>;
+}
+
 function get(object: unknown, dotted: string): unknown {
   return dotted
     .split('.')
@@ -208,7 +214,6 @@ describe('AC 1 — a seeded watchlist plate on the feed raises an alert within 1
     expect(elapsedMs).toBeLessThan(10_000);
     expect(delivered.map((a) => a.id)).toContain(outcome.alerts[0]?.id);
 
-    // eslint-disable-next-line no-console
     console.log(`  [AC 1] read → persisted alert → stream in ${String(elapsedMs)} ms`);
   });
 
@@ -455,7 +460,6 @@ describe('AC 6 — a fuzzy match is flagged as fuzzy and carries its distance', 
     expect(alert?.reason.caveats.join(' ')).toMatch(/FUZZY MATCH/);
     expect(alert?.reason.caveats.join(' ')).toMatch(/ranked possibility, not an identification/);
 
-    // eslint-disable-next-line no-console
     console.log(
       `  [AC 6] GJ35U07 → GJ35U0779  distance ${String(alert?.matchDistance)}  ` +
         `matchConfidence ${String(alert?.reason.identification.matchConfidence)}  ` +
@@ -476,7 +480,7 @@ describe('AC 6 — a fuzzy match is flagged as fuzzy and carries its distance', 
     const alert = outcome.alerts[0];
     expect(alert?.matchType).toBe('fuzzy');
     expect(alert?.matchDistance).toBeCloseTo(0.55, 2);
-    // eslint-disable-next-line no-console
+
     console.log(
       `  [AC 6] GJ32DD10 → GJ32D0107  distance ${String(alert?.matchDistance)}  ` +
         `severity ${String(alert?.severity)}`,
@@ -707,7 +711,10 @@ describe('the alert stream', () => {
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toMatch(/text\/event-stream/);
 
-      const reader = response.body?.getReader();
+      // `ReadableStreamDefaultReader` is a DOM type and this package compiles with node's lib only,
+      // so the reader arrives untyped. Declaring the two members used keeps the type-aware lint
+      // rules meaningful instead of silencing them.
+      const reader = response.body?.getReader() as unknown as ByteReader | undefined;
       expect(reader).toBeDefined();
       if (reader === undefined) return;
       const decoder = new TextDecoder();
@@ -718,7 +725,7 @@ describe('the alert stream', () => {
         while (!buffer.includes(marker)) {
           if (Date.now() > deadline) throw new Error(`stream never produced '${marker}'`);
           const chunk = await reader.read();
-          if (chunk.done) throw new Error('stream closed early');
+          if (chunk.done || chunk.value === undefined) throw new Error('stream closed early');
           buffer += decoder.decode(chunk.value, { stream: true });
         }
       };
@@ -751,7 +758,6 @@ describe('the alert stream', () => {
       expect(alert.reason.caveats.join(' ')).toMatch(/FUZZY MATCH/);
       expect(REQUIRED_WHY_FIELDS.every((f) => get(alert.reason, f) !== null)).toBe(true);
 
-      // eslint-disable-next-line no-console
       console.log(
         `  [gate] live SSE: read → 'event: alert' on the wire in ${String(elapsedMs)} ms ` +
           `(severity ${alert.severity}, distance ${String(alert.matchDistance)})`,

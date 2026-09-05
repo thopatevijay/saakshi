@@ -48,7 +48,6 @@ import { z } from 'zod';
 import {
   ALERT_TRANSITIONS,
   AlertSeverity,
-  AlertStatus,
   SEVERITY_ORDER,
   canTransition,
   evaluatePlateRead,
@@ -56,6 +55,7 @@ import {
   type AlertIdentification,
   type AlertReason,
   type AlertRecord,
+  type AlertStatus,
   type IdentificationStrength,
   type PlateReadEvaluation,
   type WatchlistCategory,
@@ -948,7 +948,7 @@ export class AlertEngine {
       caveats.push('this sighting is not the track’s best shot; a clearer crop may exist.');
     }
 
-    const noteValue = (hit.meta as Record<string, unknown>)['note'];
+    const noteValue = hit.meta['note'];
 
     return {
       matchType: hit.matchType,

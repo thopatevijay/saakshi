@@ -1,6 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
-import { AlertDigest, AlertRecord, type AlertStatus } from '@saakshi/shared';
+import { AlertRecord, type AlertDigest, type AlertStatus } from '@saakshi/shared';
 import type { App } from '../server.js';
 import { authenticate, READ_ROLES, requireRole, type UserRole } from '../auth.js';
 import type { Db, Sql } from '../db/client.js';

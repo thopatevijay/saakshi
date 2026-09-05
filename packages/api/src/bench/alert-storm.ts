@@ -23,13 +23,7 @@
 import { sql } from 'drizzle-orm';
 import { createDb, createSql } from '../db/client.js';
 import { loadEnv } from '../env.js';
-import {
-  AlertEngine,
-  DeliveryGate,
-  loadAlertPolicy,
-  POLICY_PATH,
-  type AlertPolicy,
-} from '../services/alerts.js';
+import { AlertEngine, DeliveryGate, loadAlertPolicy, POLICY_PATH } from '../services/alerts.js';
 import { ConfusionPlateMatcher } from '../services/plate-search.js';
 import {
   createWatchlistRegistry,
