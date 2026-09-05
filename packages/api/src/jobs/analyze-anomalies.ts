@@ -30,7 +30,7 @@
 import { sql } from 'drizzle-orm';
 import { createDb, createSql, type Db } from '../db/client.js';
 import { loadEnv } from '../env.js';
-import { analyseRoute, loadAnomalyPolicy, type AnomalyReport } from '../services/anomaly.js';
+import { loadAnomalyPolicy, type AnomalyReport } from '../services/anomaly.js';
 import { HttpOsrmClient, NullOsrmClient, OSRM_DEFAULT_URL } from '../services/osrm.js';
 import { PlateSearchService } from '../services/plate-search.js';
 import { RouteService } from '../services/route.js';
@@ -229,10 +229,7 @@ async function main(): Promise<number> {
  * There are three distinct zeros this report can print and they mean completely different things.
  * Collapsing them into "no anomalies found" is the failure mode; each has its own sentence.
  */
-function interpretation(
-  measured: Awaited<ReturnType<typeof estate>>,
-  totals: Totals,
-): string {
+function interpretation(measured: Awaited<ReturnType<typeof estate>>, totals: Totals): string {
   if (measured.sightings === 0) {
     return (
       'interpretation: there are no sightings in this database, so nothing was swept. This is not\n' +

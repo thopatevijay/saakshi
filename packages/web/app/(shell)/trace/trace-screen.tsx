@@ -32,6 +32,7 @@ import {
   type TraceQueryState,
 } from '@/src/lib/trace/query';
 import { runTrace } from './actions';
+import { CloningPanel } from './cloning-panel';
 import { EvidenceStrip } from './evidence-strip';
 import { QueryConsole } from './query-console';
 import { RouteSummary } from './route-summary';
@@ -425,6 +426,7 @@ export function TraceScreen({
 
             <div className="space-y-4">
               {trace.route === null ? null : <RouteSummary route={trace.route} onSelect={select} />}
+              {trace.route === null ? null : <CloningPanel anomalies={trace.route.anomalies} />}
               <TraceTimeline sightings={points} selectedSeq={query.seq} onSelect={select} />
               <LinkLegend />
             </div>

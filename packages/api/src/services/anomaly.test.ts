@@ -35,9 +35,19 @@ const CONFUSIONS = loadConfusions();
 /* ── fixtures ─────────────────────────────────────────────────────────────────────────────────── */
 
 const CAMERAS: Record<string, { id: string; name: string; lon: number; lat: number }> = {
-  A: { id: '11111111-1111-4111-8111-111111111111', name: 'Paldi Circle', lon: 72.5714, lat: 23.0225 },
+  A: {
+    id: '11111111-1111-4111-8111-111111111111',
+    name: 'Paldi Circle',
+    lon: 72.5714,
+    lat: 23.0225,
+  },
   B: { id: '22222222-2222-4222-8222-222222222222', name: 'Janpath', lon: 72.5871, lat: 23.0311 },
-  D: { id: '44444444-4444-4444-8444-444444444444', name: 'Visat Teen Rasta', lon: 72.6218, lat: 23.0611 },
+  D: {
+    id: '44444444-4444-4444-8444-444444444444',
+    name: 'Visat Teen Rasta',
+    lon: 72.6218,
+    lat: 23.0611,
+  },
 };
 
 let counter = 0;
@@ -288,7 +298,10 @@ describe('AC 3 — speed tolerance is config; changing it moves the boundary wit
   it('the policy really is read from disk, so a file on disk changes the boundary', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'anomaly-policy-'));
     const file = path.join(dir, 'anomaly-policy.json');
-    writeFileSync(file, JSON.stringify({ ...POLICY, speed: { ...POLICY.speed, maxPlausibleKmh: 500 } }));
+    writeFileSync(
+      file,
+      JSON.stringify({ ...POLICY, speed: { ...POLICY.speed, maxPlausibleKmh: 500 } }),
+    );
     const loaded = loadAnomalyPolicy(file);
     expect(loaded.speed.maxPlausibleKmh).toBe(500);
     expect(assessFeasibility(segment(), loaded).feasibility).toBe('feasible');
@@ -510,7 +523,12 @@ describe('AC 7 — the output never claims certainty', () => {
       out.push(f.headline, f.why, f.alternativeExplanation, f.limitations);
       if (f.candidateAlternative !== null) out.push(f.candidateAlternative.note);
       if (f.alert !== null) {
-        out.push(f.alert.headline, f.alert.why, f.alert.alternativeExplanation, f.alert.limitations);
+        out.push(
+          f.alert.headline,
+          f.alert.why,
+          f.alert.alternativeExplanation,
+          f.alert.limitations,
+        );
       }
     }
     return out;

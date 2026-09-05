@@ -438,7 +438,8 @@ export function disambiguate(
 
   const fromValid = validate(from.plateNormalized).grammarValid;
   const toValid = validate(to.plateNormalized).grammarValid;
-  const eitherLow = from.ocrConfidence < d.lowOcrConfidence || to.ocrConfidence < d.lowOcrConfidence;
+  const eitherLow =
+    from.ocrConfidence < d.lowOcrConfidence || to.ocrConfidence < d.lowOcrConfidence;
   const bothHigh =
     from.ocrConfidence >= d.highOcrConfidence && to.ocrConfidence >= d.highOcrConfidence;
 
@@ -600,7 +601,9 @@ function buildFinding(
 
   const copy = copyFor(verdict.feasibility, explanation);
   const alert =
-    impossible && explanation === 'likely_cloned' && linkConfidence >= policy.alert.minLinkConfidence
+    impossible &&
+    explanation === 'likely_cloned' &&
+    linkConfidence >= policy.alert.minLinkConfidence
       ? buildAlert(from, to, policy)
       : null;
 
@@ -657,7 +660,11 @@ function copyFor(
   }`;
   switch (explanation) {
     case 'likely_misread':
-      return { headline, why: ANOMALY_COPY.misreadWhy, alternative: ANOMALY_COPY.misreadAlternative };
+      return {
+        headline,
+        why: ANOMALY_COPY.misreadWhy,
+        alternative: ANOMALY_COPY.misreadAlternative,
+      };
     case 'likely_cloned':
       return { headline, why: ANOMALY_COPY.clonedWhy, alternative: ANOMALY_COPY.clonedAlternative };
     default:
