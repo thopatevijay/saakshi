@@ -396,11 +396,17 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
         const target = assertRelayable(decodeUpstreamToken(request.query.u), upstream);
         // AC 3, seen from the gateway's end: when a tile unmounts mid-segment the browser closes
         // the socket, and the upstream fetch has to stop with it. Node gives no `AbortSignal` on an
-        // `IncomingMessage`, so one is bridged from the connection's own `close` event — without it
-        // a wall that is paged through leaves a fetch running per abandoned tile.
+        // `IncomingMessage`, so one is bridged from the *response* stream's `close`.
+        //
+        // **Not `request.raw`.** On a GET there is no request body, so `IncomingMessage` emits
+        // `close` as soon as the (empty) request completes — which is before the upstream fetch has
+        // even started. Bridging from there aborted every single segment the instant it was asked
+        // for; measured live, 114 fetch attempts produced 17 completions. `reply.raw` closes when
+        // the connection to the browser does, and `writableFinished` distinguishes "the client went
+        // away" from "we finished sending".
         const abort = new AbortController();
-        request.raw.once('close', () => {
-          abort.abort();
+        reply.raw.once('close', () => {
+          if (!reply.raw.writableFinished) abort.abort();
         });
         const result = await relay.media(target, abort.signal);
         reply

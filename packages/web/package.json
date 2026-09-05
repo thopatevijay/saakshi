@@ -13,7 +13,9 @@
     "a11y": "node scripts/a11y.mjs",
     "responsive": "node scripts/responsive.mjs",
     "bench:alert-ui": "node scripts/bench-alert-ui.mjs",
-    "verify:alerts": "node scripts/verify-alerts.mjs"
+    "verify:alerts": "node scripts/verify-alerts.mjs",
+    "verify:wall": "node scripts/verify-wall.mjs",
+    "record:wall": "node scripts/record-wall.mjs"
   },
   "dependencies": {
     "@saakshi/shared": "*",

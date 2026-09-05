@@ -304,6 +304,7 @@ export class StreamRelay {
       return { ...cached, cached: true, upstreamMs: 0 };
     }
 
+    this.misses += 1;
     const raw = await this.fetchUpstream(new URL(upstream));
     const rewritten = rewritePlaylist(raw.bytes.toString('utf8'), upstream, mediaPath);
     // Segment order is what read-ahead walks; it is per-camera and replaced on every refetch.
@@ -341,6 +342,7 @@ export class StreamRelay {
       return { ...cached, cached: true, upstreamMs: 0 };
     }
 
+    this.misses += 1;
     const result = await this.fetchUpstream(target, signal);
     this.writeCache(key, {
       bytes: result.bytes,
@@ -404,14 +406,22 @@ export class StreamRelay {
    * Fetch the next few segments while the player chews on this one.
    *
    * At 0.12×–0.28× real time a strictly on-demand relay can never catch up: the player asks for a
-   * segment, waits 20–50 s, plays 6 s, and asks again. Reading ahead inside the same concurrency
-   * budget pipelines that wait instead of serialising it. It is bounded, it never runs for a live
-   * playlist it has not indexed, and it is the difference between a wall that plays and one that
-   * buffers forever. Failures are swallowed on purpose — a prefetch that fails costs nothing,
-   * because the real request will surface the error.
+   * segment, waits 20–50 s, plays 6 s, and asks again. Reading ahead pipelines that wait instead of
+   * serialising it.
+   *
+   * **Opportunistic, never queued.** The first version of this shared the concurrency queue with
+   * real requests, and on a nine-tile wall that is a stampede: every served segment schedules three
+   * speculative fetches, so twenty-seven prefetches sit in front of the segment a player is
+   * actually waiting for, on a gateway taking ~15 s per request. The queue never drained and the
+   * wall went backwards. So a prefetch is issued **only when there is spare capacity right now** —
+   * nothing is queued behind it, and a guess never delays a certainty.
+   *
+   * Failures are swallowed on purpose: a prefetch that fails costs nothing, because the real
+   * request will surface the error.
    */
   private scheduleReadAhead(justServed: string): void {
     if (this.readAhead <= 0) return;
+    if (this.queue.length > 0 || this.inFlight >= this.concurrency) return;
     const index = this.segmentOrder.get(justServed);
     if (index === undefined) return;
 
@@ -420,6 +430,7 @@ export class StreamRelay {
       if (url === undefined) continue;
       const key = `media:${url}`;
       if (this.cache.has(key) || this.prefetching.has(key)) continue;
+      if (this.queue.length > 0 || this.inFlight >= this.concurrency) return;
       this.prefetching.add(key);
       void this.fetchUpstream(new URL(url))
         .then((result) => {
@@ -439,7 +450,6 @@ export class StreamRelay {
     await this.acquire();
     const started = this.now();
     try {
-      this.misses += 1;
       const headers: Record<string, string> = { 'user-agent': RELAY_UA };
       // The government session cookie. It never leaves this process in either direction: it is not
       // echoed to the client and it is not logged.

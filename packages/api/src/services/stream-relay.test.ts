@@ -291,6 +291,41 @@ describe('StreamRelay', () => {
     expect(next.cached).toBe(true);
   });
 
+  it('never lets read-ahead queue in front of a segment a player is waiting for', async () => {
+    // The stampede this guards against, measured live: nine tiles x three prefetches each puts
+    // twenty-seven speculative fetches ahead of the one a player is blocked on, at ~15 s per
+    // request. Read-ahead must be opportunistic — issued only when there is spare capacity now.
+    let inFlight = 0;
+    let peak = 0;
+    const fetchImpl = vi.fn(async (url: string) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      inFlight -= 1;
+      return url.endsWith('.m3u8') ? ok(SANDBOX_PLAYLIST) : ok(Buffer.alloc(8), 'video/mp2t');
+    }) as unknown as typeof fetch;
+
+    const relay = relayWith(fetchImpl, { readAhead: 3, concurrency: 1 });
+    await relay.playlist(camera());
+    // Concurrency 1: the moment a real request is in flight there is no spare capacity, so no
+    // prefetch may be issued and nothing can ever be queued behind one.
+    await relay.media(new URL('https://cctv.example.gov/cam01/seg00000.ts'));
+
+    expect(peak).toBe(1);
+    expect(relay.stats().queued).toBe(0);
+  });
+
+  it('counts a cache miss once per client request, not once per upstream attempt', async () => {
+    const fetchImpl = vi.fn(() => Promise.resolve(ok(SANDBOX_PLAYLIST))) as unknown as typeof fetch;
+    const relay = relayWith(fetchImpl);
+    await relay.playlist(camera());
+    await relay.playlist(camera());
+    await relay.playlist(camera());
+    // One miss, two hits — a counter that also incremented for speculative or aborted fetches
+    // reported 114 misses against 17 completions on a live wall and told nobody anything.
+    expect(relay.stats()).toMatchObject({ misses: 1, hits: 2 });
+  });
+
   it('re-serves a cached playlist without re-rewriting it', async () => {
     const fetchImpl = vi.fn(() => Promise.resolve(ok(SANDBOX_PLAYLIST))) as unknown as typeof fetch;
     const relay = relayWith(fetchImpl);
