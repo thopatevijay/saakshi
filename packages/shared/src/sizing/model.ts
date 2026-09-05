@@ -206,10 +206,7 @@ function tierDays(
   return { hotDays, warmDays, coldDays };
 }
 
-export function computeSizing(
-  inputs: SizingInputs,
-  overrides: SizingOverrides = {},
-): SizingResult {
+export function computeSizing(inputs: SizingInputs, overrides: SizingOverrides = {}): SizingResult {
   const v = (key: ConstantKey): number => constantValue(key, overrides);
 
   // ── Backhaul ──────────────────────────────────────────────────────────────────────────────────
@@ -375,10 +372,7 @@ export function computeSizing(
   ];
 
   const annualOpexInr = addBands(...lines.map((l) => l.inrPerYear));
-  const amortisedCapexInrPerYear = scaleBand(
-    capexInr,
-    1 / Math.max(1, v('hardwareRefreshYears')),
-  );
+  const amortisedCapexInrPerYear = scaleBand(capexInr, 1 / Math.max(1, v('hardwareRefreshYears')));
   const totalAnnualCostInr = addBands(annualOpexInr, amortisedCapexInrPerYear);
 
   const cost: CostResult = {
@@ -388,9 +382,7 @@ export function computeSizing(
     totalAnnualCostInr,
     lines,
     annualCostPerCameraInr:
-      inputs.cameras === 0
-        ? band(0, 0)
-        : scaleBand(totalAnnualCostInr, 1 / inputs.cameras),
+      inputs.cameras === 0 ? band(0, 0) : scaleBand(totalAnnualCostInr, 1 / inputs.cameras),
   };
 
   return {

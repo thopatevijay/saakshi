@@ -92,7 +92,7 @@ export const SIZING_PRESETS: readonly SizingPreset[] = [
     id: 'benchmark',
     label: 'Benchmark (100,000 cameras)',
     rationale:
-      "The `/evaluation-criteria` page states a 1,00,000+ camera target, above the 80,000 on `/problems`. This preset exists so the calculator reaches the higher of the two numbers the challenge itself publishes, rather than the more comfortable one.",
+      'The `/evaluation-criteria` page states a 1,00,000+ camera target, above the 80,000 on `/problems`. This preset exists so the calculator reaches the higher of the two numbers the challenge itself publishes, rather than the more comfortable one.',
     inputs: {
       cameras: 100_000,
       anprCoveragePct: 30,

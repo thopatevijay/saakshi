@@ -257,8 +257,9 @@ describe('PROJECT.md section 9 — reproduction and reconciliation (AC 2)', () =
     //   80,000 x 432,000 = 3.456e10 events/day; x 400 B = 1.3824e13 B/day = 13.824 TB/day
     //   x 365 = 5,045.76 TB/year.
     expect(r.storage.metadataTBPerYear).toBeCloseTo(5_045.76, 6);
-    expect(r.storage.metadataTBPerYear / PROJECT_MD_SECTION_9.publishedMetadataTbPerYear).
-      toBeGreaterThan(2_000);
+    expect(
+      r.storage.metadataTBPerYear / PROJECT_MD_SECTION_9.publishedMetadataTbPerYear,
+    ).toBeGreaterThan(2_000);
     // The two rates section 9 quotes differ by 2,160x.
     expect(
       PROJECT_MD_SECTION_9.eventsPerCameraPerDay /
@@ -323,7 +324,7 @@ describe('streams per accelerator is derived from measured throughput (AC 3)', (
 });
 
 describe('storage uses the measured D2-02 figures (AC 4)', () => {
-  it('carries D2-02\'s bytes per 1,000 sightings and crops per 1,000 sightings', () => {
+  it("carries D2-02's bytes per 1,000 sightings and crops per 1,000 sightings", () => {
     expect(SIZING_CONSTANTS.cropBytesPer1000Sightings.value).toBe(96_214);
     expect(SIZING_CONSTANTS.cropBytesPer1000Sightings.provenance).toBe('measured');
     expect(SIZING_CONSTANTS.cropBytesPer1000Sightings.source).toMatch(/D2-02/);
@@ -332,21 +333,18 @@ describe('storage uses the measured D2-02 figures (AC 4)', () => {
     expect(SIZING_CONSTANTS.cropBytesMeasured.value).toBe(2_912);
   });
 
-  it('is internally consistent: 33.0 crops x 2,912 B is D2-02\'s 96,214 B per 1,000, to 0.2%', () => {
+  it("is internally consistent: 33.0 crops x 2,912 B is D2-02's 96,214 B per 1,000, to 0.2%", () => {
     const derived =
       SIZING_CONSTANTS.cropsPer1000Sightings.value * SIZING_CONSTANTS.cropBytesMeasured.value;
     const published = SIZING_CONSTANTS.cropBytesPer1000Sightings.value;
     expect(Math.abs(derived - published) / published).toBeLessThan(0.002);
   });
 
-  it('reproduces D2-02\'s per-1,000-sightings figure through the model at the low end', () => {
+  it("reproduces D2-02's per-1,000-sightings figure through the model at the low end", () => {
     // 1,000 cameras x 1,000 sightings = 1,000,000 sightings/day.
     // At 96,214 B per 1,000 that is 96,214,000 B/day.
-    const r = computeSizing(
-      { ...FIXTURE, sightingsPerEvent: 1 },
-      { costUncertainty: 0 },
-    );
-    const cropBytesPerDayLow = r.storage.cropRetainedTB.low / r.inputs.cropRetentionDays * 1e12;
+    const r = computeSizing({ ...FIXTURE, sightingsPerEvent: 1 }, { costUncertainty: 0 });
+    const cropBytesPerDayLow = (r.storage.cropRetainedTB.low / r.inputs.cropRetentionDays) * 1e12;
     expect(cropBytesPerDayLow).toBeCloseTo(96_096_000, 0); // 33.0 x 2,912 x 1,000
   });
 
@@ -485,9 +483,9 @@ describe('presets (AC 1, scope)', () => {
     expect(
       computeSizing({ ...base, anprCoveragePct: 60 }).compute.acceleratorsRequired,
     ).toBeGreaterThan(b.compute.acceleratorsRequired);
-    expect(
-      computeSizing({ ...base, edgeSharePct: 0 }).backhaul.videoBackhaulGbps,
-    ).toBeGreaterThan(b.backhaul.videoBackhaulGbps);
+    expect(computeSizing({ ...base, edgeSharePct: 0 }).backhaul.videoBackhaulGbps).toBeGreaterThan(
+      b.backhaul.videoBackhaulGbps,
+    );
     expect(
       computeSizing({ ...base, eventsPerCameraPerDay: base.eventsPerCameraPerDay * 2 }).storage
         .metadataTBPerYear,
@@ -498,9 +496,9 @@ describe('presets (AC 1, scope)', () => {
     expect(
       computeSizing({ ...base, cropRetentionDays: 180 }).storage.cropRetainedTB.low,
     ).toBeCloseTo(b.storage.cropRetainedTB.low * 2, 6);
-    expect(
-      computeSizing({ ...base, sightingsPerEvent: 1 }).storage.cropsPerDay,
-    ).toBeLessThan(b.storage.cropsPerDay);
+    expect(computeSizing({ ...base, sightingsPerEvent: 1 }).storage.cropsPerDay).toBeLessThan(
+      b.storage.cropsPerDay,
+    );
     expect(
       computeSizing({ ...base, acceleratorClassId: 'nvidia-a100' }).compute.acceleratorsRequired,
     ).not.toBe(b.compute.acceleratorsRequired);

@@ -184,8 +184,8 @@ export function Calculator() {
       <div className="max-w-3xl space-y-2">
         <h1 className="text-xl font-semibold text-slate-100">Infrastructure sizing and cost</h1>
         <p className="text-sm text-slate-400">
-          Not a table in a slide — a model. Move any input and every figure below recomputes from our
-          own measured throughput. Each constant says where it came from:{' '}
+          Not a table in a slide — a model. Move any input and every figure below recomputes from
+          our own measured throughput. Each constant says where it came from:{' '}
           <span className="text-emerald-300">measured</span> on this stack, with the ticket that
           measured it, <span className="text-sky-300">vendor-listed</span>, or{' '}
           <span className="text-amber-300">assumed</span> — and every assumption on this page is
@@ -397,11 +397,7 @@ export function Calculator() {
                 value={formatTBBand(s.cropTBPerYear)}
                 note={`per year · ${formatCount(s.cropsPerDay)} crops/day`}
               />
-              <Stat
-                label="Total retained"
-                value={formatTBBand(s.totalRetainedTB)}
-                emphasis
-              />
+              <Stat label="Total retained" value={formatTBBand(s.totalRetainedTB)} emphasis />
             </div>
             <table className="mt-4 w-full border-t border-slate-800 pt-3 text-sm">
               <thead>
@@ -434,10 +430,11 @@ export function Calculator() {
               </tbody>
             </table>
             <p className="mt-3 text-xs text-slate-500">
-              Crops are a range because D2-02 marked the 2,912 B mean provisional — measured on small
-              replay frames, so a 1080p feed will be larger. The honest figure is 3–15 KB pending one
-              live measurement. The ratio that is <em>not</em> provisional is 33 crops per 1,000
-              sightings: best-shot selection discards ~97% of what a naive design would keep.
+              Crops are a range because D2-02 marked the 2,912 B mean provisional — measured on
+              small replay frames, so a 1080p feed will be larger. The honest figure is 3–15 KB
+              pending one live measurement. The ratio that is <em>not</em> provisional is 33 crops
+              per 1,000 sightings: best-shot selection discards ~97% of what a naive design would
+              keep.
             </p>
           </div>
 
@@ -471,10 +468,10 @@ export function Calculator() {
             </table>
             <p className="mt-3 text-xs text-slate-500">
               The licence line is zero, and that is a fact about the repository rather than a
-              promise: the whole stack is open source, and the one proprietary dependency sits behind
-              an interface with a local and a disabled provider. A commercial VMS-plus-ANPR estate
-              prices that line per camera per year, and at this camera count it would dominate every
-              other number here.
+              promise: the whole stack is open source, and the one proprietary dependency sits
+              behind an interface with a local and a disabled provider. A commercial VMS-plus-ANPR
+              estate prices that line per camera per year, and at this camera count it would
+              dominate every other number here.
             </p>
           </div>
         </section>
@@ -561,9 +558,9 @@ export function Calculator() {
             {copied ? 'Copied' : 'Copy Markdown'}
           </button>
           <p className="text-xs text-slate-500">
-            The same document <code className="text-slate-400">npm run export:sizing</code> writes to{' '}
-            <code className="text-slate-400">docs/sizing-model.md</code> — generated from this model,
-            never hand-written, so the deck and the product cannot disagree.
+            The same document <code className="text-slate-400">npm run export:sizing</code> writes
+            to <code className="text-slate-400">docs/sizing-model.md</code> — generated from this
+            model, never hand-written, so the deck and the product cannot disagree.
           </p>
         </div>
         {showExport ? (

@@ -139,7 +139,7 @@ export const UPSTREAM_BOUND_SHARE = c({
   unit: 'fraction',
   provenance: 'measured',
   source: 'D1-09 (#13) — 8-camera sandbox soak',
-  note: 'D3-10 (#33) recomputed 93.9% from a different pair of published totals; the two use different denominators and must not be mixed. This model quotes D1-09\'s own headline 92% throughout. Either way the finding is the same: the node running the government feed is idle roughly fifteen-sixteenths of the time, so on that feed the bottleneck is the gateway, not the accelerator.',
+  note: "D3-10 (#33) recomputed 93.9% from a different pair of published totals; the two use different denominators and must not be mixed. This model quotes D1-09's own headline 92% throughout. Either way the finding is the same: the node running the government feed is idle roughly fifteen-sixteenths of the time, so on that feed the bottleneck is the gateway, not the accelerator.",
 });
 
 export const VENUE_B_UTILISATION = c({
@@ -201,7 +201,7 @@ export const EVENT_WIRE_BYTES = c({
   unit: 'B/event',
   provenance: 'measured',
   source: 'D3-08 — `JSON.stringify` of the shipped `Sighting` schema, blended 967:33',
-  note: 'A plain sighting serialises to 348 B and a best shot with a plate read and two crop URIs to 659 B; blended at D2-02\'s measured 33 best shots per 1,000 sightings gives 358.3 B. Serialiser-measured, so it excludes stream framing and any transport compression — Valkey Streams field names and gzip both move it, in opposite directions. PROJECT.md section 9 assumed 400 B, which this corroborates as a fair conservative round-up.',
+  note: "A plain sighting serialises to 348 B and a best shot with a plate read and two crop URIs to 659 B; blended at D2-02's measured 33 best shots per 1,000 sightings gives 358.3 B. Serialiser-measured, so it excludes stream framing and any transport compression — Valkey Streams field names and gzip both move it, in opposite directions. PROJECT.md section 9 assumed 400 B, which this corroborates as a fair conservative round-up.",
 });
 
 export const SIGHTING_ROW_BYTES = c({
@@ -231,7 +231,7 @@ export const CROP_BYTES_CEILING = c({
   unit: 'B/crop',
   provenance: 'assumed',
   source: 'PROJECT.md section 9 first-pass estimate, retained deliberately',
-  note: 'D2-02 measured 2,912 B on small frames and explicitly instructed D3-08 *not* to rewrite section 9\'s 15 KB down to it. The honest statement is a band: the true figure on this estate is between 3 KB and 15 KB pending a live-feed measurement, which is one command once the gateway is free. Every storage and cost output in this model is a range for exactly this reason.',
+  note: "D2-02 measured 2,912 B on small frames and explicitly instructed D3-08 *not* to rewrite section 9's 15 KB down to it. The honest statement is a band: the true figure on this estate is between 3 KB and 15 KB pending a live-feed measurement, which is one command once the gateway is free. Every storage and cost output in this model is a range for exactly this reason.",
 });
 
 export const CROPS_PER_1000_SIGHTINGS = c({
@@ -251,7 +251,7 @@ export const CROP_BYTES_PER_1000_SIGHTINGS = c({
   unit: 'B/1000 sightings',
   provenance: 'measured',
   source: 'D2-02 (#16) — 96,214 B = 94.0 KiB per 1,000 sightings',
-  note: 'The measured product of the two constants above (33.0 x 2,912 = 96,096, within rounding). Carried explicitly because it is the figure D2-02 published and the one this ticket\'s AC names.',
+  note: "The measured product of the two constants above (33.0 x 2,912 = 96,096, within rounding). Carried explicitly because it is the figure D2-02 published and the one this ticket's AC names.",
 });
 
 // ── Listed / assumed: the feed and the estate ───────────────────────────────────────────────────
@@ -285,7 +285,7 @@ export const GATEWAY_THROTTLE_SLOW_S = c({
   unit: 's',
   provenance: 'measured',
   source: 'D1-03 (#7) — same `cameras.json`, 4.2 s against 63 s',
-  note: 'Not an input to any output here. Carried because it is the third independent corroboration of the throttle that makes the effective-fps column what it is, alongside D1-09\'s ~4 fps and D3-07\'s 6 s HLS segment delivered in 22–49 s (0.12x–0.28x real time).',
+  note: "Not an input to any output here. Carried because it is the third independent corroboration of the throttle that makes the effective-fps column what it is, alongside D1-09's ~4 fps and D3-07's 6 s HLS segment delivered in 22–49 s (0.12x–0.28x real time).",
 });
 
 // ── Listed / assumed: hot-warm-cold policy ──────────────────────────────────────────────────────
@@ -546,7 +546,10 @@ export function constantValue(key: ConstantKey, overrides: SizingOverrides = {})
 }
 
 /** The registry entry with any override folded in, so the UI and the export cite what was used. */
-export function resolvedConstant(key: ConstantKey, overrides: SizingOverrides = {}): SizingConstant {
+export function resolvedConstant(
+  key: ConstantKey,
+  overrides: SizingOverrides = {},
+): SizingConstant {
   const override = overrides[key];
   if (override === undefined) return SIZING_CONSTANTS[key];
   return {
@@ -622,9 +625,7 @@ export const EVENT_RATE_ANCHORS: readonly EventRateAnchor[] = [
   {
     id: 'per-track',
     label: 'One summary row per track',
-    eventsPerCameraPerDay: Math.round(
-      (perCameraPerSecond * 86_400) / SIGHTINGS_PER_TRACK.value,
-    ),
+    eventsPerCameraPerDay: Math.round((perCameraPerSecond * 86_400) / SIGHTINGS_PER_TRACK.value),
     sightingsPerEvent: SIGHTINGS_PER_TRACK.value,
     provenance: 'measured',
     source: 'D1-09 (#13) rate divided by D2-01 (#15) 43.62 sightings per track',
@@ -713,7 +714,7 @@ export function acceleratorClasses(overrides: SizingOverrides = {}): readonly Ac
       atFps: 25,
       provenance: 'listed',
       source: 'Vendor class figure for a T4-class DeepStream ANPR pipeline',
-      note: 'NOT ours. There is no NVIDIA GPU on this machine and D1-09\'s CUDA path is unit-tested by monkeypatching `torch`, never by execution. Any CUDA figure in this model is vendor-sourced and labelled as such.',
+      note: "NOT ours. There is no NVIDIA GPU on this machine and D1-09's CUDA path is unit-tested by monkeypatching `torch`, never by execution. Any CUDA figure in this model is vendor-sourced and labelled as such.",
     },
     {
       id: 'nvidia-l4',
@@ -722,7 +723,7 @@ export function acceleratorClasses(overrides: SizingOverrides = {}): readonly Ac
       atFps: 25,
       provenance: 'listed',
       source: 'PROJECT.md section 9 first-pass, an L4/A10-class vendor figure',
-      note: 'NOT ours — vendor-listed, and the basis of section 9\'s ~960 GPUs, kept so that figure can be reproduced exactly. Our own measured node extrapolates to about 16 streams at 25 fps, which lands in the same order: the section 9 estimate was fair, and now it has a measurement beside it instead of only a citation.',
+      note: "NOT ours — vendor-listed, and the basis of section 9's ~960 GPUs, kept so that figure can be reproduced exactly. Our own measured node extrapolates to about 16 streams at 25 fps, which lands in the same order: the section 9 estimate was fair, and now it has a measurement beside it instead of only a citation.",
     },
     {
       id: 'nvidia-a100',
