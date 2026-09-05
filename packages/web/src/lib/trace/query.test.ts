@@ -127,7 +127,23 @@ describe('toTraceApiQuery', () => {
       min_confidence: 0,
       max_distance: 2,
       reconstruct: 'false',
+      // Always sent too, and always 'false' unless the officer ticked the box (D3-03). Sent rather
+      // than omitted so that the wire says which evidentiary standard the search was run under —
+      // an omitted parameter is a default nobody chose, and the audit chain records this one.
+      include_reid: 'false',
     });
+  });
+
+  it('carries the appearance-link standard when the officer asked for it', () => {
+    expect(toTraceApiQuery(state({ includeReid: true }))).toMatchObject({ include_reid: 'true' });
+  });
+
+  it('round-trips include_reid through the URL, and only the literal true turns it on', () => {
+    expect(parseTraceQuery(new URLSearchParams('include_reid=true')).includeReid).toBe(true);
+    expect(parseTraceQuery(new URLSearchParams('include_reid=false')).includeReid).toBe(false);
+    expect(parseTraceQuery(new URLSearchParams('include_reid=1')).includeReid).toBe(false);
+    expect(toSearchParams(state()).has('include_reid')).toBe(false);
+    expect(toSearchParams(state({ includeReid: true })).get('include_reid')).toBe('true');
   });
 
   it('carries the stated purpose and the case reference when there is one', () => {

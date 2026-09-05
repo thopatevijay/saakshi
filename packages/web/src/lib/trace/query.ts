@@ -30,6 +30,17 @@ export interface TraceQueryState {
   minConfidence: number;
   /** Weighted-distance ceiling handed to D2-04's matcher. 2 is its measured knee. */
   maxDistance: number;
+  /**
+   * Include vehicle appearance (re-ID) links (D3-03). **Default `false`.**
+   *
+   * In the URL like everything else, so the evidentiary standard a trace was run under travels with
+   * the link. A colleague opening a shared trace sees the same standard, not a different one
+   * because their own default differed.
+   *
+   * Off by default because held-out precision measured **0.761**, below D3-03's 0.9 bar — roughly
+   * one appearance link in four is wrong. The officer chooses; the screen does not choose for them.
+   */
+  includeReid: boolean;
   /** The selected sighting's `seq`, or `null`. Drives the map highlight and the scrubber. */
   seq: number | null;
 }
@@ -45,6 +56,7 @@ export const EMPTY_TRACE_QUERY: TraceQueryState = {
   to: null,
   minConfidence: DEFAULT_MIN_CONFIDENCE,
   maxDistance: DEFAULT_MAX_DISTANCE,
+  includeReid: false,
   seq: null,
 };
 
@@ -92,6 +104,9 @@ export function parseTraceQuery(source: ParamSource): TraceQueryState {
     to: readInstant(source, 'to'),
     minConfidence: readNumber(source, 'min_confidence', DEFAULT_MIN_CONFIDENCE, 0, 1),
     maxDistance: readNumber(source, 'max_distance', DEFAULT_MAX_DISTANCE, 0, 6),
+    // Only the literal string wins. `?include_reid=false` must not switch the feature on, which is
+    // exactly the `z.coerce.boolean()` trap the API's `z.stringbool()` avoids on the same parameter.
+    includeReid: read(source, 'include_reid') === 'true',
     seq: seq !== null && Number.isInteger(seq) && seq > 0 ? seq : null,
   };
 }
@@ -110,6 +125,7 @@ export function toSearchParams(state: TraceQueryState): URLSearchParams {
   if (state.maxDistance !== DEFAULT_MAX_DISTANCE) {
     params.set('max_distance', String(state.maxDistance));
   }
+  if (state.includeReid) params.set('include_reid', 'true');
   if (state.seq !== null) params.set('seq', String(state.seq));
   return params;
 }
@@ -153,6 +169,7 @@ export function toTraceApiQuery(
   max_distance: number;
   case_ref?: string;
   reconstruct: string;
+  include_reid: string;
   from?: string;
   to?: string;
 } {
@@ -171,6 +188,11 @@ export function toTraceApiQuery(
     // A **string**, not a boolean: the API parses it with `z.stringbool()` and the generated
     // OpenAPI type is `string`, so the wire value is what this function has to speak.
     reconstruct: options.reconstruct === true ? 'true' : 'false',
+    // D3-03. A string for the same `z.stringbool()` reason as `reconstruct` above. The server has
+    // the second veto: `REID_ENABLED` must also be true, and the response's `reid.enabled` says
+    // whether it was — so the screen can show "asked for, not available" rather than a silent
+    // plate-only result under a switch that looks on.
+    include_reid: state.includeReid ? 'true' : 'false',
     ...(state.from !== null ? { from: state.from } : {}),
     ...(state.to !== null ? { to: state.to } : {}),
   };
