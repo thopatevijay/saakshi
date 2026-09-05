@@ -28,6 +28,13 @@ import { TRACE_CSV_COLUMNS, traceCsv, tracePdf } from './trace-export.js';
 const TAG = `TR${String(Date.now()).slice(-9)}`;
 /** The registration the whole suite traces. Real-shaped; it names no real vehicle. */
 const PLATE = 'GJ01AB1234';
+
+/**
+ * Purpose binding (D3-04): `/api/v1/trace` and both its export forms reject a request with no
+ * stated purpose, server-side, and write the purpose into the audit chain. Every call here supplies
+ * one — a test that omitted it would be asserting a 400.
+ */
+const PURPOSE = 'verifying%20the%20trace%20endpoint';
 /** What a truncating camera made of it — the dominant failure D2-04 measured on this estate. */
 const TRUNCATED = 'GJ01AB12';
 const LONELY = 'GJ18Y9407';
@@ -344,7 +351,7 @@ describe('AC 5 — a plate with no sightings is a clean empty state, not an erro
     if (!reachable) return;
     const ok = await app.inject({
       method: 'GET',
-      url: `/api/v1/trace?plate=GJ99ZZ9999`,
+      url: `/api/v1/trace?plate=GJ99ZZ9999&purpose=${PURPOSE}`,
       headers: auth('operator'),
     });
     expect(ok.statusCode).toBe(200);
@@ -354,7 +361,7 @@ describe('AC 5 — a plate with no sightings is a clean empty state, not an erro
     // done, it does not run investigative queries.
     const denied = await app.inject({
       method: 'GET',
-      url: `/api/v1/trace?plate=${PLATE}`,
+      url: `/api/v1/trace?plate=${PLATE}&purpose=${PURPOSE}`,
       headers: auth('auditor'),
     });
     expect(denied.statusCode).toBe(403);
@@ -578,7 +585,7 @@ describe('the trace endpoints', () => {
     if (!reachable) return;
     const res = await app.inject({
       method: 'GET',
-      url: `/api/v1/trace?plate=${PLATE}&camera_ids=${cameraIds().join(',')}`,
+      url: `/api/v1/trace?plate=${PLATE}&purpose=${PURPOSE}&camera_ids=${cameraIds().join(',')}`,
       headers: auth('supervisor'),
     });
     expect(res.statusCode).toBe(200);
@@ -594,7 +601,7 @@ describe('the trace endpoints', () => {
     if (!reachable) return;
     const res = await app.inject({
       method: 'GET',
-      url: `/api/v1/trace.csv?plate=${PLATE}&camera_ids=${cameraIds().join(',')}`,
+      url: `/api/v1/trace.csv?plate=${PLATE}&purpose=${PURPOSE}&camera_ids=${cameraIds().join(',')}`,
       headers: auth('admin'),
     });
     expect(res.statusCode).toBe(200);
@@ -607,7 +614,7 @@ describe('the trace endpoints', () => {
     if (!reachable) return;
     const res = await app.inject({
       method: 'GET',
-      url: `/api/v1/trace.pdf?plate=${PLATE}&camera_ids=${cameraIds().join(',')}`,
+      url: `/api/v1/trace.pdf?plate=${PLATE}&purpose=${PURPOSE}&camera_ids=${cameraIds().join(',')}`,
       headers: auth('admin'),
     });
     expect(res.statusCode).toBe(200);
@@ -619,7 +626,7 @@ describe('the trace endpoints', () => {
     if (!reachable) return;
     const res = await app.inject({
       method: 'GET',
-      url: `/api/v1/trace?plate=${PLATE}&min_confidence=9`,
+      url: `/api/v1/trace?plate=${PLATE}&purpose=${PURPOSE}&min_confidence=9`,
       headers: auth('admin'),
     });
     expect(res.statusCode).toBe(400);
@@ -628,7 +635,10 @@ describe('the trace endpoints', () => {
 
   it('is unauthenticated without a token', async () => {
     if (!reachable) return;
-    const res = await app.inject({ method: 'GET', url: `/api/v1/trace?plate=${PLATE}` });
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/v1/trace?plate=${PLATE}&purpose=${PURPOSE}`,
+    });
     expect(res.statusCode).toBe(401);
   });
 });

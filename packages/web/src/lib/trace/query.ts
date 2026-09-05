@@ -87,7 +87,7 @@ export function parseTraceQuery(source: ParamSource): TraceQueryState {
     // first thing an officer edits by hand, and `gj01 ab 1234` must behave like the button did.
     plate: (read(source, 'plate') ?? '').replace(/\s+/g, '').toUpperCase().slice(0, 24),
     purpose: (read(source, 'purpose') ?? '').trim().slice(0, 500),
-    caseRef: ((read(source, 'case_ref') ?? '').trim() || null),
+    caseRef: (read(source, 'case_ref') ?? '').trim() || null,
     from: readInstant(source, 'from'),
     to: readInstant(source, 'to'),
     minConfidence: readNumber(source, 'min_confidence', DEFAULT_MIN_CONFIDENCE, 0, 1),

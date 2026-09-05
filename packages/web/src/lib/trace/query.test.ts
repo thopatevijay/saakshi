@@ -30,7 +30,10 @@ describe('parse ∘ serialise is the identity', () => {
     ['a window', state({ from: '2026-05-10T09:00:00.000Z', to: '2026-05-10T10:00:00.000Z' })],
     ['a confidence floor', state({ minConfidence: 0.45 })],
     ['a stated purpose', state({ purpose: 'FIR follow-up: vehicle movement' })],
-    ['a purpose and a case reference', state({ purpose: 'theft enquiry', caseRef: 'FIR/2026/00123' })],
+    [
+      'a purpose and a case reference',
+      state({ purpose: 'theft enquiry', caseRef: 'FIR/2026/00123' }),
+    ],
     ['a widened matcher', state({ maxDistance: 3 })],
     ['a selected sighting', state({ seq: 4 })],
     [

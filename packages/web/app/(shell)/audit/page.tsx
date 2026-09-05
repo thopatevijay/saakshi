@@ -54,7 +54,9 @@ export default async function Page({
         <h1 className="text-xl font-semibold text-slate-100">Audit chain</h1>
         <p className="text-xs text-slate-500 tabular-nums">
           {view.elapsedMs} ms
-          {view.page === null ? null : ` · ${view.page.total.toLocaleString('en-GB')} matching entries`}
+          {view.page === null
+            ? null
+            : ` · ${view.page.total.toLocaleString('en-GB')} matching entries`}
         </p>
       </div>
 
@@ -95,11 +97,21 @@ export default async function Page({
         </label>
         <label className="flex flex-col gap-1">
           <span className={LABEL}>From</span>
-          <input type="datetime-local" name="from" defaultValue={filters.from} className={`${FIELD} w-56`} />
+          <input
+            type="datetime-local"
+            name="from"
+            defaultValue={filters.from}
+            className={`${FIELD} w-56`}
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className={LABEL}>To</span>
-          <input type="datetime-local" name="to" defaultValue={filters.to} className={`${FIELD} w-56`} />
+          <input
+            type="datetime-local"
+            name="to"
+            defaultValue={filters.to}
+            className={`${FIELD} w-56`}
+          />
         </label>
         <button
           type="submit"

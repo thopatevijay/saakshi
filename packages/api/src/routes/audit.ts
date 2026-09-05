@@ -23,7 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import type { App } from '../server.js';
-import { authenticate, requireRole, userRoles, type Principal } from '../auth.js';
+import { authenticate, requireRole, userRoles } from '../auth.js';
 import { can, canAll } from '@saakshi/shared';
 import type { Db } from '../db/client.js';
 import { ErrorResponse } from './camera-contracts.js';
@@ -86,7 +86,10 @@ export interface AuditRouteOptions {
  * `<repo>/exports`, derived from this module rather than from `process.cwd()` — the API is started
  * from `packages/api`, so a relative default would write bundles somewhere no instruction mentions.
  */
-const DEFAULT_EXPORT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../exports');
+const DEFAULT_EXPORT_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../../exports',
+);
 
 export function registerAuditRoutes(app: App, options: AuditRouteOptions): void {
   const exportDir = options.exportDir ?? DEFAULT_EXPORT_DIR;
@@ -187,7 +190,8 @@ export function registerAuditRoutes(app: App, options: AuditRouteOptions): void 
       preHandler: [requireRole(AUDIT_EXPORT_ROLES)],
       schema: {
         tags: ['audit'],
-        summary: 'Package a vehicle trace and its evidence crops as an independently verifiable bundle',
+        summary:
+          'Package a vehicle trace and its evidence crops as an independently verifiable bundle',
         description:
           'Requires both a stated purpose and a case reference; the case reference is what makes an ' +
           'export answerable once the evidence has left the system. Crops are embedded as bytes — a ' +
@@ -211,7 +215,7 @@ export function registerAuditRoutes(app: App, options: AuditRouteOptions): void 
 
       const built = await buildExportBundle({
         db: options.db,
-        principal: request.principal as Principal | undefined,
+        principal: request.principal,
         trace,
         purpose: body.purpose,
         caseRef: body.case_ref,

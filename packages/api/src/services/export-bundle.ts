@@ -60,13 +60,6 @@ export const MANIFEST_VERSION = 1;
 export const MANIFEST_FILE = 'manifest.json';
 export const MANIFEST_HASH_FILE = 'manifest.sha256';
 
-/**
- * Fifteen minutes is the browser's TTL. A bundle build fetches immediately and keeps the bytes, so
- * the URL only has to outlive one request — but a slow store on a cold cache is a real thing, and
- * this URL never leaves this process.
- */
-const BUILD_PRESIGN_TTL_SECONDS = 300;
-
 export const BUNDLE_CLAIM =
   'Verification proves this bundle is byte-for-byte unaltered since it was built. It does not ' +
   'prove the contents are true. Sightings are observed detections; that they are the same vehicle ' +
@@ -222,7 +215,12 @@ export async function buildExportBundle(options: BuildBundleOptions): Promise<Bu
   const items: BundleItem[] = [];
   const omissions: BundleOmission[] = [];
 
-  const addFile = async (relative: string, bytes: Buffer, kind: BundleItem['kind'], extra?: Partial<BundleItem>) => {
+  const addFile = async (
+    relative: string,
+    bytes: Buffer,
+    kind: BundleItem['kind'],
+    extra?: Partial<BundleItem>,
+  ) => {
     await writeFile(path.join(dir, relative), bytes);
     items.push({ path: relative, bytes: bytes.byteLength, sha256: sha256(bytes), kind, ...extra });
   };
@@ -305,7 +303,8 @@ export async function buildExportBundle(options: BuildBundleOptions): Promise<Bu
     manifestHash,
   });
 
-  const bytes = manifest.items.reduce((sum, item) => sum + item.bytes, 0) + manifestBytes.byteLength;
+  const bytes =
+    manifest.items.reduce((sum, item) => sum + item.bytes, 0) + manifestBytes.byteLength;
   return { bundleId, dir, manifest, manifestHash, bytes };
 }
 
@@ -603,7 +602,7 @@ function readmeFor(manifest: BundleManifest, manifestHash: string): string {
     `Audit entry hash  ${manifest.chain.auditEntryHash}`,
     `Chain algorithm   ${manifest.chain.algorithm}`,
     '',
-    'The audit entry above is a link in this deployment\'s append-only chain. It records who built',
+    "The audit entry above is a link in this deployment's append-only chain. It records who built",
     'this bundle, when, for what stated purpose and against which case. It is what ties the package',
     'to an accountable person; the hashes below tie the package to its own contents.',
     '',

@@ -68,7 +68,9 @@ function report(result: ChainVerification): void {
   console.log(`  seq              ${b.entry.seq}`);
   console.log(`  written          ${b.entry.ts}`);
   console.log(`  action           ${b.entry.action}`);
-  console.log(`  actor            ${b.entry.actorBadgeNo ?? 'system'} (${b.entry.actorRole ?? 'system'})`);
+  console.log(
+    `  actor            ${b.entry.actorBadgeNo ?? 'system'} (${b.entry.actorRole ?? 'system'})`,
+  );
   console.log(`  expected         ${b.expected}`);
   console.log(`  actual           ${b.actual}`);
   console.log(`\n  ${b.detail}`);
@@ -79,7 +81,9 @@ try {
     const outcome = await sealChainEpoch(db);
     if (asJson) console.log(JSON.stringify(outcome));
     else if (outcome.sealed) {
-      console.log(`sealed ${outcome.preCanonicalEntries} pre-canonical entr${outcome.preCanonicalEntries === 1 ? 'y' : 'ies'}\n`);
+      console.log(
+        `sealed ${outcome.preCanonicalEntries} pre-canonical entr${outcome.preCanonicalEntries === 1 ? 'y' : 'ies'}\n`,
+      );
     } else {
       console.log(`nothing sealed — ${outcome.reason ?? 'no reason given'}\n`);
     }

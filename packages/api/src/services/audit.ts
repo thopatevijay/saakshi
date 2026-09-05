@@ -62,8 +62,15 @@ export const CHAIN_EPOCH_ACTION = 'chain.epoch';
 /** `target_type` on the epoch entry, so it cannot be forged by an unrelated `chain.epoch` action. */
 export const CHAIN_EPOCH_TARGET = 'audit_chain';
 
-/** How many times an append retries when it loses the race for the chain tip. */
-export const CHAIN_APPEND_ATTEMPTS = 12;
+/**
+ * How many times an append retries when it loses the race for the chain tip.
+ *
+ * A hash chain serialises its writers by construction — that is what makes it a chain — so the
+ * budget has to exceed the number of writers that can collide at once. Measured: 40 concurrent
+ * appends against `saakshi_d3_04` complete with **0 rejections**, and the deployed writer count is
+ * far lower than that (the API, the sightings consumer, the catalogue scheduler, the prober).
+ */
+export const CHAIN_APPEND_ATTEMPTS = 32;
 
 export interface AuditEntry {
   action: string;
@@ -208,8 +215,8 @@ const ROW_COLUMNS = {
 export function isChainRace(error: unknown): boolean {
   for (let current: unknown = error, depth = 0; current !== undefined && depth < 6; depth++) {
     const candidate = current as { code?: unknown; constraint_name?: unknown; cause?: unknown };
-    if (candidate.code === '23505') {
-      const constraint = String(candidate.constraint_name ?? '');
+    if (candidate.code === '23505' && typeof candidate.constraint_name === 'string') {
+      const constraint = candidate.constraint_name;
       if (constraint === 'audit_log_prev_hash_uidx' || constraint === 'audit_log_hash_key') {
         return true;
       }
@@ -286,8 +293,9 @@ export async function writeAudit(
     } catch (error) {
       if (!isChainRace(error)) throw error;
       lastError = error;
-      // A few milliseconds of jitter, so N writers that collided do not all retry in lockstep.
-      await sleep(Math.floor(Math.random() * 4 * (attempt + 1)) + 1);
+      // Jittered, and growing with the attempt but capped: N writers that collided must not retry
+      // in lockstep, and the last of them must not be starved by the first.
+      await sleep(Math.floor(Math.random() * Math.min(4 * (attempt + 1), 60)) + 1);
     }
   }
 
@@ -456,8 +464,12 @@ export async function verifyChain(db: DbLike): Promise<ChainVerification> {
   }
 
   if (epochRow !== undefined) {
-    const declaredPrologue = Number(epochRow.params['preCanonicalEntries'] ?? -1);
-    const declaredBoundary = String(epochRow.params['boundaryHash'] ?? '');
+    // `params` is jsonb, so both fields are `unknown` here. A shape that is not what the sealer
+    // wrote is a mismatch, not a crash — an epoch entry nobody can read is not a boundary.
+    const rawPrologue = epochRow.params['preCanonicalEntries'];
+    const rawBoundary = epochRow.params['boundaryHash'];
+    const declaredPrologue = typeof rawPrologue === 'number' ? rawPrologue : -1;
+    const declaredBoundary = typeof rawBoundary === 'string' ? rawBoundary : '';
     const actualBoundary = prologue === 0 ? GENESIS_HASH : (rows[prologue - 1] as AuditRow).hash;
     if (declaredPrologue !== prologue || declaredBoundary !== actualBoundary) {
       return {
@@ -545,9 +557,10 @@ export async function sealChainEpoch(
   const rows = await loadChain(db);
   if (rows.some(isEpochEntry)) {
     const existing = rows.find(isEpochEntry) as AuditRow;
+    const declared = existing.params['preCanonicalEntries'];
     return {
       sealed: false,
-      preCanonicalEntries: Number(existing.params['preCanonicalEntries'] ?? 0),
+      preCanonicalEntries: typeof declared === 'number' ? declared : 0,
       reason: 'the chain already carries an epoch entry',
     };
   }
@@ -578,7 +591,11 @@ export async function sealChainEpoch(
     targetId: boundary.hash,
     purpose:
       'sealing the boundary between entries written before the canonical digest and those written after it',
-    params: { preCanonicalEntries: prologue, boundaryHash: boundary.hash, algorithm: CHAIN_ALGORITHM },
+    params: {
+      preCanonicalEntries: prologue,
+      boundaryHash: boundary.hash,
+      algorithm: CHAIN_ALGORITHM,
+    },
     resultCount: prologue,
   });
 
@@ -595,7 +612,9 @@ export async function chainEpochSeq(db: DbLike): Promise<number | null> {
   const rows = await db
     .select({ seq: auditLog.seq })
     .from(auditLog)
-    .where(and(eq(auditLog.action, CHAIN_EPOCH_ACTION), eq(auditLog.targetType, CHAIN_EPOCH_TARGET)))
+    .where(
+      and(eq(auditLog.action, CHAIN_EPOCH_ACTION), eq(auditLog.targetType, CHAIN_EPOCH_TARGET)),
+    )
     .orderBy(asc(auditLog.seq))
     .limit(1);
   return rows[0]?.seq ?? null;
@@ -651,7 +670,10 @@ export const AUDIT_SEARCH_MAX_LIMIT = 200;
  * is per-entry (`ok` / `legacy` / `hash_mismatch`); whether the *chain* holds is `verifyChain`,
  * because a link break is a property of a pair of entries, not of one.
  */
-export async function searchAudit(db: DbLike, search: AuditSearch = {}): Promise<AuditSearchResult> {
+export async function searchAudit(
+  db: DbLike,
+  search: AuditSearch = {},
+): Promise<AuditSearchResult> {
   const limit = Math.min(Math.max(search.limit ?? 50, 1), AUDIT_SEARCH_MAX_LIMIT);
   const offset = Math.max(search.offset ?? 0, 0);
 
@@ -668,7 +690,10 @@ export async function searchAudit(db: DbLike, search: AuditSearch = {}): Promise
   const where = filters.length === 0 ? undefined : and(...filters);
 
   const [totals, rows, epochSeq] = await Promise.all([
-    db.select({ n: sql<number>`count(*)::int` }).from(auditLog).where(where),
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(auditLog)
+      .where(where),
     db
       .select(ROW_COLUMNS)
       .from(auditLog)
@@ -705,7 +730,11 @@ function decorate(row: AuditRow, epochSeq: number | null): AuditSearchEntry {
 
 /** One entry by id, for the viewer's detail pane. */
 export async function readAuditEntry(db: DbLike, id: string): Promise<AuditSearchEntry | null> {
-  const rows = (await db.select(ROW_COLUMNS).from(auditLog).where(eq(auditLog.id, id)).limit(1)) as AuditRow[];
+  const rows = (await db
+    .select(ROW_COLUMNS)
+    .from(auditLog)
+    .where(eq(auditLog.id, id))
+    .limit(1)) as AuditRow[];
   const row = rows[0];
   if (row === undefined) return null;
   return decorate(row, await chainEpochSeq(db));

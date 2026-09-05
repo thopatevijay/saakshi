@@ -49,7 +49,13 @@ function canonicalNumber(value: number, path: string): string {
   return Object.is(value, -0) ? '0' : String(value);
 }
 
-function write(value: unknown, indent: number, depth: number, path: string, seen: Set<object>): string {
+function write(
+  value: unknown,
+  indent: number,
+  depth: number,
+  path: string,
+  seen: Set<object>,
+): string {
   if (value === null) return 'null';
 
   switch (typeof value) {
@@ -71,7 +77,7 @@ function write(value: unknown, indent: number, depth: number, path: string, seen
       break;
   }
 
-  const object = value as object;
+  const object: object = value;
   if (seen.has(object)) throw new CanonicalJsonError(`${path}: circular reference`);
 
   if (object instanceof Date) {

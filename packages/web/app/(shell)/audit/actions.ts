@@ -27,7 +27,12 @@ export interface AuditFilters {
 export async function loadAudit(filters: AuditFilters = {}): Promise<AuditView> {
   const session = await getSession();
   if (session === null) {
-    return { page: null, chain: null, error: 'Your session has expired. Sign in again.', elapsedMs: 0 };
+    return {
+      page: null,
+      chain: null,
+      error: 'Your session has expired. Sign in again.',
+      elapsedMs: 0,
+    };
   }
 
   const client = apiClient(session.token);
@@ -37,8 +42,12 @@ export async function loadAudit(filters: AuditFilters = {}): Promise<AuditView> 
     limit: filters.limit ?? 50,
     offset: filters.offset ?? 0,
     ...(filters.action !== undefined && filters.action !== '' ? { action: filters.action } : {}),
-    ...(filters.badgeNo !== undefined && filters.badgeNo !== '' ? { badge_no: filters.badgeNo } : {}),
-    ...(filters.caseRef !== undefined && filters.caseRef !== '' ? { case_ref: filters.caseRef } : {}),
+    ...(filters.badgeNo !== undefined && filters.badgeNo !== ''
+      ? { badge_no: filters.badgeNo }
+      : {}),
+    ...(filters.caseRef !== undefined && filters.caseRef !== ''
+      ? { case_ref: filters.caseRef }
+      : {}),
     ...(filters.from !== undefined && filters.from !== '' ? { from: filters.from } : {}),
     ...(filters.to !== undefined && filters.to !== '' ? { to: filters.to } : {}),
   };

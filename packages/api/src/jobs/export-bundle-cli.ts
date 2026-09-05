@@ -80,7 +80,9 @@ try {
   console.log(`case         ${caseRef}`);
   console.log(`subject      ${trace.normalized === '' ? trace.query : trace.normalized}`);
   console.log(`sightings    ${built.manifest.counts.sightings}`);
-  console.log(`crops        ${built.manifest.counts.cropsIncluded} included, ${built.manifest.counts.cropsUnavailable} unavailable`);
+  console.log(
+    `crops        ${built.manifest.counts.cropsIncluded} included, ${built.manifest.counts.cropsUnavailable} unavailable`,
+  );
   console.log(`items        ${built.manifest.items.length}`);
   console.log(`manifest     ${built.manifestHash}`);
   console.log(`audit entry  ${built.manifest.chain.auditEntryHash}`);

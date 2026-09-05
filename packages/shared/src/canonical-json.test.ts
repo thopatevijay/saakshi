@@ -82,7 +82,14 @@ describe('canonicalJson', () => {
     const shuffled = JSON.stringify(reinsert(ENTRY, 4242));
     const out = execFileSync(
       process.execPath,
-      ['--experimental-strip-types', '--no-warnings', '--input-type=module', '-e', script, shuffled],
+      [
+        '--experimental-strip-types',
+        '--no-warnings',
+        '--input-type=module',
+        '-e',
+        script,
+        shuffled,
+      ],
       { encoding: 'utf8' },
     );
     expect(out).toBe(expected);
@@ -108,7 +115,9 @@ describe('canonicalJson', () => {
 
   it('normalises -0 and formats dates as UTC ISO 8601', () => {
     expect(canonicalJson({ z: -0 })).toBe('{"z":0}');
-    expect(canonicalJson(new Date(Date.UTC(2026, 8, 5, 9, 0, 0)))).toBe('"2026-09-05T09:00:00.000Z"');
+    expect(canonicalJson(new Date(Date.UTC(2026, 8, 5, 9, 0, 0)))).toBe(
+      '"2026-09-05T09:00:00.000Z"',
+    );
   });
 
   it('refuses input with no defined canonical form rather than guessing one', () => {

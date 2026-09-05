@@ -158,20 +158,25 @@ describe('appending to the chain', () => {
   it('links each entry to the tip that preceded it', async () => {
     if (!reachable) return;
     const target = `${TAG}-link`;
-    const first = await writeAudit(db, undefined, {
-      action: 'test.append',
-      targetType: 'test',
-      targetId: target,
-      purpose: 'chain linkage',
+    // Inside one transaction, because the chain is shared and vitest runs suites in parallel: two
+    // appends taken separately can legitimately have someone else's entry between them, and
+    // asserting otherwise would be asserting that nothing else in the system is running.
+    await db.transaction(async (tx) => {
+      const first = await writeAudit(tx, undefined, {
+        action: 'test.append',
+        targetType: 'test',
+        targetId: target,
+        purpose: 'chain linkage',
+      });
+      const second = await writeAudit(tx, undefined, {
+        action: 'test.append',
+        targetType: 'test',
+        targetId: target,
+        purpose: 'chain linkage',
+      });
+      expect(second.prevHash).toBe(first.hash);
+      expect(second.seq).toBeGreaterThan(first.seq);
     });
-    const second = await writeAudit(db, undefined, {
-      action: 'test.append',
-      targetType: 'test',
-      targetId: target,
-      purpose: 'chain linkage',
-    });
-    expect(second.prevHash).toBe(first.hash);
-    expect(second.seq).toBeGreaterThan(first.seq);
   });
 
   it('records the actor badge and role on the entry, not only a foreign key', async () => {
@@ -179,7 +184,12 @@ describe('appending to the chain', () => {
     const target = `${TAG}-actor`;
     await writeAudit(
       db,
-      { sub: actors.supervisor.sub, badgeNo: 'GP-SUP-0100', role: 'supervisor', departmentId: null },
+      {
+        sub: actors.supervisor.sub,
+        badgeNo: 'GP-SUP-0100',
+        role: 'supervisor',
+        departmentId: null,
+      },
       { action: 'test.actor', targetType: 'test', targetId: target, purpose: 'actor capture' },
     );
     const rows = await db.execute<{ actor_badge_no: string; actor_role: string }>(
@@ -254,14 +264,32 @@ describe('chain verification', () => {
 
   it('the tip it reports is the tip the writer chains from next', async () => {
     if (!reachable) return;
-    const tip = await chainTip(db);
-    const next = await writeAudit(db, undefined, {
-      action: 'test.tip',
-      targetType: 'test',
-      targetId: `${TAG}-tip`,
-      purpose: 'tip continuity',
+    // Write first, *then* read the tip, and do both in one transaction.
+    //
+    // Reading the tip and then writing is racy however it is wrapped: another suite can commit an
+    // entry in between, `writeAudit` correctly retries against the new tip, and the assertion ends
+    // up describing the scheduler rather than the chain. Writing first pins it — once this
+    // transaction has taken the index tuple for its `prev_hash`, no other writer can commit a row
+    // that would sit between this one and the tip.
+    await db.transaction(async (tx) => {
+      const written = await writeAudit(tx, undefined, {
+        action: 'test.tip',
+        targetType: 'test',
+        targetId: `${TAG}-tip`,
+        purpose: 'tip continuity',
+      });
+      const tip = await chainTip(tx);
+      expect(tip?.hash).toBe(written.hash);
+      expect(tip?.seq).toBe(written.seq);
+
+      const next = await writeAudit(tx, undefined, {
+        action: 'test.tip',
+        targetType: 'test',
+        targetId: `${TAG}-tip`,
+        purpose: 'tip continuity',
+      });
+      expect(next.prevHash).toBe(tip?.hash);
     });
-    expect(next.prevHash).toBe(tip?.hash);
   });
 });
 
@@ -310,7 +338,12 @@ describe('purpose binding is enforced server-side', () => {
     });
     expect(res.statusCode).toBe(200);
 
-    const rows = await db.execute<{ action: string; purpose: string; case_ref: string; actor_badge_no: string }>(
+    const rows = await db.execute<{
+      action: string;
+      purpose: string;
+      case_ref: string;
+      actor_badge_no: string;
+    }>(
       sql`select action, purpose, case_ref, actor_badge_no from audit_log where target_id = ${plate}`,
     );
     expect(rows).toHaveLength(1);
@@ -389,7 +422,12 @@ describe('export bundles', () => {
       payload: { plate: 'GJ01AB1234', purpose, case_ref: 'FIR/2026/00123' },
     });
     expect(res.statusCode).toBe(201);
-    const body = res.json<{ bundleId: string; path: string; manifestHash: string; auditEntryHash: string }>();
+    const body = res.json<{
+      bundleId: string;
+      path: string;
+      manifestHash: string;
+      auditEntryHash: string;
+    }>();
 
     const clean = await verifyExportBundle(body.path);
     expect(clean.ok).toBe(true);
@@ -398,9 +436,11 @@ describe('export bundles', () => {
 
     // The manifest names the chain entry that authorised the export, so provenance does not stop at
     // the bundle's own front cover.
-    const manifest = JSON.parse(
-      await readFile(path.join(body.path, 'manifest.json'), 'utf8'),
-    ) as { chain: { auditEntryHash: string }; items: { path: string }[]; claim: string };
+    const manifest = JSON.parse(await readFile(path.join(body.path, 'manifest.json'), 'utf8')) as {
+      chain: { auditEntryHash: string };
+      items: { path: string }[];
+      claim: string;
+    };
     expect(manifest.chain.auditEntryHash).toBe(body.auditEntryHash);
     const chainRow = await db.execute<{ n: string }>(
       sql`select count(*)::text as n from audit_log where hash = ${body.auditEntryHash} and action = 'export.bundle'`,
@@ -434,9 +474,13 @@ describe('export bundles', () => {
     const { path: dir } = res.json<{ path: string }>();
 
     const files = await readdir(dir);
-    expect(files).toEqual(expect.arrayContaining(['manifest.json', 'manifest.sha256', 'verify.mjs', 'README.txt']));
+    expect(files).toEqual(
+      expect.arrayContaining(['manifest.json', 'manifest.sha256', 'verify.mjs', 'README.txt']),
+    );
 
-    const out = execFileSync(process.execPath, [path.join(dir, 'verify.mjs')], { encoding: 'utf8' });
+    const out = execFileSync(process.execPath, [path.join(dir, 'verify.mjs')], {
+      encoding: 'utf8',
+    });
     expect(out).toContain('PASS');
     expect(out).toContain('does not prove the contents are true');
   });
@@ -478,7 +522,11 @@ describe('export bundles', () => {
 describe('RBAC — an auditor reads the chain and does nothing else', () => {
   it('reads the chain', async () => {
     if (!reachable) return;
-    const res = await app.inject({ method: 'GET', url: '/api/v1/audit?limit=5', headers: auth('auditor') });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/audit?limit=5',
+      headers: auth('auditor'),
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json<{ entries: unknown[]; disclaimer: string }>();
     expect(Array.isArray(body.entries)).toBe(true);
@@ -487,7 +535,11 @@ describe('RBAC — an auditor reads the chain and does nothing else', () => {
 
   it('verifies the chain', async () => {
     if (!reachable) return;
-    const res = await app.inject({ method: 'GET', url: '/api/v1/audit/verify', headers: auth('auditor') });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/audit/verify',
+      headers: auth('auditor'),
+    });
     expect(res.statusCode).toBe(200);
     expect(res.json<{ ok: boolean; claim: string }>().claim).toContain('tamper EVIDENCE');
   });
@@ -538,7 +590,11 @@ describe('RBAC — an auditor reads the chain and does nothing else', () => {
 
   it('an operator cannot read the chain at all', async () => {
     if (!reachable) return;
-    const res = await app.inject({ method: 'GET', url: '/api/v1/audit', headers: auth('operator') });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/v1/audit',
+      headers: auth('operator'),
+    });
     expect(res.statusCode).toBe(403);
   });
 });
@@ -566,7 +622,10 @@ describe('searching the chain', () => {
     expect(byCase.entries[0]?.actorBadgeNo).toBe('GP-ADM-0001');
     expect(byCase.entries[0]?.status).toBe('ok');
 
-    const byBadgeAndAction = await searchAudit(db, { badgeNo: 'GP-ADM-0001', action: 'test.search' });
+    const byBadgeAndAction = await searchAudit(db, {
+      badgeNo: 'GP-ADM-0001',
+      action: 'test.search',
+    });
     expect(byBadgeAndAction.entries.some((e) => e.caseRef === caseRef)).toBe(true);
 
     const byAction = await searchAudit(db, { action: 'test.searchXXX' });

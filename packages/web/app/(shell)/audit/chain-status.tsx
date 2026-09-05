@@ -48,10 +48,7 @@ export function ChainStatus({ chain }: { chain: ChainVerification | null }) {
       <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
         <Figure label="Entries" value={chain.entries.toLocaleString('en-GB')} />
         <Figure label="Verified" value={chain.verifiedEntries.toLocaleString('en-GB')} />
-        <Figure
-          label="Pre-canonical"
-          value={chain.preCanonicalEntries.toLocaleString('en-GB')}
-        />
+        <Figure label="Pre-canonical" value={chain.preCanonicalEntries.toLocaleString('en-GB')} />
         <Figure label="Forks" value={chain.forks.length.toLocaleString('en-GB')} />
       </div>
 
@@ -60,7 +57,8 @@ export function ChainStatus({ chain }: { chain: ChainVerification | null }) {
           {chain.preCanonicalEntries} entr{chain.preCanonicalEntries === 1 ? 'y was' : 'ies were'}{' '}
           written before the canonical digest existed. Their linkage is verified; their payloads
           cannot be re-hashed, because the serialisation they were written under is not reproducible
-          from the stored row. The boundary is {chain.epochSealed ? 'sealed in the chain itself' : 'NOT sealed'}.
+          from the stored row. The boundary is{' '}
+          {chain.epochSealed ? 'sealed in the chain itself' : 'NOT sealed'}.
         </p>
       ) : null}
 
