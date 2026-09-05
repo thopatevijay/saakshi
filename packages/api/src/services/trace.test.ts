@@ -10,7 +10,7 @@
  * plates exactly across 120 hand-labelled instances because only 3 of them were human-legible at
  * all. There is therefore no plate on the real estate to trace. The behavioural assertions run
  * against a seeded corpus with a per-run tag; the honest estate-wide number is measured separately
- * by `scripts/measure-trace-linking.mjs` and reported as it stands.
+ * by `npm run measure:trace-linking` (`src/bench/trace-linking.ts`) and reported as it stands.
  *
  * `sightings`, `plate_reads` and `cameras` have no per-suite namespace and D2-04's benchmark seeds
  * 250,000 rows into the first two, so every count assertion here is scoped by `camera_id` or by the
@@ -70,14 +70,46 @@ const ROUTE: {
   ingestOffsetS: number;
 }[] = [
   // insertion order 1 — chronologically third, and the *first* to arrive
-  { camera: 'b', ts: '2026-05-10T09:20:00.000Z', raw: 'GJ01AB1234', normalized: PLATE, confidence: 0.72, trackId: 400002, ingestOffsetS: 0 },
+  {
+    camera: 'b',
+    ts: '2026-05-10T09:20:00.000Z',
+    raw: 'GJ01AB1234',
+    normalized: PLATE,
+    confidence: 0.72,
+    trackId: 400002,
+    ingestOffsetS: 0,
+  },
   // insertion order 2 — chronologically first, and the *last* to arrive: a reconnect replaying a
   // buffered GOP is exactly this shape, and it is why arrival time cannot be the clock.
-  { camera: 'a', ts: '2026-05-10T09:00:00.000Z', raw: 'GJ 01 AB 1234', normalized: PLATE, confidence: 0.9, trackId: 300001, ingestOffsetS: 2400 },
+  {
+    camera: 'a',
+    ts: '2026-05-10T09:00:00.000Z',
+    raw: 'GJ 01 AB 1234',
+    normalized: PLATE,
+    confidence: 0.9,
+    trackId: 300001,
+    ingestOffsetS: 2400,
+  },
   // insertion order 3 — chronologically fourth, and a fuzzy (truncated) read
-  { camera: 'c', ts: '2026-05-10T09:35:00.000Z', raw: 'GJ01AB12', normalized: TRUNCATED, confidence: 0.55, trackId: 900003, ingestOffsetS: 60 },
+  {
+    camera: 'c',
+    ts: '2026-05-10T09:35:00.000Z',
+    raw: 'GJ01AB12',
+    normalized: TRUNCATED,
+    confidence: 0.55,
+    trackId: 900003,
+    ingestOffsetS: 60,
+  },
   // insertion order 4 — chronologically second, same camera as the first but a *different session*
-  { camera: 'a', ts: '2026-05-10T09:10:00.000Z', raw: 'GJ01AB1234', normalized: PLATE, confidence: 0.81, trackId: 700001, ingestOffsetS: 1500 },
+  {
+    camera: 'a',
+    ts: '2026-05-10T09:10:00.000Z',
+    raw: 'GJ01AB1234',
+    normalized: PLATE,
+    confidence: 0.81,
+    trackId: 700001,
+    ingestOffsetS: 1500,
+  },
 ];
 
 async function seedSighting(row: (typeof ROUTE)[number]): Promise<void> {
@@ -263,9 +295,19 @@ describe('AC 2 — fuzzy links are included, flagged, and filterable by min_conf
     expect(all.sightings.length).toBeGreaterThan(strict.sightings.length);
     expect(strict.sightings.every((s) => s.linkConfidence >= 0.7)).toBe(true);
     expect(strict.coverage.fuzzyLinks).toBe(0);
-    expect(strict.sightings.map((s) => s.seq)).toEqual(
-      strict.sightings.map((_, i) => i + 1),
+    expect(strict.sightings.map((s) => s.seq)).toEqual(strict.sightings.map((_, i) => i + 1));
+  });
+
+  it('counts what the floor removed, including plates dropped before hydration', async () => {
+    if (!reachable) return;
+    const all = await trace(PLATE, { minConfidence: 0 });
+    const strict = await trace(PLATE, { minConfidence: 0.7 });
+    // The whole point: the two numbers reconcile. A shrinking trace beside "0 dropped" would be
+    // telling an operator the count fell for some other reason.
+    expect(strict.coverage.droppedBelowConfidence).toBe(
+      all.sightings.length - strict.sightings.length,
     );
+    expect(strict.coverage.droppedBelowConfidence).toBeGreaterThan(0);
   });
 
   it('min_confidence at 1 empties the trace cleanly rather than erroring', async () => {
@@ -352,7 +394,9 @@ describe('observed versus inferred — the distinction D3-01 builds on', () => {
   it('a segment between placed cameras carries a straight-line lower bound and an upper-bound speed', async () => {
     if (!reachable) return;
     const result = await trace(PLATE);
-    const ab = result.segments.find((s) => s.fromCameraId === cameras['a'] && s.toCameraId === cameras['b']);
+    const ab = result.segments.find(
+      (s) => s.fromCameraId === cameras['a'] && s.toCameraId === cameras['b'],
+    );
     expect(ab).toBeDefined();
     expect(ab?.straightLineKm).toBeGreaterThan(0);
     expect(ab?.impliedSpeedKmh).toBeGreaterThan(0);
@@ -506,6 +550,17 @@ describe('AC 8 — PDF export', () => {
     expect(text).toContain('ranked possibilities, not identifications');
     // The coordinate gap is stated on page 1, not buried in the rows.
     expect(text).toContain('have coordinates');
+  });
+
+  it('typographic characters outside Latin-1 are transliterated, not printed as “?”', async () => {
+    if (!reachable) return;
+    const text = tracePdf(await trace(PLATE)).toString('latin1');
+    // The em dash in the claims box has no WinAnsi code point. Before it was transliterated this
+    // rendered as `OBSERVED ? Every sighting…`, which in a document about careful claims reads as
+    // a defect.
+    expect(text).toContain('OBSERVED - ');
+    expect(text).toContain('INFERRED - ');
+    expect(text).not.toContain('OBSERVED ?');
   });
 
   it('an empty trace still produces a presentable one-page report explaining why', async () => {

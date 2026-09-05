@@ -49,7 +49,12 @@ export class PdfPage {
     this.size = size;
   }
 
-  text(value: string, x: number, y: number, options: { size?: number; font?: PdfFont; grey?: number } = {}): this {
+  text(
+    value: string,
+    x: number,
+    y: number,
+    options: { size?: number; font?: PdfFont; grey?: number } = {},
+  ): this {
     const size = options.size ?? 10;
     const font = FONT_KEYS[options.font ?? 'Helvetica'];
     const grey = options.grey ?? 0;
@@ -59,7 +64,13 @@ export class PdfPage {
     return this;
   }
 
-  line(x1: number, y1: number, x2: number, y2: number, options: { width?: number; grey?: number } = {}): this {
+  line(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    options: { width?: number; grey?: number } = {},
+  ): this {
     this.ops.push(
       `q ${fmt(options.grey ?? 0.75)} G ${fmt(options.width ?? 0.5)} w ${fmt(x1)} ${fmt(y1)} m ${fmt(x2)} ${fmt(y2)} l S Q`,
     );
@@ -67,7 +78,9 @@ export class PdfPage {
   }
 
   rect(x: number, y: number, w: number, h: number, options: { grey?: number } = {}): this {
-    this.ops.push(`q ${fmt(options.grey ?? 0.93)} g ${fmt(x)} ${fmt(y)} ${fmt(w)} ${fmt(h)} re f Q`);
+    this.ops.push(
+      `q ${fmt(options.grey ?? 0.93)} g ${fmt(x)} ${fmt(y)} ${fmt(w)} ${fmt(h)} re f Q`,
+    );
     return this;
   }
 
@@ -234,7 +247,12 @@ function wrap(value: string, maxWidth: number, size: number, font: PdfFont): str
 }
 
 /** Truncate to fit, with an ellipsis, so a long camera name cannot run into the next column. */
-export function ellipsise(value: string, maxWidth: number, size: number, font: PdfFont = 'Helvetica'): string {
+export function ellipsise(
+  value: string,
+  maxWidth: number,
+  size: number,
+  font: PdfFont = 'Helvetica',
+): string {
   if (textWidth(value, size, font) <= maxWidth) return value;
   let out = value;
   while (out.length > 1 && textWidth(`${out}...`, size, font) > maxWidth) {
@@ -243,11 +261,35 @@ export function ellipsise(value: string, maxWidth: number, size: number, font: P
   return `${out}...`;
 }
 
+/**
+ * Typographic characters that have no Latin-1 code point, mapped to something a reader recognises.
+ *
+ * Without this the em dashes in the claims box print as `?`, which in a document whose whole job is
+ * to be careful about what it asserts reads as a defect. Anything not listed still degrades to `?`
+ * rather than to mojibake — a visible gap beats a wrong glyph. Note the middle dot, the degree sign
+ * and the accented letters *are* in Latin-1 and pass through untouched.
+ */
+const TRANSLITERATE: Readonly<Record<string, string>> = {
+  '—': '-', // em dash
+  '–': '-', // en dash
+  '‘': "'",
+  '’': "'",
+  '“': '"',
+  '”': '"',
+  '…': '...',
+  '→': '->',
+  '≥': '>=',
+  '≤': '<=',
+  '≠': '!=',
+  '×': 'x',
+  '•': '·', // bullet -> middle dot, which Latin-1 has
+};
+
 function escapeText(value: string): string {
   // Latin-1 only: anything outside it has no glyph under WinAnsiEncoding and would render as
   // mojibake rather than failing loudly, which is worse.
   return [...value]
-    .map((char) => (char.codePointAt(0) ?? 63) > 255 ? '?' : char)
+    .map((char) => TRANSLITERATE[char] ?? ((char.codePointAt(0) ?? 63) > 255 ? '?' : char))
     .join('')
     .replace(/\\/g, '\\\\')
     .replace(/\(/g, '\\(')

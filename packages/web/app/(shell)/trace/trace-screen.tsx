@@ -25,11 +25,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import dynamic from 'next/dynamic';
 import { EmptyState, LoadingPanel } from '@/src/components/states';
 import { LINK_STYLE, type TraceablePoint } from '@/src/lib/trace/geojson';
-import {
-  parseTraceQuery,
-  toSearchParams,
-  type TraceQueryState,
-} from '@/src/lib/trace/query';
+import { parseTraceQuery, toSearchParams, type TraceQueryState } from '@/src/lib/trace/query';
 import { runTrace } from './actions';
 import { EvidenceStrip } from './evidence-strip';
 import { TraceTimeline, formatDuration } from './trace-timeline';
@@ -200,10 +196,20 @@ export function TraceScreen({
 
         {hasResult && sightings.length > 0 ? (
           <>
-            <a href={exportHref('csv')} download className={`${BUTTON} h-9 leading-6`} data-action="export-csv">
+            <a
+              href={exportHref('csv')}
+              download
+              className={`${BUTTON} h-9 leading-6`}
+              data-action="export-csv"
+            >
               Export CSV
             </a>
-            <a href={exportHref('pdf')} download className={`${BUTTON} h-9 leading-6`} data-action="export-pdf">
+            <a
+              href={exportHref('pdf')}
+              download
+              className={`${BUTTON} h-9 leading-6`}
+              data-action="export-pdf"
+            >
               Export PDF
             </a>
           </>
@@ -211,7 +217,10 @@ export function TraceScreen({
       </form>
 
       {error !== null ? (
-        <p role="alert" className="rounded-md border border-rose-900/60 bg-rose-950/30 px-4 py-3 text-sm text-rose-200">
+        <p
+          role="alert"
+          className="rounded-md border border-rose-900/60 bg-rose-950/30 px-4 py-3 text-sm text-rose-200"
+        >
           {error}
         </p>
       ) : null}
@@ -287,11 +296,7 @@ export function TraceScreen({
             plate={trace.normalized}
           />
 
-          <SightingTable
-            trace={trace}
-            selectedSeq={query.seq}
-            onSelect={select}
-          />
+          <SightingTable trace={trace} selectedSeq={query.seq} onSelect={select} />
         </>
       )}
     </div>
@@ -300,7 +305,10 @@ export function TraceScreen({
 
 function LinkLegend() {
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900/30 px-4 py-3" data-testid="trace-legend">
+    <section
+      className="rounded-lg border border-slate-800 bg-slate-900/30 px-4 py-3"
+      data-testid="trace-legend"
+    >
       <h2 className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
         How each sighting was linked
       </h2>
@@ -337,7 +345,10 @@ function SightingTable({
 }) {
   const segmentTo = new Map(trace.segments.map((s) => [s.toSeq, s]));
   return (
-    <section className="overflow-x-auto rounded-lg border border-slate-800" data-testid="trace-table">
+    <section
+      className="overflow-x-auto rounded-lg border border-slate-800"
+      data-testid="trace-table"
+    >
       <table className="w-full min-w-[64rem] text-left text-xs">
         <caption className="sr-only">
           Sightings linked to {trace.normalized}, in chronological order, with the gap inferred
@@ -375,8 +386,7 @@ function SightingTable({
                   {s.ts.replace('T', ' ').replace('Z', '').slice(0, 23)}
                 </td>
                 <td className="px-3 py-2 text-slate-300">
-                  {s.cameraName}{' '}
-                  <span className="text-slate-500">({s.cameraExternalId})</span>
+                  {s.cameraName} <span className="text-slate-500">({s.cameraExternalId})</span>
                   {s.located ? null : <span className="ml-1 text-slate-600">· not placed</span>}
                 </td>
                 <td className="px-3 py-2 text-slate-400 tabular-nums">

@@ -100,9 +100,7 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
     const points: GeoJSONSource | undefined = instance.getSource(POINT_SOURCE);
     void points?.setData(geometry.points);
     const path: GeoJSONSource | undefined = instance.getSource(PATH_SOURCE);
-    void path?.setData(
-      geometry.path ?? { type: 'FeatureCollection', features: [] },
-    );
+    void path?.setData(geometry.path ?? { type: 'FeatureCollection', features: [] });
   }, []);
 
   useEffect(() => {
@@ -191,9 +189,9 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
         source: POINT_SOURCE,
         filter: ['==', ['get', 'seq'], -1],
         paint: {
-          'circle-radius': 17,
-          'circle-color': 'rgba(56,189,248,0.25)',
-          'circle-stroke-width': 2,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 14, 10, 18, 14, 22],
+          'circle-color': 'rgba(56,189,248,0.22)',
+          'circle-stroke-width': 3,
           'circle-stroke-color': '#38bdf8',
         },
       });
@@ -204,7 +202,9 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
         type: 'circle',
         source: POINT_SOURCE,
         paint: {
-          'circle-color': linkColour('fill') as unknown as DataDrivenPropertyValueSpecification<string>,
+          'circle-color': linkColour(
+            'fill',
+          ) as unknown as DataDrivenPropertyValueSpecification<string>,
           'circle-stroke-color': linkColour(
             'stroke',
           ) as unknown as DataDrivenPropertyValueSpecification<string>,

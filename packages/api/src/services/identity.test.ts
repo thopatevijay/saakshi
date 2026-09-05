@@ -113,7 +113,12 @@ describe('resolveIdentity', () => {
     const identity = resolveIdentity(
       searchResult([
         candidate({ plateNormalized: 'GJ01AB1234', distance: 0, ocrConfidence: 0.9 }),
-        candidate({ plateNormalized: 'GJ01AB12', distance: 0.7, matchStrength: 0.77, ocrConfidence: 0.6 }),
+        candidate({
+          plateNormalized: 'GJ01AB12',
+          distance: 0.7,
+          matchStrength: 0.77,
+          ocrConfidence: 0.6,
+        }),
       ]),
     );
     expect(identity.canonicalPlate).toBe('GJ01AB1234');
@@ -127,7 +132,12 @@ describe('resolveIdentity', () => {
   it('min_confidence drops a weak plate and keeps a strong one', () => {
     const result = searchResult([
       candidate({ plateNormalized: 'GJ01AB1234', distance: 0, ocrConfidence: 0.9 }),
-      candidate({ plateNormalized: 'GJ01AB12', distance: 1.4, matchStrength: 0.53, ocrConfidence: 0.4 }),
+      candidate({
+        plateNormalized: 'GJ01AB12',
+        distance: 1.4,
+        matchStrength: 0.53,
+        ocrConfidence: 0.4,
+      }),
     ]);
     expect(resolveIdentity(result, { minConfidence: 0 }).plates).toHaveLength(2);
     const filtered = resolveIdentity(result, { minConfidence: 0.5 });

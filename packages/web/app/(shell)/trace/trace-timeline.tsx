@@ -52,11 +52,15 @@ export function TraceTimeline({ sightings, selectedSeq, onSelect }: TraceTimelin
       data-testid="trace-timeline"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id={labelId} className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+        <h2
+          id={labelId}
+          className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase"
+        >
           Timeline
         </h2>
         <p className="text-xs text-slate-400 tabular-nums">
-          {sightings.length} sighting{sightings.length === 1 ? '' : 's'} over {formatDuration(spanS)}
+          {sightings.length} sighting{sightings.length === 1 ? '' : 's'} over{' '}
+          {formatDuration(spanS)}
         </p>
       </div>
 
@@ -101,7 +105,11 @@ export function TraceTimeline({ sightings, selectedSeq, onSelect }: TraceTimelin
         <span>{formatTime(last?.ts)}</span>
       </div>
 
-      <p className="mt-3 min-h-[2.5rem] text-sm text-slate-300" aria-live="polite" data-testid="trace-timeline-readout">
+      <p
+        className="mt-3 min-h-[2.5rem] text-sm text-slate-300"
+        aria-live="polite"
+        data-testid="trace-timeline-readout"
+      >
         {selected === null ? (
           <span className="text-slate-500">
             Drag the handle, or select a pin, to step through the route.
@@ -112,7 +120,8 @@ export function TraceTimeline({ sightings, selectedSeq, onSelect }: TraceTimelin
             <span className="text-slate-300">{selected.cameraName}</span>{' '}
             <span className="text-slate-500">({selected.cameraExternalId})</span>{' '}
             <span className="text-slate-400 tabular-nums">
-              · {formatTime(selected.ts)} · +{formatDuration(elapsedSeconds(sightings, selected.seq))}
+              · {formatTime(selected.ts)} · +
+              {formatDuration(elapsedSeconds(sightings, selected.seq))}
             </span>{' '}
             <span
               className="ml-1 inline-block rounded border px-2 py-0.5 text-[11px] font-medium"

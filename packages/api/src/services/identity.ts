@@ -125,9 +125,14 @@ export function resolveIdentity(
     .filter((p) => p.linkConfidence >= minConfidence)
     .slice(0, maxPlates);
 
-  const firstSeen = plates.length === 0 ? null : plates.map((p) => p.firstSeen).sort()[0] ?? null;
+  const firstSeen = plates.length === 0 ? null : (plates.map((p) => p.firstSeen).sort()[0] ?? null);
   const lastSeen =
-    plates.length === 0 ? null : plates.map((p) => p.lastSeen).sort().at(-1) ?? null;
+    plates.length === 0
+      ? null
+      : (plates
+          .map((p) => p.lastSeen)
+          .sort()
+          .at(-1) ?? null);
 
   return {
     canonicalPlate: search.normalized,

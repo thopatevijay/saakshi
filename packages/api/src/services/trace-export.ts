@@ -56,35 +56,35 @@ export function traceCsv(result: TraceResult): string {
   const rows = [TRACE_CSV_COLUMNS.join(',')];
   for (const s of result.sightings) {
     const cells: CsvValue[] = [
-        s.plateNormalized,
-        s.cameraId,
-        s.cameraName,
-        s.lat,
-        s.lon,
-        s.ts,
-        s.linkConfidence,
-        s.linkMethod,
-        s.seq,
-        s.cameraExternalId,
-        s.district,
-        s.located,
-        s.sightingId,
-        s.framePtsMs,
-        s.trackId,
-        s.trackingSession,
-        s.rawTrackerId,
-        s.class,
-        s.detConfidence,
-        s.vehicleColor,
-        s.vehicleColorConfidence,
-        s.plateRawText,
-        s.ocrConfidence,
-        s.voteCount,
-        s.matchDistance,
-        s.matchStrength,
-        s.basis,
-        s.cropUri,
-        s.explanation,
+      s.plateNormalized,
+      s.cameraId,
+      s.cameraName,
+      s.lat,
+      s.lon,
+      s.ts,
+      s.linkConfidence,
+      s.linkMethod,
+      s.seq,
+      s.cameraExternalId,
+      s.district,
+      s.located,
+      s.sightingId,
+      s.framePtsMs,
+      s.trackId,
+      s.trackingSession,
+      s.rawTrackerId,
+      s.class,
+      s.detConfidence,
+      s.vehicleColor,
+      s.vehicleColorConfidence,
+      s.plateRawText,
+      s.ocrConfidence,
+      s.voteCount,
+      s.matchDistance,
+      s.matchStrength,
+      s.basis,
+      s.cropUri,
+      s.explanation,
     ];
     rows.push(cells.map(csvCell).join(','));
   }
@@ -121,15 +121,47 @@ interface Column {
 
 const COLUMNS: Column[] = [
   { key: 'seq', label: '#', width: 20, value: (s) => String(s.seq) },
-  { key: 'ts', label: 'Timestamp (UTC, from PTS)', width: 132, value: (s) => s.ts.replace('T', ' ').replace('Z', '') },
-  { key: 'camera', label: 'Camera', width: 150, value: (s) => `${s.cameraExternalId} · ${s.cameraName}` },
-  { key: 'loc', label: 'Lat, Lon', width: 100, value: (s) => (s.located ? `${fixed(s.lat, 5)}, ${fixed(s.lon, 5)}` : 'not placed') },
+  {
+    key: 'ts',
+    label: 'Timestamp (UTC, from PTS)',
+    width: 132,
+    value: (s) => s.ts.replace('T', ' ').replace('Z', ''),
+  },
+  {
+    key: 'camera',
+    label: 'Camera',
+    width: 150,
+    value: (s) => `${s.cameraExternalId} · ${s.cameraName}`,
+  },
+  {
+    key: 'loc',
+    label: 'Lat, Lon',
+    width: 100,
+    value: (s) => (s.located ? `${fixed(s.lat, 5)}, ${fixed(s.lon, 5)}` : 'not placed'),
+  },
   { key: 'plate', label: 'Plate read', width: 88, value: (s) => s.plateNormalized },
   { key: 'raw', label: 'Raw OCR', width: 76, value: (s) => s.plateRawText },
   { key: 'method', label: 'Link method', width: 74, value: (s) => s.linkMethod },
-  { key: 'conf', label: 'Link conf.', width: 52, value: (s) => s.linkConfidence.toFixed(2), align: 'right' },
-  { key: 'ocr', label: 'OCR conf.', width: 52, value: (s) => s.ocrConfidence.toFixed(2), align: 'right' },
-  { key: 'track', label: 'Session/track', width: 66, value: (s) => `${String(s.trackingSession)}/${String(s.rawTrackerId)}` },
+  {
+    key: 'conf',
+    label: 'Link conf.',
+    width: 52,
+    value: (s) => s.linkConfidence.toFixed(2),
+    align: 'right',
+  },
+  {
+    key: 'ocr',
+    label: 'OCR conf.',
+    width: 52,
+    value: (s) => s.ocrConfidence.toFixed(2),
+    align: 'right',
+  },
+  {
+    key: 'track',
+    label: 'Session/track',
+    width: 66,
+    value: (s) => `${String(s.trackingSession)}/${String(s.rawTrackerId)}`,
+  },
   { key: 'basis', label: 'Basis', width: 50, value: (s) => s.basis },
 ];
 
@@ -184,7 +216,10 @@ export function tracePdf(result: TraceResult, generatedAt: Date = new Date()): B
     y -= 14;
     page.paragraph(emptyExplanation(result), MARGIN, y, right - MARGIN, { size: 9, grey: 0.35 });
     footer(pages, generatedAt);
-    return renderPdf(pages, { title: `SAAKSHI vehicle trace — ${queried}`, subject: TITLE_SUBJECT });
+    return renderPdf(pages, {
+      title: `SAAKSHI vehicle trace — ${queried}`,
+      subject: TITLE_SUBJECT,
+    });
   }
 
   y = tableHeader(page, y, right);

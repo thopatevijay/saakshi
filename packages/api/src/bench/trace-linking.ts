@@ -132,7 +132,9 @@ async function main(): Promise<void> {
     line(`sightings                              ${estate.sightings}`);
     line(`cameras with sightings                 ${estate.cameras}`);
     line(`track sessions — (camera_id, track_id) ${estate.sessions}`);
-    line(`distinct track_id values               ${estate.distinct_track_ids}   <- under-counts sessions`);
+    line(
+      `distinct track_id values               ${estate.distinct_track_ids}   <- under-counts sessions`,
+    );
     line();
     line(`sessions carrying a usable plate read  ${estate.with_reads}`);
     line(
@@ -144,7 +146,9 @@ async function main(): Promise<void> {
         ` (${pct(sessions - withReads, sessions)})`,
     );
     line();
-    line('Failure mode, in one sentence: there is nothing to link on. D2-01 measured 0 exact plate');
+    line(
+      'Failure mode, in one sentence: there is nothing to link on. D2-01 measured 0 exact plate',
+    );
     line('reads over 120 hand-labelled instances because only 3 of them carried a human-legible');
     line('plate at all (docs/anpr-accuracy.md). A vehicle trace on this estate is therefore built');
     line('from detections and attributes, not from confirmed identity, and the UI says so.');
@@ -165,7 +169,7 @@ async function main(): Promise<void> {
        order by c.external_id, s.track_id
     `);
 
-    line('════ §2 · THE LINKER, UNDER THE ESTATE\'S MEASURED ERROR PROFILE ════');
+    line("════ §2 · THE LINKER, UNDER THE ESTATE'S MEASURED ERROR PROFILE ════");
     line('    A CONTROLLED EXPERIMENT on real sighting rows — not an observation of the feeds.');
     line();
     line(`Attaching one synthetic read to each of the ${String(rows.length)} real track sessions,`);
@@ -223,19 +227,24 @@ async function main(): Promise<void> {
         stat.confidences.push(hit.linkConfidence);
         if (hit.linkMethod === 'plate_exact') exactLinks += 1;
       }
-      stat.falseLinks += result.sightings.filter((s) => s.sightingId !== expected.sightingId).length;
+      stat.falseLinks += result.sightings.filter(
+        (s) => s.sightingId !== expected.sightingId,
+      ).length;
       if (result.sightings.length === 1) singletons += 1;
       void key;
     }
 
     latencies.sort((a, b) => a - b);
-    const p95 = latencies[Math.min(latencies.length - 1, Math.ceil(0.95 * latencies.length) - 1)] ?? 0;
+    const p95 =
+      latencies[Math.min(latencies.length - 1, Math.ceil(0.95 * latencies.length) - 1)] ?? 0;
     const attempted = stats.reduce((n, s) => n + s.attempted, 0);
     const linked = stats.reduce((n, s) => n + s.linked, 0);
 
     line('by measured error family:');
     line();
-    line('  family                                                        attempted  linked  recall   mean conf');
+    line(
+      '  family                                                        attempted  linked  recall   mean conf',
+    );
     for (const s of stats) {
       const mean =
         s.confidences.length === 0
@@ -247,18 +256,28 @@ async function main(): Promise<void> {
       );
     }
     line();
-    line(`SESSIONS LINKED             ${String(linked)} of ${String(attempted)} (${pct(linked, attempted)})`);
-    line(`SESSIONS THAT STAY SINGLE   ${String(attempted - linked)} of ${String(attempted)} (${pct(attempted - linked, attempted)})`);
+    line(
+      `SESSIONS LINKED             ${String(linked)} of ${String(attempted)} (${pct(linked, attempted)})`,
+    );
+    line(
+      `SESSIONS THAT STAY SINGLE   ${String(attempted - linked)} of ${String(attempted)} (${pct(attempted - linked, attempted)})`,
+    );
     line(`traces returning exactly one sighting   ${String(singletons)}`);
-    line(`links reported as plate_exact           ${String(exactLinks)}  <- every read is wrong, so 0 is correct`);
+    line(
+      `links reported as plate_exact           ${String(exactLinks)}  <- every read is wrong, so 0 is correct`,
+    );
     line(
       `precision (correct sightings / returned) ${pct(totalCorrect, totalReturned)}` +
         `  [${String(totalCorrect)} / ${String(totalReturned)}]`,
     );
-    line(`p95 trace latency                       ${p95.toFixed(1)} ms over ${String(latencies.length)} traces`);
+    line(
+      `p95 trace latency                       ${p95.toFixed(1)} ms over ${String(latencies.length)} traces`,
+    );
     line(`wall                                    ${((Date.now() - started) / 1000).toFixed(1)} s`);
     line();
-    line('Read §1 and §2 together: the linker recovers most of what the estate would produce if the');
+    line(
+      'Read §1 and §2 together: the linker recovers most of what the estate would produce if the',
+    );
     line('plates were legible, and the estate produces none. Both numbers belong in the report.');
   } finally {
     const deleted = await db.execute<{ n: string }>(

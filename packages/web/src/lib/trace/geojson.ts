@@ -64,7 +64,10 @@ export interface TraceGeometry {
  * *claim about a vehicle*, and reusing one vocabulary for both would make an untrusted camera and
  * an uncertain identification look like the same kind of doubt.
  */
-export const LINK_STYLE: Record<LinkMethod, { fill: string; stroke: string; label: string; note: string }> = {
+export const LINK_STYLE: Record<
+  LinkMethod,
+  { fill: string; stroke: string; label: string; note: string }
+> = {
   plate_exact: {
     fill: '#38bdf8',
     stroke: '#0ea5e9',
@@ -162,7 +165,10 @@ export function traceBounds(
  * journey. `at` maps a fraction of the elapsed window to the sighting in effect at that instant —
  * the last one at or before it — which is what makes dragging the scrubber walk the route.
  */
-export function seqAtFraction(sightings: readonly TraceablePoint[], fraction: number): number | null {
+export function seqAtFraction(
+  sightings: readonly TraceablePoint[],
+  fraction: number,
+): number | null {
   if (sightings.length === 0) return null;
   const clamped = Math.min(1, Math.max(0, fraction));
   const start = Date.parse(sightings[0]?.ts ?? '');

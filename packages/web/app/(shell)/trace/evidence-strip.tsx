@@ -41,8 +41,7 @@ export function EvidenceStrip({ sightings, selectedSeq, onSelect, plate }: Evide
           Evidence · chronological
         </h2>
         <p className="text-xs text-slate-400 tabular-nums">
-          {withCrops} of {sightings.length} sighting{sightings.length === 1 ? '' : 's'} has a stored
-          crop
+          crops stored: {withCrops} of {sightings.length}
         </p>
       </div>
 

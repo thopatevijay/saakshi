@@ -72,10 +72,7 @@ export const TRACE_DISCLAIMER =
   'matcher precision and recall: docs/fuzzy-matching.md §6.';
 
 export type TraceEmptyReason =
-  | 'query_not_searchable'
-  | 'no_matching_plate'
-  | 'no_sightings_in_window'
-  | 'below_min_confidence';
+  'query_not_searchable' | 'no_matching_plate' | 'no_sightings_in_window' | 'below_min_confidence';
 
 export interface TraceSighting {
   /** 1-based position in chronological order. What the map pin and the timeline both label. */
@@ -287,7 +284,12 @@ export class TraceService {
     const base = this.emptyShell(rawQuery, searchResult, options, minConfidence, maxDistance);
 
     if (!searchResult.searched) {
-      return { ...base, identity: null, emptyReason: 'query_not_searchable', tookMs: elapsed(started) };
+      return {
+        ...base,
+        identity: null,
+        emptyReason: 'query_not_searchable',
+        tookMs: elapsed(started),
+      };
     }
     if (identity.plates.length === 0) {
       const reason: TraceEmptyReason =
@@ -299,7 +301,17 @@ export class TraceService {
     const rows = await this.hydrate([...byPlate.keys()], options, limit);
     const stored = await loadStoredLinks(this.db, identity.canonicalPlate);
 
-    let dropped = 0;
+    // Sightings the confidence floor removed *before* hydration, because their plate's best read
+    // could not clear it. Counted here rather than left invisible: an operator who raises the floor
+    // and watches the trace shrink beside "0 below the confidence floor" is being told the count
+    // fell for some other reason, which is worse than not reporting it at all.
+    let dropped = searchResult.candidates
+      .filter(
+        (c) =>
+          !byPlate.has(c.plateNormalized) &&
+          sightingLinkConfidence(c.matchStrength, c.ocrConfidence) < minConfidence,
+      )
+      .reduce((n, c) => n + c.sightingCount, 0);
     const sightings: TraceSighting[] = [];
     for (const row of rows) {
       const plate = byPlate.get(row.plate);
@@ -580,11 +592,15 @@ export function buildSegments(sightings: TraceSighting[]): TraceSegment[] {
 function noteFor(sameCamera: boolean, km: number | null): string {
   if (sameCamera) return 'same camera — no transition claimed';
   if (km === null) {
-    return 'one or both cameras have no coordinates, so no distance can be computed — the ' +
-      'catalogue publishes no location for this estate';
+    return (
+      'one or both cameras have no coordinates, so no distance can be computed — the ' +
+      'catalogue publishes no location for this estate'
+    );
   }
-  return 'straight-line lower bound on distance; the implied speed is therefore an upper bound. ' +
-    'Road-graph reconstruction is D3-01.';
+  return (
+    'straight-line lower bound on distance; the implied speed is therefore an upper bound. ' +
+    'Road-graph reconstruction is D3-01.'
+  );
 }
 
 function haversineKm(

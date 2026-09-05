@@ -21,7 +21,8 @@
     "evidence:retention": "tsx src/jobs/evidence-retention.ts",
     "evidence:sign": "tsx src/jobs/evidence-sign.ts",
     "seed:watchlist": "tsx src/watchlist/seed-cli.ts",
-    "measure:trace-linking": "tsx src/bench/trace-linking.ts"
+    "measure:trace-linking": "tsx src/bench/trace-linking.ts",
+    "demo:trace": "tsx src/demo/trace-fixtures.ts"
   },
   "dependencies": {
     "@fastify/jwt": "^10.2.2",

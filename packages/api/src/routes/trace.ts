@@ -175,7 +175,12 @@ export const TraceResponse = z.object({
   /** The two sentences that keep a trace from over-claiming. Rendered, not buried in a footer. */
   claims: z.object({ observed: z.string(), inferred: z.string() }),
   emptyReason: z
-    .enum(['query_not_searchable', 'no_matching_plate', 'no_sightings_in_window', 'below_min_confidence'])
+    .enum([
+      'query_not_searchable',
+      'no_matching_plate',
+      'no_sightings_in_window',
+      'below_min_confidence',
+    ])
     .nullable(),
   disclaimer: z.string(),
   tookMs: z.number(),
@@ -222,7 +227,12 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
           'and a confidence on every row; the path between them is inferred entirely. An empty ' +
           'result is a 200 with an `emptyReason`, never an error.',
         querystring: TraceQuery,
-        response: { 200: TraceResponse, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          200: TraceResponse,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request): Promise<TraceResult> => run(request.query),
@@ -235,7 +245,8 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
       preHandler: [requireRole(TRACE_ROLES)],
       schema: {
         tags: ['trace'],
-        summary: 'The same trace as CSV — plate, camera, coordinates, timestamp, confidence, method',
+        summary:
+          'The same trace as CSV — plate, camera, coordinates, timestamp, confidence, method',
         querystring: TraceQuery,
         // No `response` map, matching `GET /api/v1/cameras/export`: a declared response schema puts
         // the zod serialiser in front of a body that is deliberately not JSON.

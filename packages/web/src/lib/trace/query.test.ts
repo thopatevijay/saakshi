@@ -30,7 +30,10 @@ describe('parse ∘ serialise is the identity', () => {
     ['a confidence floor', state({ minConfidence: 0.45 })],
     ['a widened matcher', state({ maxDistance: 3 })],
     ['a selected sighting', state({ seq: 4 })],
-    ['everything at once', state({ from: '2026-05-10T09:00:00.000Z', minConfidence: 0.6, maxDistance: 1, seq: 2 })],
+    [
+      'everything at once',
+      state({ from: '2026-05-10T09:00:00.000Z', minConfidence: 0.6, maxDistance: 1, seq: 2 }),
+    ],
     ['an empty screen', EMPTY_TRACE_QUERY],
   ] as [string, TraceQueryState][]) {
     it(name, () => {

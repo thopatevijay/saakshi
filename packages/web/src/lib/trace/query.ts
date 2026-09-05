@@ -52,7 +52,13 @@ function readInstant(source: ParamSource, key: string): string | null {
   return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
 }
 
-function readNumber(source: ParamSource, key: string, fallback: number, min: number, max: number): number {
+function readNumber(
+  source: ParamSource,
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   const raw = read(source, key);
   if (raw === null || raw === '') return fallback;
   const value = Number(raw);
