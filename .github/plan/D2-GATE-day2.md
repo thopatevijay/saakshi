@@ -2,7 +2,7 @@
 title: "D2-GATE · Day 2 gate: the core scoring loop works"
 milestone: "Day 2 — Analytics & Alert Core"
 labels: ["day-2", "gate"]
-blocked_by: ["D2-01","D2-02","D2-03","D2-04","D2-05","D2-06","D2-07","D2-08","D2-09","D2-10"]
+blocked_by: ["D2-01","D2-02","D2-03","D2-04","D2-05","D2-06","D2-07","D2-08","D2-09","D2-10","D2-11"]
 estimate: "1h"
 ---
 
