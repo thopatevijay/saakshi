@@ -187,7 +187,11 @@ export function WallScreen({
         />
       </div>
 
-      <div data-testid="wall-grid" data-grid={layout.grid} className={`grid gap-3 ${GRID_CLASS[layout.grid]}`}>
+      <div
+        data-testid="wall-grid"
+        data-grid={layout.grid}
+        className={`grid gap-3 ${GRID_CLASS[layout.grid]}`}
+      >
         {layout.slots.map((cameraId, index) => (
           <CameraTile
             key={`${String(index)}:${cameraId ?? 'empty'}`}

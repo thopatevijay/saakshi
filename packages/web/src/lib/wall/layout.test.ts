@@ -54,7 +54,10 @@ describe('normaliseLayout', () => {
   });
 
   it('empties a slot whose camera no longer exists rather than substituting one', () => {
-    const layout = normaliseLayout({ grid: '2x2', slots: ['cam-00', 'deleted', null, 'cam-03'] }, known);
+    const layout = normaliseLayout(
+      { grid: '2x2', slots: ['cam-00', 'deleted', null, 'cam-03'] },
+      known,
+    );
     expect(layout.slots).toEqual(['cam-00', null, null, 'cam-03']);
   });
 
@@ -69,11 +72,15 @@ describe('normaliseLayout', () => {
   });
 
   it('keeps overlay and mode when they are valid, defaults them when they are not', () => {
-    expect(normaliseLayout({ grid: '2x2', slots: [], overlay: false, mode: 'whep' }, known)).toMatchObject({
+    expect(
+      normaliseLayout({ grid: '2x2', slots: [], overlay: false, mode: 'whep' }, known),
+    ).toMatchObject({
       overlay: false,
       mode: 'whep',
     });
-    expect(normaliseLayout({ grid: '2x2', slots: [], mode: 'rtsp' as never }, known).mode).toBe('hls');
+    expect(normaliseLayout({ grid: '2x2', slots: [], mode: 'rtsp' as never }, known).mode).toBe(
+      'hls',
+    );
   });
 });
 
@@ -135,7 +142,12 @@ describe('activeCameraIds', () => {
 });
 
 describe('layoutsEqual', () => {
-  const base: WallLayout = { grid: '2x2', slots: ['a', null, 'c', 'd'], overlay: true, mode: 'hls' };
+  const base: WallLayout = {
+    grid: '2x2',
+    slots: ['a', null, 'c', 'd'],
+    overlay: true,
+    mode: 'hls',
+  };
 
   it('is true for the same wall and false for any single change', () => {
     expect(layoutsEqual(base, { ...base, slots: [...base.slots] })).toBe(true);

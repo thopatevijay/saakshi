@@ -223,7 +223,9 @@ export function useHlsPlayer(options: {
     const id = window.setInterval(() => {
       const video = videoRef.current;
       if (video === null) return;
-      setState((s) => (s.readyState === video.readyState ? s : { ...s, readyState: video.readyState }));
+      setState((s) =>
+        s.readyState === video.readyState ? s : { ...s, readyState: video.readyState },
+      );
       playerUpdated(cameraId, {
         readyState: video.readyState,
         currentTime: video.currentTime,

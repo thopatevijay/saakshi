@@ -33,7 +33,9 @@ const wanted = Number(process.argv[5] ?? 9);
 
 const auth = { authorization: `Bearer ${token}` };
 
-const page = await fetch(`${api}/api/v1/cameras?limit=200`, { headers: auth }).then((r) => r.json());
+const page = await fetch(`${api}/api/v1/cameras?limit=200`, { headers: auth }).then((r) =>
+  r.json(),
+);
 const cameras = page.data.slice(0, wanted);
 
 console.log(

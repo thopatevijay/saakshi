@@ -143,7 +143,8 @@ export function DetectionOverlay({
       if (rect.width <= 0 || rect.height <= 0) return;
 
       const dpr = window.devicePixelRatio || 1;
-      if (canvas.width !== Math.round(rect.width * dpr)) canvas.width = Math.round(rect.width * dpr);
+      if (canvas.width !== Math.round(rect.width * dpr))
+        canvas.width = Math.round(rect.width * dpr);
       if (canvas.height !== Math.round(rect.height * dpr)) {
         canvas.height = Math.round(rect.height * dpr);
       }
@@ -160,7 +161,8 @@ export function DetectionOverlay({
       const source = resolveSourceFrame(decoded, measured);
       if (source === null) return;
 
-      const mismatch = decoded !== null && measured !== null ? aspectMismatch(decoded, measured) : null;
+      const mismatch =
+        decoded !== null && measured !== null ? aspectMismatch(decoded, measured) : null;
       if (mismatch !== lastWarning) {
         lastWarning = mismatch;
         setWarning(mismatch);

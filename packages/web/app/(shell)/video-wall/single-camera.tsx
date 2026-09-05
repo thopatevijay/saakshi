@@ -80,7 +80,10 @@ function HlsPane({
       />
       <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/85 to-transparent px-3 py-2 text-[11px]">
         <span className="font-medium text-slate-200">HLS · buffered, segment-based</span>
-        <span className="tabular-nums text-slate-400" title={deliveryReason(player.deliveryRate, verdict)}>
+        <span
+          className="tabular-nums text-slate-400"
+          title={deliveryReason(player.deliveryRate, verdict)}
+        >
           {player.deliveryRate === null ? 'measuring' : `${player.deliveryRate.toFixed(2)}×`} ·{' '}
           {player.fragments} frags
         </span>
@@ -221,9 +224,7 @@ export function SingleCameraView({
           />
         ) : (
           <div className="flex aspect-video flex-col justify-center gap-3 rounded-lg border border-dashed border-slate-800 bg-slate-950/60 px-6 py-4">
-            <h3 className="text-xs font-semibold text-slate-200">
-              No WHEP path for this camera
-            </h3>
+            <h3 className="text-xs font-semibold text-slate-200">No WHEP path for this camera</h3>
             <p className="text-[11px] leading-relaxed text-slate-400">
               {manifest?.whepUnavailable ??
                 'The government sandbox serves HLS over HTTPS only. It exposes neither RTSP nor ' +

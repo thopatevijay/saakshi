@@ -158,7 +158,9 @@ async function main() {
   const hlsLag = median(results.map((r) => r.hlsLagS));
   const whepLag = median(results.map((r) => r.whepLagS));
 
-  console.log(`\nmedian of ${String(runs)} runs, source ${streamPath} on our own MediaMTX gateway:`);
+  console.log(
+    `\nmedian of ${String(runs)} runs, source ${streamPath} on our own MediaMTX gateway:`,
+  );
   console.log(
     `  time to first frame   HLS ${String(hlsFirst?.toFixed(0) ?? 'n/a')} ms · ` +
       `WHEP ${String(whepFirst?.toFixed(0) ?? 'n/a')} ms`,

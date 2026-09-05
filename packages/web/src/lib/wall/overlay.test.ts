@@ -149,16 +149,18 @@ describe('projectBox — the transform the acceptance criterion is about', () =>
   });
 
   it('returns nothing when the source frame is unknown', () => {
-    expect(projectBox({ x: 1, y: 1, w: 1, h: 1 }, { width: 0, height: 0 }, { width: 10, height: 10 }))
-      .toEqual({ x: 0, y: 0, w: 0, h: 0 });
+    expect(
+      projectBox({ x: 1, y: 1, w: 1, h: 1 }, { width: 0, height: 0 }, { width: 10, height: 10 }),
+    ).toEqual({ x: 0, y: 0, w: 0, h: 0 });
   });
 });
 
 describe('resolveSourceFrame', () => {
   it('prefers what the browser is decoding over what the registry measured', () => {
-    expect(
-      resolveSourceFrame({ width: 854, height: 480 }, { width: 1920, height: 1080 }),
-    ).toEqual({ width: 854, height: 480 });
+    expect(resolveSourceFrame({ width: 854, height: 480 }, { width: 1920, height: 1080 })).toEqual({
+      width: 854,
+      height: 480,
+    });
   });
 
   it('falls back to the measured resolution before metadata loads', () => {

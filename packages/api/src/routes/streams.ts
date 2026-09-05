@@ -131,8 +131,7 @@ export function failingSignalsFrom(breakdown: unknown): {
   maxPoints: number;
 }[] {
   const trust = ((breakdown ?? {}) as Record<string, unknown>)['trust'] as
-    | { signals?: TrustSignal[] }
-    | undefined;
+    { signals?: TrustSignal[] } | undefined;
 
   return (trust?.signals ?? [])
     .filter((s) => s.applicable !== false && typeof s.points === 'number')
@@ -235,7 +234,12 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
         tags: ['streams'],
         summary: 'What a tile needs before it opens a connection: identity, trust, and playability',
         params: z.object({ id: z.uuid() }),
-        response: { 200: StreamManifest, 404: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          200: StreamManifest,
+          404: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request, reply) => {
@@ -261,7 +265,11 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
       const health = healthRows[0] ?? null;
 
       const sightingRows = await db
-        .select({ total: count(), latestPts: max(sightings.framePtsMs), latestTs: max(sightings.ts) })
+        .select({
+          total: count(),
+          latestPts: max(sightings.framePtsMs),
+          latestTs: max(sightings.ts),
+        })
         .from(sightings)
         .where(eq(sightings.cameraId, camera.id));
       const sighting = sightingRows[0];

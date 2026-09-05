@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  deliveryRate,
-  deliveryReason,
-  deliveryVerdict,
-  rollingDeliveryRate,
-} from './delivery';
+import { deliveryRate, deliveryReason, deliveryVerdict, rollingDeliveryRate } from './delivery';
 
 describe('deliveryRate', () => {
   it('reports the sandbox’s measured behaviour as the fraction of real time it is', () => {

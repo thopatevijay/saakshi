@@ -124,12 +124,9 @@ export function CameraTile({
     enabled: visible && playable,
   });
 
-  const onStatus = useCallback(
-    (status: { count: number }) => {
-      setDetections((current) => (current === status.count ? current : status.count));
-    },
-    [],
-  );
+  const onStatus = useCallback((status: { count: number }) => {
+    setDetections((current) => (current === status.count ? current : status.count));
+  }, []);
 
   const band = BAND_STYLE[bandKeyOf(camera?.band ?? null)];
   const verdict = deliveryVerdict(player.deliveryRate);

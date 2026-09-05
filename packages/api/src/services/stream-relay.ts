@@ -368,9 +368,7 @@ export class StreamRelay {
       inFlight: this.inFlight,
       queued: this.queue.length,
       meanUpstreamMs:
-        this.upstreamRequests === 0
-          ? 0
-          : Math.round(this.upstreamMsTotal / this.upstreamRequests),
+        this.upstreamRequests === 0 ? 0 : Math.round(this.upstreamMsTotal / this.upstreamRequests),
     };
   }
 

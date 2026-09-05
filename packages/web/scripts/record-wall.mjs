@@ -94,7 +94,13 @@ async function main() {
   execFileSync(
     'ffmpeg',
     [
-      '-y', '-f', 'concat', '-safe', '0', '-i', list,
+      '-y',
+      '-f',
+      'concat',
+      '-safe',
+      '0',
+      '-i',
+      list,
       // Two things that both fail loudly and unhelpfully if omitted:
       //   `scale=trunc(iw/2)*2:trunc(ih/2)*2` — the viewport is 1600×813 once the browser chrome is
       //     subtracted, and libx264 with yuv420p cannot encode an odd dimension. The error is
@@ -103,8 +109,16 @@ async function main() {
       //     rejected as contradictory ("One of -r/-fpsmax was specified together a non-CFR -vsync").
       //     The filter resamples the real per-frame timings to constant 25 fps, which is what keeps
       //     the recording playing at the speed the wall actually ran at.
-      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=25',
-      '-pix_fmt', 'yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '24',
+      '-vf',
+      'scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=25',
+      '-pix_fmt',
+      'yuv420p',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'slow',
+      '-crf',
+      '24',
       out,
     ],
     { stdio: 'inherit' },

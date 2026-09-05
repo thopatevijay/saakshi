@@ -226,10 +226,7 @@ async function main() {
     after.live === after.created - after.destroyed,
     `the leak invariant still holds after a layout change (live ${String(after.live)})`,
   );
-  check(
-    after.live <= 4,
-    `at most four players remain on a 2×2 wall (${String(after.live)})`,
-  );
+  check(after.live <= 4, `at most four players remain on a 2×2 wall (${String(after.live)})`);
 
   // A camera that was dropped from the wall must stop being requested at all.
   const dropped = before.tiles
@@ -296,78 +293,78 @@ async function main() {
 
   // ── 5 · Trust reasons are rendered, not spun on ─────────────────────────────────────────────
   await section('trust bands on the wall', async () => {
-  const bands = (await state(cdp)).tiles.map((t) => `${String(t.externalId)}=${String(t.band)}`);
-  console.log(`  ${bands.join(' · ')}`);
-  const cameras = await fetch(`${api}/api/v1/cameras?limit=200`, {
-    headers: { authorization: `Bearer ${token}` },
-  }).then((r) => r.json());
-  const notTrusted = cameras.data.filter(
-    (c) => c.band === 'untrusted' || c.band === 'degraded' || c.band === 'dead',
-  );
-  console.log(
-    `  API reports ${String(notTrusted.length)} camera(s) below trusted: ` +
-      notTrusted.map((c) => `${c.externalId}=${c.band}`).join(', '),
-  );
+    const bands = (await state(cdp)).tiles.map((t) => `${String(t.externalId)}=${String(t.band)}`);
+    console.log(`  ${bands.join(' · ')}`);
+    const cameras = await fetch(`${api}/api/v1/cameras?limit=200`, {
+      headers: { authorization: `Bearer ${token}` },
+    }).then((r) => r.json());
+    const notTrusted = cameras.data.filter(
+      (c) => c.band === 'untrusted' || c.band === 'degraded' || c.band === 'dead',
+    );
+    console.log(
+      `  API reports ${String(notTrusted.length)} camera(s) below trusted: ` +
+        notTrusted.map((c) => `${c.externalId}=${c.band}`).join(', '),
+    );
 
-  if (notTrusted.length > 0) {
-    const target = notTrusted[0];
-    await navigate(cdp, `${base}/video-wall?camera=${target.id}`);
-    await waitFor(
-      cdp,
-      `(() => {
+    if (notTrusted.length > 0) {
+      const target = notTrusted[0];
+      await navigate(cdp, `${base}/video-wall?camera=${target.id}`);
+      await waitFor(
+        cdp,
+        `(() => {
         const el = document.querySelector('[data-testid="single-camera"]');
         return el !== null && el.getBoundingClientRect().height > 0
           && el.textContent.includes('/100');
       })()`,
-      { timeoutMs: 60000, label: 'the single-camera view with its trust reason' },
-    );
-    const reason = await cdp.evaluate(
-      `document.querySelector('[data-testid="single-camera"]').textContent.slice(0, 600)`,
-    );
-    check(
-      /Scored \d+\/100 — worst signal/.test(reason),
-      `${target.externalId} (${target.band}) states which measured signal cost it points`,
-    );
-    console.log(`    ${reason.replace(/\s+/g, ' ').slice(0, 240)}`);
-    await screenshot(cdp, path.join(SHOTS, 'video-wall-trust-reason.png'));
-  }
+        { timeoutMs: 60000, label: 'the single-camera view with its trust reason' },
+      );
+      const reason = await cdp.evaluate(
+        `document.querySelector('[data-testid="single-camera"]').textContent.slice(0, 600)`,
+      );
+      check(
+        /Scored \d+\/100 — worst signal/.test(reason),
+        `${target.externalId} (${target.band}) states which measured signal cost it points`,
+      );
+      console.log(`    ${reason.replace(/\s+/g, ' ').slice(0, 240)}`);
+      await screenshot(cdp, path.join(SHOTS, 'video-wall-trust-reason.png'));
+    }
   });
 
   // ── 6 · Detection overlay ───────────────────────────────────────────────────────────────────
   await section('detection overlay', async () => {
-  const withSightings = await fetch(`${api}/api/v1/cameras?limit=200`, {
-    headers: { authorization: `Bearer ${token}` },
-  })
-    .then((r) => r.json())
-    .then(async (page) => {
-      for (const camera of page.data) {
-        const manifest = await fetch(`${api}/api/v1/streams/${camera.id}/manifest`, {
-          headers: { authorization: `Bearer ${token}` },
-        }).then((r) => r.json());
-        if (manifest.sightings.total > 0) return { camera, manifest };
-      }
-      return null;
-    });
+    const withSightings = await fetch(`${api}/api/v1/cameras?limit=200`, {
+      headers: { authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then(async (page) => {
+        for (const camera of page.data) {
+          const manifest = await fetch(`${api}/api/v1/streams/${camera.id}/manifest`, {
+            headers: { authorization: `Bearer ${token}` },
+          }).then((r) => r.json());
+          if (manifest.sightings.total > 0) return { camera, manifest };
+        }
+        return null;
+      });
 
-  if (withSightings === null) {
-    console.log('  no camera has recorded sightings — overlay alignment not checked on screen');
-  } else {
-    const { camera, manifest } = withSightings;
-    console.log(
-      `  ${camera.externalId}: ${String(manifest.sightings.total)} sightings, source ` +
-        `${String(manifest.source?.width)}×${String(manifest.source?.height)} (${String(manifest.source?.origin)})`,
-    );
-    await navigate(cdp, `${base}/video-wall?camera=${camera.id}`);
-    await waitFor(
-      cdp,
-      `(() => {
+    if (withSightings === null) {
+      console.log('  no camera has recorded sightings — overlay alignment not checked on screen');
+    } else {
+      const { camera, manifest } = withSightings;
+      console.log(
+        `  ${camera.externalId}: ${String(manifest.sightings.total)} sightings, source ` +
+          `${String(manifest.source?.width)}×${String(manifest.source?.height)} (${String(manifest.source?.origin)})`,
+      );
+      await navigate(cdp, `${base}/video-wall?camera=${camera.id}`);
+      await waitFor(
+        cdp,
+        `(() => {
         const v = document.querySelector('[data-testid="single-hls-video"]');
         return v !== null && v.readyState >= 2 && v.videoWidth > 0;
       })()`,
-      { timeoutMs: 300000, label: 'the single-camera HLS pane decoding' },
-    );
+        { timeoutMs: 300000, label: 'the single-camera HLS pane decoding' },
+      );
 
-    const aligned = await cdp.evaluate(`(async () => {
+      const aligned = await cdp.evaluate(`(async () => {
       const v = document.querySelector('[data-testid="single-hls-video"]');
       const c = document.querySelector('[data-testid="detection-overlay"]');
       // Seek to where the analytics worker actually ran, then let the overlay's window catch up.
@@ -388,55 +385,56 @@ async function main() {
         badge: document.body.textContent.match(/(\\d+) det/)?.[1] ?? null,
       });
     })()`);
-    const overlay = JSON.parse(aligned);
-    console.log(
-      `    decoded ${String(overlay.videoWidth)}×${String(overlay.videoHeight)} · playhead ` +
-        `${String(overlay.currentTime.toFixed(1))} s · ${String(overlay.painted)} painted pixels on the overlay canvas`,
-    );
-    check(
-      overlay.videoWidth === manifest.source.width && overlay.videoHeight === manifest.source.height,
-      `the decoded frame matches the registry's measured resolution ` +
-        `(${String(overlay.videoWidth)}×${String(overlay.videoHeight)} vs ${String(manifest.source.width)}×${String(manifest.source.height)})`,
-    );
-    check(
-      overlay.painted > 0,
-      `detection boxes are painted on the overlay canvas (${String(overlay.painted)} non-transparent pixels)`,
-    );
-    await screenshot(cdp, path.join(SHOTS, 'video-wall-overlay.png'));
-  }
+      const overlay = JSON.parse(aligned);
+      console.log(
+        `    decoded ${String(overlay.videoWidth)}×${String(overlay.videoHeight)} · playhead ` +
+          `${String(overlay.currentTime.toFixed(1))} s · ${String(overlay.painted)} painted pixels on the overlay canvas`,
+      );
+      check(
+        overlay.videoWidth === manifest.source.width &&
+          overlay.videoHeight === manifest.source.height,
+        `the decoded frame matches the registry's measured resolution ` +
+          `(${String(overlay.videoWidth)}×${String(overlay.videoHeight)} vs ${String(manifest.source.width)}×${String(manifest.source.height)})`,
+      );
+      check(
+        overlay.painted > 0,
+        `detection boxes are painted on the overlay canvas (${String(overlay.painted)} non-transparent pixels)`,
+      );
+      await screenshot(cdp, path.join(SHOTS, 'video-wall-overlay.png'));
+    }
   });
 
   // ── 7 · WHEP against the edge gateway ───────────────────────────────────────────────────────
   await section('WHEP vs HLS on the edge gateway', async () => {
-  await cdp.evaluate(
-    `document.querySelector('[data-testid="latency-compare"]')?.click() ?? null`,
-  );
-  const whep = await waitFor(
-    cdp,
-    `(() => {
+    await cdp.evaluate(
+      `document.querySelector('[data-testid="latency-compare"]')?.click() ?? null`,
+    );
+    const whep = await waitFor(
+      cdp,
+      `(() => {
       const v = document.querySelector('[data-testid="single-whep-video"]');
       if (v === null) return null;
       if (v.readyState < 2) return null;
       return JSON.stringify({ status: v.getAttribute('data-whep-status'), w: v.videoWidth, h: v.videoHeight });
     })()`,
-    { timeoutMs: 60000, label: 'the WHEP pane to decode a frame' },
-  ).catch(() => null);
+      { timeoutMs: 60000, label: 'the WHEP pane to decode a frame' },
+    ).catch(() => null);
 
-  if (whep === null) {
-    console.log('  WHEP pane did not decode — MediaMTX may not be running');
-  } else {
-    const parsed = JSON.parse(whep);
-    check(
-      parsed.status === 'connected' && parsed.w > 0,
-      `WHEP connected and is decoding ${String(parsed.w)}×${String(parsed.h)} from the edge gateway`,
-    );
-    await cdp.evaluate(`new Promise((r) => setTimeout(r, 4000))`);
-    // A different file from `measure-latency.mjs`'s: that one is the *instrument* — two bare
-    // players and two readable clocks — and this one is the **product**, the panel an operator
-    // actually sees. Overwriting one with the other loses the clearer of the two.
-    await screenshot(cdp, path.join(SHOTS, 'video-wall-whep-panel.png'));
-    pass('screenshot: the in-product comparison panel');
-  }
+    if (whep === null) {
+      console.log('  WHEP pane did not decode — MediaMTX may not be running');
+    } else {
+      const parsed = JSON.parse(whep);
+      check(
+        parsed.status === 'connected' && parsed.w > 0,
+        `WHEP connected and is decoding ${String(parsed.w)}×${String(parsed.h)} from the edge gateway`,
+      );
+      await cdp.evaluate(`new Promise((r) => setTimeout(r, 4000))`);
+      // A different file from `measure-latency.mjs`'s: that one is the *instrument* — two bare
+      // players and two readable clocks — and this one is the **product**, the panel an operator
+      // actually sees. Overwriting one with the other loses the clearer of the two.
+      await screenshot(cdp, path.join(SHOTS, 'video-wall-whep-panel.png'));
+      pass('screenshot: the in-product comparison panel');
+    }
   });
 
   // ── 8 · The soak: memory and leaks over N minutes ───────────────────────────────────────────
@@ -519,7 +517,9 @@ async function soak(cdp) {
           `${monotonic ? 'never fell' : 'fell at least once'})`,
       );
     } else {
-      console.log('  performance.memory unavailable — run Chrome with --enable-precise-memory-info');
+      console.log(
+        '  performance.memory unavailable — run Chrome with --enable-precise-memory-info',
+      );
     }
 
     const last = samples[samples.length - 1];
