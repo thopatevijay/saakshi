@@ -16,6 +16,12 @@ const EnvSchema = z.object({
   VALKEY_URL: z.string().min(1).default('redis://localhost:6379'),
   MINIO_ENDPOINT: z.string().min(1).default('http://localhost:9000'),
   MINIO_BUCKET: z.string().min(1).default('saakshi-evidence'),
+  // Optional: the API must boot and serve the registry on a machine with no object store. Absent
+  // credentials degrade the evidence feature; they do not fail the process. Read straight from
+  // `process.env` by `evidenceStoreFromEnv`, never logged, never echoed.
+  MINIO_ACCESS_KEY: z.string().optional(),
+  MINIO_SECRET_KEY: z.string().optional(),
+  MINIO_REGION: z.string().default('us-east-1'),
   QUERY_COMPILER: z.enum(['none', 'openai', 'anthropic', 'ollama']).default('none'),
 
   // Bearer tokens are signed with this. The default is a development value and the deploy must
