@@ -19,6 +19,8 @@
     "stateCrossClass": 2.5
   },
   "tailAllowance": 2,
+  "trigramThreshold": 0.3,
+  "trigramThresholdNote": "pg_trgm similarity floor for candidate generation. Measured, not chosen: the tightest case that must survive is GJ32DD10 -> GJ32D0107 at similarity 0.357 (psql: select similarity('GJ32DD10','GJ32D0107')), so 0.3 keeps it with margin and 0.45 loses it. D2-05's TrigramPlateMatcher used 0.2 because its truncation probe was `$q like col || '%'`, which no index can serve; here truncation has its own indexed prefix probes, so the similarity floor only has to cover substitutions and can sit at pg_trgm's own default. At 250k plate reads the difference is 304 ms (0.2) versus 108 ms (0.3) on one query — see docs/fuzzy-matching.md section 7.",
   "positionWeights": {
     "state": 1.6,
     "rto": 1.0,

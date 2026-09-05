@@ -78,6 +78,8 @@ export const ConfusionConfig = z
     }),
     /** Tail characters that may be charged at `truncationTail` before the full `indel` price. */
     tailAllowance: z.number().int().min(0).max(6),
+    /** `pg_trgm` similarity floor for candidate generation. See the note beside it in the config. */
+    trigramThreshold: z.number().min(0).max(1),
     positionWeights: z.record(z.string(), z.number().min(0)),
     pairs: z.array(ConfusionPair),
   })
@@ -348,6 +350,9 @@ export function weightedDistance(
  * highest-confidence read of the entire live run, and any system that fuzzy-searches it will find
  * something. The right number of results for it is zero.
  */
+/** Below this a prefix carries too little to identify anything — D2-03's `MIN_EVALUABLE_LENGTH`. */
+const MIN_PREFIX_LENGTH = 4;
+
 export const UNSEARCHABLE_CODES: readonly PlateRejectionCode[] = [
   'no_letters',
   'no_digits',
@@ -371,6 +376,17 @@ export interface PlateSearchPlan {
    * instead.
    */
   stateAnchors: string[] | null;
+  /**
+   * The query's own trailing-truncated prefixes, down to `tailAllowance` characters short.
+   *
+   * These exist so the "the stored string is a prefix of the query" probe can be an **equality**
+   * against `plate_reads_normalized_exact_idx` rather than `$q like col || '%'`. That predicate has
+   * the column on the *right* of the LIKE, so no index can serve it: it is a sequential scan of
+   * every row, every time. Over the 235-row watchlist that is invisible; over 250,000 plate reads
+   * the benchmark measured it at a p95 of **6,178 ms** against a 500 ms target. Enumerating two
+   * prefixes is the same question asked in a form Postgres can answer with an index.
+   */
+  queryPrefixes: string[];
 }
 
 /** Alpha↔alpha variants of a two-letter state code, at most one substitution. */
@@ -392,7 +408,13 @@ export function planSearch(rawQuery: string, config: ConfusionConfig): PlateSear
   const reason = v.reasons[0]?.code ?? null;
   const searchable = reason === null || !UNSEARCHABLE_CODES.includes(reason);
   const state = v.parts?.state ?? null;
+  const queryPrefixes: string[] = [];
+  for (let k = 1; k <= config.tailAllowance; k += 1) {
+    const prefix = v.normalized.slice(0, v.normalized.length - k);
+    if (prefix.length >= MIN_PREFIX_LENGTH) queryPrefixes.push(prefix);
+  }
   return {
+    queryPrefixes,
     normalized: v.normalized,
     searchable,
     reason,
@@ -475,21 +497,17 @@ interface CandidateRow extends Record<string, unknown> {
  */
 export class ConfusionPlateMatcher implements PlateMatcher {
   readonly id = 'confusion-weighted';
+  private readonly db: Db;
   private readonly config: ConfusionConfig;
   private readonly table: ReadonlyMap<string, number>;
 
-  constructor(
-    private readonly db: Db,
-    config?: ConfusionConfig,
-    /**
-     * 0.2 rather than pg_trgm's 0.3 default, for the reason D2-05 documented: nine characters is
-     * seven trigrams, so a two-character error costs a larger share of the similarity than it would
-     * in a name.
-     */
-    private readonly similarityThreshold = 0.2,
-  ) {
+  private readonly similarityThreshold: number;
+
+  constructor(db: Db, config?: ConfusionConfig, similarityThreshold?: number) {
+    this.db = db;
     this.config = config ?? loadConfusions();
     this.table = confusionTable(this.config);
+    this.similarityThreshold = similarityThreshold ?? this.config.trigramThreshold;
   }
 
   async match(plateNormalized: string, options: PlateMatcherOptions): Promise<PlateMatch[]> {
@@ -533,7 +551,12 @@ export class ConfusionPlateMatcher implements PlateMatcher {
  */
 export function candidateClause(column: SQL, plan: PlateSearchPlan): SQL {
   const q = plan.normalized;
-  const generators = sql`(${column} % ${q} or ${column} like ${q + '%'} or ${q} like ${column} || '%')`;
+  // `column like 'q%'` keeps the column on the left, so `pg_trgm`'s GIN index can serve it; the
+  // reverse direction is an equality against the enumerated prefixes for the reason on
+  // `queryPrefixes`.
+  const reverse =
+    plan.queryPrefixes.length === 0 ? sql`false` : sql`${column} in ${plan.queryPrefixes}`;
+  const generators = sql`(${column} % ${q} or ${column} like ${q + '%'} or ${reverse})`;
   const anchor =
     plan.stateAnchors === null ? sql`true` : sql`left(${column}, 2) in ${plan.stateAnchors}`;
   return sql`(${column} = ${q} or (${generators} and ${anchor}))`;
@@ -651,16 +674,16 @@ export const MATCHER_ID = 'confusion-weighted';
  * between scoring a handful of plates and hydrating tens of thousands of rows to throw them away.
  */
 export class PlateSearchService {
+  private readonly db: Db;
   private readonly config: ConfusionConfig;
   private readonly table: ReadonlyMap<string, number>;
+  private readonly similarityThreshold: number;
 
-  constructor(
-    private readonly db: Db,
-    config?: ConfusionConfig,
-    private readonly similarityThreshold = 0.2,
-  ) {
+  constructor(db: Db, config?: ConfusionConfig, similarityThreshold?: number) {
+    this.db = db;
     this.config = config ?? loadConfusions();
     this.table = confusionTable(this.config);
+    this.similarityThreshold = similarityThreshold ?? this.config.trigramThreshold;
   }
 
   async search(rawQuery: string, options: PlateSearchOptions): Promise<PlateSearchResult> {

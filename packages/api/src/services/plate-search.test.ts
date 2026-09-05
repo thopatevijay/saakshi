@@ -412,7 +412,11 @@ describe('what the confusion metric adds over plain levenshtein', () => {
 describe('AC 6 — time-window and camera filters compose with fuzzy search', () => {
   it('finds the truncated read GJ35U07 when the jury types the full registration', async () => {
     if (!reachable) return;
-    const result = await service.search('GJ35U0779', { maxDistance: 2, limit: 10 });
+    const result = await service.search('GJ35U0779', {
+      maxDistance: 2,
+      limit: 10,
+      cameraIds: [cameraA, cameraB],
+    });
     expect(result.searched).toBe(true);
     const hit = result.candidates.find((c) => c.plateNormalized === 'GJ35U07');
     expect(hit).toBeDefined();
@@ -428,7 +432,11 @@ describe('AC 6 — time-window and camera filters compose with fuzzy search', ()
 
   it('an exact match ranks first over the sightings table too', async () => {
     if (!reachable) return;
-    const result = await service.search('GJ01AB1234', { maxDistance: 2, limit: 10 });
+    const result = await service.search('GJ01AB1234', {
+      maxDistance: 2,
+      limit: 10,
+      cameraIds: [cameraA, cameraB],
+    });
     expect(result.candidates[0]?.plateNormalized).toBe('GJ01AB1234');
     expect(result.candidates[0]?.matchType).toBe('exact');
     expect(result.candidates[0]?.distance).toBe(0);
@@ -436,10 +444,15 @@ describe('AC 6 — time-window and camera filters compose with fuzzy search', ()
 
   it('the time window narrows the sighting count without changing the candidate', async () => {
     if (!reachable) return;
-    const all = await service.search('GJ01AB1234', { maxDistance: 0, limit: 10 });
+    // Scoped to this suite's own cameras: `plate_reads` is a shared table and the benchmark seeds
+    // 250,000 rows into it, so a count assertion that reads the whole estate is a flake waiting to
+    // happen. Scoping it also exercises the two filters composing, which is the AC.
+    const cameras = [cameraA, cameraB];
+    const all = await service.search('GJ01AB1234', { maxDistance: 0, limit: 10, cameraIds: cameras });
     const windowed = await service.search('GJ01AB1234', {
       maxDistance: 0,
       limit: 10,
+      cameraIds: cameras,
       from: WINDOW_START,
     });
     expect(all.candidates[0]?.sightingCount).toBe(2);
