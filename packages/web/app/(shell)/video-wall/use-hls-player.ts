@@ -113,6 +113,20 @@ export function useHlsPlayer(options: {
         // 60 s of forward buffer lets the relay's read-ahead get far enough in front to matter.
         maxBufferLength: 60,
         maxMaxBufferLength: 120,
+
+        // ── The timeouts, which are the whole game against a throttled gateway ──────────────
+        //
+        // hls.js defaults to a **20 s** fragment timeout. The sandbox was measured taking 8-49 s
+        // for a 6 s segment, so on defaults the player kills the request at 20 s and retries from
+        // zero — and the relay's abort propagates, so the gateway's work is thrown away and asked
+        // for again. Measured on a live 3x3 wall: 26 upstream attempts, 9 completions, 10 killed
+        // at the 20 s mark. The player was fighting its own relay, and the wall went nowhere.
+        //
+        // A client timeout must exceed the upstream's measured latency or a slow link becomes an
+        // unusable one. 120 s is above the worst probe recorded in D1-03 (84 s) with room to spare.
+        manifestLoadingTimeOut: 120_000,
+        levelLoadingTimeOut: 120_000,
+        fragLoadingTimeOut: 120_000,
         // A VOD playlist of 7,200 segments does not need re-fetching; the relay caches it anyway.
         manifestLoadingMaxRetry: 2,
         fragLoadingMaxRetry: 4,
