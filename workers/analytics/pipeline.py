@@ -304,6 +304,9 @@ class CameraPipeline:
         self.connected = False
         #: `time.monotonic()` of the last decoded frame. 0.0 until the first one arrives.
         self.last_frame_at = 0.0
+        #: What the container said this camera is, from the newest session. `None` before the first
+        #: successful open.
+        self.capabilities: CameraCapabilities | None = None
 
     # ── the loop ────────────────────────────────────────────────────────────────────────────────
 
@@ -415,6 +418,11 @@ class CameraPipeline:
                 # concurrent 1080p decodes affordable on one machine.
                 stream.thread_type = "AUTO"
                 capabilities = self._capabilities(stream)
+                # Kept for the metrics exporter (D3-10): the container's *declared* rate is the
+                # only source of the declared column on this estate, because the sandbox catalogue
+                # supplies `{id, name}` and nothing else, so `cameras.declared_fps` is NULL for all
+                # 30 rows. Declared-vs-measured is a product feature; it needs a declared number.
+                self.capabilities = capabilities
                 self.stats.resolution = capabilities.resolution
                 self.stats.codec = capabilities.codec
                 self.stats.imgsz = inference_size(capabilities, self.thresholds)

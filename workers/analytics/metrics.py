@@ -201,7 +201,14 @@ class PipelineCollector:
             if pipeline.last_frame_at > 0.0:
                 since_frame.add_metric(key, now - pipeline.last_frame_at)
 
-            declared_fps = getattr(pipeline.source, "declared_fps", None)
+            # The container's own declared rate first, the registry's second. On this estate the
+            # registry declares nothing — the sandbox catalogue supplies `{id, name}` and every
+            # `cameras.declared_fps` is NULL — so without the container's header the declared column
+            # would simply be empty and the three-rate comparison would lose its baseline.
+            capabilities = pipeline.capabilities
+            declared_fps = getattr(capabilities, "declared_fps", None) if capabilities else None
+            if declared_fps is None:
+                declared_fps = getattr(pipeline.source, "declared_fps", None)
             if declared_fps is not None:
                 declared.add_metric(key, float(declared_fps))
 
