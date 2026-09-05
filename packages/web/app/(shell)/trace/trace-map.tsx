@@ -155,6 +155,48 @@ export function TraceMap({ sightings, route = [], selectedSeq, onSelect }: Trace
     [],
   );
 
+  /**
+   * Frame the journey.
+   *
+   * **The fit is recorded only once it has actually happened**, and that ordering is the whole
+   * function. The first version marked the key as fitted before checking whether the map existed;
+   * the map is loaded through `next/dynamic`, so on the first pass `map.current` was still `null`,
+   * the fit was skipped, and nothing ever retried it — leaving the whole of Gujarat on screen with
+   * a five-kilometre journey rendered as a single dot.
+   *
+   * The route is part of the key, not just the sightings, because the reconstruction arrives in a
+   * later render than the pins do.
+   */
+  const fitToJourney = useCallback(
+    (forSightings: readonly TraceablePoint[], forRoute: readonly RouteSegmentLike[]) => {
+      const instance = map.current;
+      if (instance === null || !ready.current) return;
+
+      // Fit to the road path when there is one: a reconstructed route can leave the box the pins
+      // alone describe, and a route cropped at the viewport edge is the one part of it a reader
+      // would assume was not there.
+      const box = routeBounds(toRouteGeometry(forRoute)) ?? traceBounds(forSightings);
+      if (box === null) return;
+
+      const key = `${forSightings.map((s) => s.sightingId).join(',')}|${String(forRoute.length)}`;
+      // Refit only when the journey changes, not when the selection moves, or every click would
+      // yank the viewport back out.
+      if (key === fitted.current) return;
+      fitted.current = key;
+
+      instance.fitBounds(
+        [
+          [box[0], box[1]],
+          [box[2], box[3]],
+        ],
+        // A single-sighting trace has a zero-width box; `maxZoom` is what stops fitBounds diving to
+        // the maximum zoom on it.
+        { padding: 80, maxZoom: 14, duration: 500 },
+      );
+    },
+    [],
+  );
+
   useEffect(() => {
     if (container.current === null || map.current !== null) return;
     registerMapGlobals();
@@ -335,6 +377,9 @@ export function TraceMap({ sightings, route = [], selectedSeq, onSelect }: Trace
 
       ready.current = true;
       applyData(sightings, route);
+      // The data effect has usually already run by the time the style finishes loading, so the
+      // first frame has to be requested from here or nothing ever asks for it.
+      fitToJourney(sightings, route);
     });
 
     instance.on('mouseenter', 'trace-pins', () => {
@@ -404,27 +449,8 @@ export function TraceMap({ sightings, route = [], selectedSeq, onSelect }: Trace
       ]);
     }
 
-    // Refit only when the *route* changes, not when the selection moves, or every click would
-    // yank the viewport back out.
-    const key = sightings.map((s) => s.sightingId).join(',');
-    if (key === fitted.current) return;
-    fitted.current = key;
-
-    // Fit to the road path when there is one: a reconstructed route can leave the box the pins
-    // alone describe, and a route cropped at the viewport edge is the one part of it a reader
-    // would assume was not there.
-    const box = routeBounds(toRouteGeometry(route)) ?? traceBounds(sightings);
-    if (instance === null || box === null) return;
-    instance.fitBounds(
-      [
-        [box[0], box[1]],
-        [box[2], box[3]],
-      ],
-      // A single-sighting trace has a zero-width box; `maxZoom` is what stops fitBounds diving to
-      // the maximum zoom on it.
-      { padding: 80, maxZoom: 14, duration: 500 },
-    );
-  }, [sightings, route, applyData]);
+    fitToJourney(sightings, route);
+  }, [sightings, route, applyData, fitToJourney]);
 
   // Selection: highlight, and bring the sighting into view without changing the zoom.
   useEffect(() => {
