@@ -222,7 +222,9 @@ if [ "$OSRM_HOST_PORT" = "5000" ] && command -v lsof >/dev/null 2>&1; then
   if [ -n "$holder" ]; then
     echo ""
     echo "!! port 5000 is already held by '$holder'." >&2
-    if [ "$holder" = "ControlCe" ]; then
+    # `lsof -Fc` prints the full command name (`ControlCenter`), not the 9-character `ps` form
+    # (`ControlCe`) — matching the truncated one silently skips the only hint that matters.
+    if [ "$holder" = "ControlCenter" ]; then
       echo "   That is the macOS AirPlay Receiver. Either turn it off in" >&2
       echo "   System Settings > General > AirDrop & Handoff > AirPlay Receiver," >&2
       echo "   or re-run with a different host port, e.g. OSRM_HOST_PORT=5050." >&2
