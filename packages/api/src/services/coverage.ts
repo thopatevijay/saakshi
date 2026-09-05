@@ -73,13 +73,7 @@ export const RECONCILE_TOLERANCE_M = 1;
  * The classes the junction analysis runs over. Deliberately narrower than the coverage denominator:
  * a junction is only a planning object if it carries through traffic.
  */
-export const JUNCTION_CLASSES = [
-  'motorway',
-  'trunk',
-  'primary',
-  'secondary',
-  'tertiary',
-] as const;
+export const JUNCTION_CLASSES = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary'] as const;
 
 /** A junction is a point where at least this many distinct major-class ways terminate. */
 export const JUNCTION_MIN_DEGREE = 3;
@@ -432,7 +426,10 @@ export async function coverageFor(
        group by merged.district
        order by 2 desc
     `)),
-  ].map((r) => ({ district: r.district ?? '(no district recorded)', coveredKm: Number(r.m ?? 0) / 1000 }));
+  ].map((r) => ({
+    district: r.district ?? '(no district recorded)',
+    coveredKm: Number(r.m ?? 0) / 1000,
+  }));
 
   return {
     label,
@@ -514,7 +511,9 @@ export async function junctionsWithoutCoverage(
   // spatial join against an empty set.
   if (trustedCameraIds.length === 0) {
     const [counts] = [
-      ...(await db.execute<{ total: string }>(sql`${junctionCte} select count(*)::text as total from junction`)),
+      ...(await db.execute<{ total: string }>(
+        sql`${junctionCte} select count(*)::text as total from junction`,
+      )),
     ];
     const worst = [
       ...(await db.execute<{ lon: string; lat: string; degree: string; name: string | null }>(sql`
@@ -672,12 +671,31 @@ export async function analyse(
   };
 
   const [all, trustedOnly, anprViable] = await Promise.all([
-    coverageFor(db, placed.map((c) => c.id), 'All cameras', ranges),
-    coverageFor(db, trusted.map((c) => c.id), 'Trusted cameras only', ranges),
-    coverageFor(db, anpr.map((c) => c.id), 'ANPR-viable cameras only', ranges),
+    coverageFor(
+      db,
+      placed.map((c) => c.id),
+      'All cameras',
+      ranges,
+    ),
+    coverageFor(
+      db,
+      trusted.map((c) => c.id),
+      'Trusted cameras only',
+      ranges,
+    ),
+    coverageFor(
+      db,
+      anpr.map((c) => c.id),
+      'ANPR-viable cameras only',
+      ranges,
+    ),
   ]);
 
-  const junctions = await junctionsWithoutCoverage(db, trusted.map((c) => c.id), ranges);
+  const junctions = await junctionsWithoutCoverage(
+    db,
+    trusted.map((c) => c.id),
+    ranges,
+  );
   const network = await networkTotals(db);
 
   const [dbName] = [
@@ -734,7 +752,13 @@ export interface CoverageOverlay {
     type: 'Feature';
     id: string;
     geometry: CoverageGeometry;
-    properties: { id: string; externalId: string; state: CoverageState; band: string; rangeM: number };
+    properties: {
+      id: string;
+      externalId: string;
+      state: CoverageState;
+      band: string;
+      rangeM: number;
+    };
   }[];
 }
 
@@ -775,9 +799,12 @@ export async function coverageOverlay(
         properties: {
           id: row.camera_id,
           externalId: row.external_id,
-          state: (trusted.has(row.camera_id) ? 'trusted' : 'untrusted') as CoverageState,
+          state: trusted.has(row.camera_id) ? 'trusted' : 'untrusted',
           band: camera?.band ?? 'unscored',
-          rangeM: camera === undefined ? ranges.unclassified : (fovAssumption(camera, ranges).rangeM ?? 0),
+          rangeM:
+            camera === undefined
+              ? ranges.unclassified
+              : (fovAssumption(camera, ranges).rangeM ?? 0),
         },
       };
     }),

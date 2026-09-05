@@ -55,10 +55,7 @@ import { ManualAddDialog } from './manual-add-dialog';
 import { RegistryToolbar } from './registry-toolbar';
 import { RegistryTable } from './registry-table';
 import { loadCameraDetail, loadCameras, loadCoverage } from './actions';
-import {
-  EMPTY_COVERAGE,
-  type CoverageFeatureCollection,
-} from '@/src/lib/registry/coverage';
+import { EMPTY_COVERAGE, type CoverageFeatureCollection } from '@/src/lib/registry/coverage';
 import type { Camera } from './types';
 
 /** `ssr: false` because MapLibre needs a DOM and a WebGL context, neither of which Node has. */

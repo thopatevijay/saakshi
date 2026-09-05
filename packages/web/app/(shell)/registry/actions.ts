@@ -24,10 +24,7 @@ import {
   toCameraListQuery,
   type RegistryFilters,
 } from '@/src/lib/registry/query';
-import {
-  EMPTY_COVERAGE,
-  type CoverageFeatureCollection,
-} from '@/src/lib/registry/coverage';
+import { EMPTY_COVERAGE, type CoverageFeatureCollection } from '@/src/lib/registry/coverage';
 import type { Camera, CameraPage, ImportState, ManualAddState, SyncState } from './types';
 
 /**
@@ -109,7 +106,7 @@ export async function loadCoverage(): Promise<CoverageFeatureCollection> {
 
   const { data, error } = await apiClient(session.token).GET('/api/v1/coverage/overlay');
   if (error !== undefined || data === undefined) return EMPTY_COVERAGE;
-  return data as unknown as CoverageFeatureCollection;
+  return data;
 }
 
 // ── Onboarding path 1 · bulk import ─────────────────────────────────────────────────────────────

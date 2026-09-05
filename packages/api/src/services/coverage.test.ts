@@ -20,7 +20,8 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
-import { createDb, createSql, type Db, type Sql } from '../db/client.js';
+import { TransactionRollbackError } from 'drizzle-orm';
+import { createDb, createSql, type Db, type DbLike, type Sql } from '../db/client.js';
 import { loadEnv } from '../env.js';
 import {
   analyse,
@@ -183,9 +184,14 @@ describe('coverage against a live database', () => {
     await rawSql?.end();
   });
 
+  /**
+   * A belt-and-braces sweep. `withSeeded` rolls back, so nothing should ever survive to be deleted
+   * here — but a process killed mid-transaction, or a future test that seeds outside one, would
+   * leave `COV…` rows behind, and a stray camera with a `trust_score` silently changes what every
+   * other suite counts. Health checks go first, explicitly: `camera_health_checks` is a TimescaleDB
+   * hypertable and the FK cascade is not worth betting on (D2-09).
+   */
   async function cleanup(): Promise<void> {
-    // Health checks first, explicitly: `camera_health_checks` is a TimescaleDB hypertable and the
-    // FK cascade is not worth betting on (D2-09).
     await db.execute(sql`
       delete from camera_health_checks
        where camera_id in (select id from cameras where external_id like ${`${TAG}%`})`);
@@ -227,24 +233,57 @@ describe('coverage against a live database', () => {
     return Math.hypot(dLat, dLon) * R;
   }
 
-  async function seed(): Promise<void> {
-    await cleanup();
-    const points = await placements();
-    expect(points).toHaveLength(SEEDS.length);
+  async function seed(tx: DbLike, points: { lon: number; lat: number }[]): Promise<void> {
     for (const [i, s] of SEEDS.entries()) {
       const point = points[i] as { lon: number; lat: number };
       const id = `${TAG}-${s.suffix}`;
-      await db.execute(sql`
+      await tx.execute(sql`
         insert into cameras (external_id, name, location, district, geometry_class, adapter_kind,
                              trust_score)
         values (${id}, ${`Coverage test ${id}`},
                 st_setsrid(st_makepoint(${point.lon}, ${point.lat}), 4326)::geography,
                 'Ahmedabad', 'anpr_viable', 'hls', ${s.score})`);
-      await db.execute(sql`
+      await tx.execute(sql`
         insert into camera_health_checks (camera_id, checked_at, connectable, decodable, trust_score)
         select id, now(), ${s.connectable}, true, ${s.score}
           from cameras where external_id = ${id}`);
     }
+  }
+
+  /**
+   * Run a body against a seeded estate **inside a transaction that always rolls back**.
+   *
+   * The first version seeded with plain inserts and deleted afterwards, and it turned
+   * `routes/trust.test.ts` red — *only in a full run*, never in isolation. That test reads
+   * `GET /api/v1/trust/summary` and then counts `cameras` in a second query, so any concurrent
+   * writer makes the two reads disagree; four cameras carrying `trust_score` appearing and
+   * vanishing mid-suite is exactly such a writer, and vitest runs test files in parallel.
+   *
+   * A transaction fixes it at the source: uncommitted rows are invisible to every other connection,
+   * so no other suite can observe them at all, and the rollback cannot be skipped by a failing
+   * assertion the way an `afterEach` delete can. The services under test take `DbLike`, which is
+   * `Db | Tx` — so this exercises exactly the same code path, not a test-only one.
+   *
+   * The underlying race in `trust.test.ts` is logged to `BL-01`; it is not this ticket's to fix.
+   */
+  async function withSeeded(body: (tx: DbLike) => Promise<void>): Promise<void> {
+    const points = await placements();
+    expect(points).toHaveLength(SEEDS.length);
+    try {
+      await db.transaction(async (tx) => {
+        await seed(tx, points);
+        await body(tx);
+        tx.rollback();
+      });
+    } catch (error) {
+      // `tx.rollback()` signals by throwing; drizzle re-throws it once the rollback is done.
+      if (!(error instanceof TransactionRollbackError)) throw error;
+    }
+  }
+
+  /** The seeded cameras, read back through the same code path production uses. */
+  async function seeded(tx: DbLike): Promise<CoverageCamera[]> {
+    return (await loadCameras(tx)).filter((c) => c.externalId.startsWith(TAG));
   }
 
   it('writes one camera_coverage row per live camera, including the unplaceable ones (AC 1)', async () => {
@@ -265,7 +304,11 @@ describe('coverage against a live database', () => {
     if (!reachable || !hasRoads) return;
     const placed = (await loadCameras(db)).filter((c) => c.lat !== null);
     if (placed.length === 0) return;
-    const slice = await coverageFor(db, placed.map((c) => c.id), 'all');
+    const slice = await coverageFor(
+      db,
+      placed.map((c) => c.id),
+      'all',
+    );
     expect(slice.candidateWays).toBeGreaterThan(0);
     expect(slice.reconcileErrorM).toBeLessThan(RECONCILE_TOLERANCE_M);
     // Sanity: neither half may swallow the whole. A cell that covered every candidate way end to
@@ -276,91 +319,97 @@ describe('coverage against a live database', () => {
 
   it('grades the delta as bands change, which the live estate cannot demonstrate (AC 3)', async () => {
     if (!reachable || !hasRoads) return;
-    await seed();
-    await computeCoverage(db);
-    const cameras = (await loadCameras(db)).filter((c) => c.externalId.startsWith(TAG));
-    expect(cameras).toHaveLength(SEEDS.length);
+    await withSeeded(async (tx) => {
+      const cameras = await seeded(tx);
+      expect(cameras).toHaveLength(SEEDS.length);
 
-    // The bands resolved server-side, from `trust-band-sql.ts` — not asserted against arithmetic
-    // this test does itself.
-    expect(new Set(cameras.map((c) => c.band))).toEqual(
-      new Set(['trusted', 'degraded', 'untrusted', 'dead']),
-    );
+      // The bands resolved server-side, from `trust-band-sql.ts` — not asserted against arithmetic
+      // this test does itself.
+      expect(new Set(cameras.map((c) => c.band))).toEqual(
+        new Set(['trusted', 'degraded', 'untrusted', 'dead']),
+      );
 
-    const all = await coverageFor(db, cameras.map((c) => c.id), 'all');
-    const trusted = await coverageFor(
-      db,
-      cameras.filter(countsAsTrusted).map((c) => c.id),
-      'trusted',
-    );
+      const all = await coverageFor(
+        tx,
+        cameras.map((c) => c.id),
+        'all',
+      );
+      const trusted = await coverageFor(
+        tx,
+        cameras.filter(countsAsTrusted).map((c) => c.id),
+        'trusted',
+      );
 
-    expect(trusted.cameras).toBe(1);
-    // The point of the whole ticket: trusted coverage is a strict, non-degenerate subset. Not zero
-    // (the filter is not just discarding everything) and not equal (the filter actually bites).
-    expect(trusted.coveredKm).toBeGreaterThan(0);
-    expect(trusted.coveredKm).toBeLessThan(all.coveredKm);
-    expect(all.coveredKm - trusted.coveredKm).toBeGreaterThan(0);
-    expect(trusted.reconcileErrorM).toBeLessThan(RECONCILE_TOLERANCE_M);
+      expect(trusted.cameras).toBe(1);
+      // The point of the whole ticket: trusted coverage is a strict, non-degenerate subset. Not
+      // zero (the filter is not discarding everything) and not equal (the filter actually bites).
+      expect(trusted.coveredKm).toBeGreaterThan(0);
+      expect(trusted.coveredKm).toBeLessThan(all.coveredKm);
+      expect(all.coveredKm - trusted.coveredKm).toBeGreaterThan(0);
+      expect(trusted.reconcileErrorM).toBeLessThan(RECONCILE_TOLERANCE_M);
+    });
   }, 120_000);
 
   it('excludes a dead camera even though its stored score is the highest of the set', async () => {
     if (!reachable || !hasRoads) return;
-    await seed();
-    const cameras = (await loadCameras(db)).filter((c) => c.externalId.startsWith(TAG));
-    const dead = cameras.find((c) => c.externalId === `${TAG}-D`);
-    // 91 is the best score in the set. An unreachable camera keeps its last good score, so a filter
-    // written as `trust_score >= 70` would have counted this one as trusted coverage.
-    expect(dead?.band).toBe('dead');
-    expect(countsAsTrusted(dead as CoverageCamera)).toBe(false);
+    await withSeeded(async (tx) => {
+      const dead = (await seeded(tx)).find((c) => c.externalId === `${TAG}-D`);
+      // 91 is the best score in the set. An unreachable camera keeps its last good score, so a
+      // filter written as `trust_score >= 70` would have counted this one as trusted coverage.
+      expect(dead?.band).toBe('dead');
+      expect(countsAsTrusted(dead as CoverageCamera)).toBe(false);
+    });
   }, 60_000);
 
   it('re-running after a trust change updates the numbers (AC 8)', async () => {
     if (!reachable || !hasRoads) return;
-    await seed();
-    const before = (await loadCameras(db)).filter((c) => c.externalId.startsWith(TAG));
-    const beforeTrusted = await coverageFor(
-      db,
-      before.filter(countsAsTrusted).map((c) => c.id),
-      'trusted',
-    );
+    await withSeeded(async (tx) => {
+      const before = await seeded(tx);
+      const beforeTrusted = await coverageFor(
+        tx,
+        before.filter(countsAsTrusted).map((c) => c.id),
+        'trusted',
+      );
 
-    // The dead camera answers again, at a trusted score. Nothing else changes.
-    await db.execute(sql`
-      insert into camera_health_checks (camera_id, checked_at, connectable, decodable, trust_score)
-      select id, now() + interval '1 minute', true, true, 92
-        from cameras where external_id = ${`${TAG}-D`}`);
-    await db.execute(sql`
-      update cameras set trust_score = 92 where external_id = ${`${TAG}-D`}`);
+      // The dead camera answers again, at a trusted score. Nothing else changes.
+      await tx.execute(sql`
+        insert into camera_health_checks (camera_id, checked_at, connectable, decodable, trust_score)
+        select id, now() + interval '1 minute', true, true, 92
+          from cameras where external_id = ${`${TAG}-D`}`);
+      await tx.execute(sql`
+        update cameras set trust_score = 92 where external_id = ${`${TAG}-D`}`);
 
-    const after = (await loadCameras(db)).filter((c) => c.externalId.startsWith(TAG));
-    const afterTrusted = await coverageFor(
-      db,
-      after.filter(countsAsTrusted).map((c) => c.id),
-      'trusted',
-    );
+      const after = await seeded(tx);
+      const afterTrusted = await coverageFor(
+        tx,
+        after.filter(countsAsTrusted).map((c) => c.id),
+        'trusted',
+      );
 
-    expect(after.find((c) => c.externalId === `${TAG}-D`)?.band).toBe('trusted');
-    expect(afterTrusted.cameras).toBe(beforeTrusted.cameras + 1);
-    expect(afterTrusted.coveredKm).toBeGreaterThan(beforeTrusted.coveredKm);
+      expect(after.find((c) => c.externalId === `${TAG}-D`)?.band).toBe('trusted');
+      expect(afterTrusted.cameras).toBe(beforeTrusted.cameras + 1);
+      expect(afterTrusted.coveredKm).toBeGreaterThan(beforeTrusted.coveredKm);
+    });
   }, 120_000);
 
   it('applies the focus veto through the health-check breakdown, not just in memory', async () => {
-    // `seed()` places cameras on real ways, so this needs the road network too.
+    // The seeded cameras sit on real ways, so this needs the road network too.
     if (!reachable || !hasRoads) return;
-    await seed();
-    // The shape D1-06's handoff names: `breakdown.trust.signals[]` carrying `{signal, quality}`.
-    await db.execute(sql`
-      insert into camera_health_checks (camera_id, checked_at, connectable, decodable, trust_score,
-                                        breakdown)
-      select id, now() + interval '2 minutes', true, true, 88,
-             ${JSON.stringify({ trust: { signals: [{ signal: 'focus', quality: 0 }] } })}::jsonb
-        from cameras where external_id = ${`${TAG}-A`}`);
+    await withSeeded(async (tx) => {
+      // The shape D1-06's handoff names: `breakdown.trust.signals[]` carrying `{signal, quality}`.
+      await tx.execute(sql`
+        insert into camera_health_checks (camera_id, checked_at, connectable, decodable, trust_score,
+                                          breakdown)
+        select id, now() + interval '2 minutes', true, true, 88,
+               ${JSON.stringify({ trust: { signals: [{ signal: 'focus', quality: 0 }] } })}::jsonb
+          from cameras where external_id = ${`${TAG}-A`}`);
 
-    const blind = (await loadCameras(db)).find((c) => c.externalId === `${TAG}-A`);
-    expect(blind?.band).toBe('trusted');
-    expect(blind?.focusDisqualified).toBe(true);
-    // Bands trusted, contributes nothing. This is the case the additive score cannot express.
-    expect(countsAsTrusted(blind as CoverageCamera)).toBe(false);
+      const blind = (await seeded(tx)).find((c) => c.externalId === `${TAG}-A`);
+      expect(blind?.band).toBe('trusted');
+      expect(blind?.focusDisqualified).toBe(true);
+      // Bands trusted, contributes nothing. The case the additive score cannot express.
+      expect(countsAsTrusted(blind as CoverageCamera)).toBe(false);
+    });
   }, 60_000);
 
   it('lists junctions with zero trusted coverage, with coordinates (AC 4)', async () => {
@@ -386,15 +435,15 @@ describe('coverage against a live database', () => {
 
   it('counts a junction as covered once a trusted camera sits on it', async () => {
     if (!reachable || !hasRoads) return;
-    await seed();
-    const cameras = (await loadCameras(db)).filter((c) => c.externalId.startsWith(TAG));
-    const trusted = cameras.filter(countsAsTrusted).map((c) => c.id);
-    const none = await junctionsWithoutCoverage(db, [], undefined, 1);
-    const some = await junctionsWithoutCoverage(db, trusted, undefined, 1);
-    expect(some.total).toBe(none.total);
-    // May be zero on this sample, but it can never be negative or exceed the total.
-    expect(some.covered).toBeGreaterThanOrEqual(0);
-    expect(some.covered + some.uncovered).toBe(some.total);
+    await withSeeded(async (tx) => {
+      const trusted = (await seeded(tx)).filter(countsAsTrusted).map((c) => c.id);
+      const none = await junctionsWithoutCoverage(tx, [], undefined, 1);
+      const some = await junctionsWithoutCoverage(tx, trusted, undefined, 1);
+      expect(some.total).toBe(none.total);
+      // May be zero on this sample, but it can never be negative or exceed the total.
+      expect(some.covered).toBeGreaterThanOrEqual(0);
+      expect(some.covered + some.uncovered).toBe(some.total);
+    });
   }, 120_000);
 
   it('reports the network denominator by class, so a percentage is interpretable (AC 2)', async () => {
@@ -414,23 +463,24 @@ describe('coverage against a live database', () => {
   }, 60_000);
 
   it('produces an overlay whose states come from the band, one feature per placed camera (AC 5)', async () => {
-    // `seed()` places cameras on real ways, so this needs the road network too.
+    // The seeded cameras sit on real ways, so this needs the road network too.
     if (!reachable || !hasRoads) return;
-    await seed();
-    await computeCoverage(db);
-    const overlay = await coverageOverlay(db);
-    const mine = overlay.features.filter((f) => f.properties.externalId.startsWith(TAG));
-    expect(mine).toHaveLength(SEEDS.length);
-    expect(mine.filter((f) => f.properties.state === 'trusted')).toHaveLength(1);
-    expect(mine.filter((f) => f.properties.state === 'untrusted')).toHaveLength(3);
-    // A never-probed camera must stay distinguishable from a badly-scoring one in the payload, even
-    // though both fall on the same side of the trusted/untrusted split.
-    const bands = new Set(overlay.features.map((f) => f.properties.band));
-    expect(bands.size).toBeGreaterThan(1);
-    for (const feature of mine) {
-      expect((feature.geometry as { type: string }).type).toBe('Polygon');
-      expect(feature.properties.rangeM).toBeGreaterThan(0);
-    }
+    await withSeeded(async (tx) => {
+      await computeCoverage(tx);
+      const overlay = await coverageOverlay(tx);
+      const mine = overlay.features.filter((f) => f.properties.externalId.startsWith(TAG));
+      expect(mine).toHaveLength(SEEDS.length);
+      expect(mine.filter((f) => f.properties.state === 'trusted')).toHaveLength(1);
+      expect(mine.filter((f) => f.properties.state === 'untrusted')).toHaveLength(3);
+      // A never-probed camera must stay distinguishable from a badly-scoring one in the payload,
+      // even though both fall on the same side of the trusted/untrusted split.
+      const bands = new Set(overlay.features.map((f) => f.properties.band));
+      expect(bands.size).toBeGreaterThan(1);
+      for (const feature of mine) {
+        expect(feature.geometry.type).toBe('Polygon');
+        expect(feature.properties.rangeM).toBeGreaterThan(0);
+      }
+    });
   }, 60_000);
 
   it('always reports the unassessable set beside the assessed one (the disjoint-set rule)', async () => {

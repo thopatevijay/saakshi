@@ -18,7 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDb, createSql } from '../db/client.js';
 import { loadEnv } from '../env.js';
-import { analyse, coverageOverlay, RECONCILE_TOLERANCE_M } from '../services/coverage.js';
+import { analyse, RECONCILE_TOLERANCE_M } from '../services/coverage.js';
 import { gapAnalysisMarkdown, gapAnalysisPdf } from '../services/gap-report.js';
 
 function flag(name: string): string | undefined {
@@ -84,11 +84,6 @@ try {
   writeFileSync(mdPath, gapAnalysisMarkdown(analysis), 'utf8');
   writeFileSync(pdfPath, gapAnalysisPdf(analysis));
 
-  // The map overlay the registry screen draws, so the published report and the screen agree.
-  const overlayPath = path.join(REPO_ROOT, 'packages/web/public/coverage-overlay.json');
-  mkdirSync(path.dirname(overlayPath), { recursive: true });
-  writeFileSync(overlayPath, JSON.stringify(await coverageOverlay(db)), 'utf8');
-
   if (asJson) {
     console.log(JSON.stringify(analysis, null, 2));
   } else {
@@ -129,7 +124,6 @@ try {
     );
     console.log(`wrote           ${rel(mdPath)}`);
     console.log(`wrote           ${rel(pdfPath)}`);
-    console.log(`wrote           ${rel(overlayPath)}`);
     console.log(`elapsed         ${String(Date.now() - started)} ms`);
   }
 } finally {

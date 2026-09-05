@@ -26,7 +26,7 @@ stream
 q 0 g BT /F2 16 Tf 1 0 0 1 44 797.89 Tm (SAAKSHI · Camera coverage gap analysis) Tj ET Q
 q 0.4 g BT /F1 8.5 Tf 1 0 0 1 44 781.89 Tm (Gujarat Police Innovation Challenge 2026 - Pillar 1, Model 1 deliverable) Tj ET Q
 q 0.6 G 1 w 44 773.89 m 551.28 773.89 l S Q
-q 0.45 g BT /F1 8 Tf 1 0 0 1 44 755.89 Tm (Generated 2026-09-05T18:42:42.382Z from database saakshi_d3_06) Tj ET Q
+q 0.45 g BT /F1 8 Tf 1 0 0 1 44 755.89 Tm (Generated 2026-09-05T19:12:37.081Z from database saakshi_d3_06) Tj ET Q
 q 0 g BT /F2 12 Tf 1 0 0 1 44 739.89 Tm (1 · Read this before any percentage) Tj ET Q
 q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 723.89 Tm (This report covers 50 of 80 registered cameras. The other 30 are unassessable, not uncovered: the upstream catalogue publishes {id,) Tj ET Q
 q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 712.89 Tm (name} only, so they carry no coordinates and no district, and no spatial question can be asked of them at all. They are counted in) Tj ET Q
@@ -203,7 +203,7 @@ q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 72.89 Tm (72.562200) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 72.89 Tm (23.009330) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 72.89 Tm (5) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 248 72.89 Tm (Ashram Road) Tj ET Q
-q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-05T18:42:42.382Z · saakshi_d3_06 · not a survey) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-05T19:12:37.081Z · saakshi_d3_06 · not a survey) Tj ET Q
 q 0.55 g BT /F1 6.5 Tf 1 0 0 1 538.63 28 Tm (1 / 2) Tj ET Q
 endstream
 endobj
@@ -1092,12 +1092,12 @@ q 0 g BT /F1 7.5 Tf 1 0 0 1 464 224.89 Tm (D3-05 \(#28\)) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 44 214.89 Tm (Road network) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 224 214.89 Tm (540,584 GiST-indexed ways from Geofabrik western-zone, clipped to...) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 464 214.89 Tm (D3-01 \(#24\)) Tj ET Q
-q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-05T18:42:42.382Z · saakshi_d3_06 · not a survey) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-05T19:12:37.081Z · saakshi_d3_06 · not a survey) Tj ET Q
 q 0.55 g BT /F1 6.5 Tf 1 0 0 1 538.63 28 Tm (2 / 2) Tj ET Q
 endstream
 endobj
 11 0 obj
-<< /Title (SAAKSHI - camera coverage gap analysis) /Author (SAAKSHI) /Subject (Generated from live data. Coverage cells are radius discs, not measured fields of view; the radii are assumptions. Cameras without coordinates are unassessable, not uncovered.) /Producer (SAAKSHI) /CreationDate (D:20260905184242Z) >>
+<< /Title (SAAKSHI - camera coverage gap analysis) /Author (SAAKSHI) /Subject (Generated from live data. Coverage cells are radius discs, not measured fields of view; the radii are assumptions. Cameras without coordinates are unassessable, not uncovered.) /Producer (SAAKSHI) /CreationDate (D:20260905191237Z) >>
 endobj
 xref
 0 12

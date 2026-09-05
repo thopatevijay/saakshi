@@ -64,9 +64,7 @@ await waitFor(cdp, 'window.__saakshiMapIdle === true', { label: 'the map to go i
 
 // ── Turn the overlay on ─────────────────────────────────────────────────────────────────────────
 // It is off by default, so this also proves the toggle actually wires the fetch to the source.
-await cdp.evaluate(
-  `document.querySelector('[data-testid="coverage-toggle"]').click(); true`,
-);
+await cdp.evaluate(`document.querySelector('[data-testid="coverage-toggle"]').click(); true`);
 await waitFor(cdp, 'window.__saakshiCoverage !== undefined', {
   timeoutMs: 30000,
   label: 'the coverage collection to reach the map',
@@ -140,12 +138,17 @@ check(
 
 // ── 3 · the cells match Postgres ────────────────────────────────────────────────────────────────
 const drawn = await cdp.evaluate(`window.__saakshiCoverage.features.length`);
-const withPolygon = Number(psql('select count(*) from camera_coverage where fov_polygon is not null'));
+const withPolygon = Number(
+  psql('select count(*) from camera_coverage where fov_polygon is not null'),
+);
 const nullGeometry = Number(psql('select count(*) from camera_coverage where fov_polygon is null'));
 const cameraCount = Number(psql('select count(*) from cameras where deleted_at is null'));
 const coverageRows = Number(psql('select count(*) from camera_coverage'));
 
-check(drawn === withPolygon, `${drawn} cells drawn = ${withPolygon} rows with geometry in Postgres`);
+check(
+  drawn === withPolygon,
+  `${drawn} cells drawn = ${withPolygon} rows with geometry in Postgres`,
+);
 check(
   coverageRows === cameraCount,
   `camera_coverage has one row per live camera (${coverageRows} = ${cameraCount})`,
@@ -233,7 +236,10 @@ check(
 );
 
 const errors = await cdp.evaluate(`window.__saakshiMapErrors ?? []`);
-check(errors.length === 0, `the map raised no errors${errors.length > 0 ? `: ${errors.join('; ')}` : ''}`);
+check(
+  errors.length === 0,
+  `the map raised no errors${errors.length > 0 ? `: ${errors.join('; ')}` : ''}`,
+);
 
 await cdp.evaluate(`window.__saakshiMap.jumpTo({ center: [72.5714, 23.0225], zoom: 13 }); true`);
 await waitFor(cdp, 'window.__saakshiMapIdle === true', { label: 'idle at street zoom' });

@@ -23,7 +23,12 @@
  * plausible document becomes a misleading one.
  */
 import { A4_PORTRAIT, PdfPage, ellipsise, renderPdf, textWidth } from './pdf.js';
-import { JUNCTION_CLASSES, JUNCTION_MIN_DEGREE, RECONCILE_TOLERANCE_M, type GapAnalysis } from './coverage.js';
+import {
+  JUNCTION_CLASSES,
+  JUNCTION_MIN_DEGREE,
+  RECONCILE_TOLERANCE_M,
+  type GapAnalysis,
+} from './coverage.js';
 
 const PAGE = A4_PORTRAIT;
 const MARGIN = 44;
@@ -206,7 +211,7 @@ export function gapAnalysisMarkdown(a: GapAnalysis): string {
   );
   p();
   p(
-    'A coverage polygon drawn for `cam03` would be the same size and the same colour as `cam04`\'s. ' +
+    "A coverage polygon drawn for `cam03` would be the same size and the same colour as `cam04`'s. " +
       'Yield is the signal that separates them, and it is not a geometric property — which is why ' +
       'this report treats coverage area as necessary but not sufficient, and why the trust band, ' +
       'not the polygon, decides whether a metre of road counts as covered.',
@@ -258,7 +263,7 @@ export function gapAnalysisMarkdown(a: GapAnalysis): string {
     'It would be trivial to define `uncovered := total - covered` and report a perfect ' +
       'reconciliation that proves nothing. Instead `ST_Intersection` and `ST_Difference` are ' +
       'evaluated **independently** in EPSG:32643 (UTM 43N — metres, correct for Gujarat) over every ' +
-      'way that comes within reach of a cell, and their sum is checked against those ways\' own ' +
+      "way that comes within reach of a cell, and their sum is checked against those ways' own " +
       'length. Ways outside that candidate set are 100% uncovered by construction, with no ' +
       'floating-point arithmetic involved.',
   );
@@ -347,6 +352,27 @@ export function gapAnalysisMarkdown(a: GapAnalysis): string {
     for (const d of a.districtDeficit) p(`| ${d.district} | ${km(d.coveredKm)} |`);
   }
   p();
+  p();
+  p('### On the map');
+  p();
+  p('![Coverage overlay on the registry map](screenshots/d3-06-coverage-overlay.png)');
+  p();
+  p(
+    'Three states, rendered as their own MapLibre source and layers inserted beneath the camera ' +
+      'pins: **covered (trusted)** in green, **covered (untrusted or never probed)** in amber, and ' +
+      '**uncovered** as bare basemap. The third state has no layer — drawing 540,584 uncovered ways ' +
+      'grey would cost tens of megabytes to render a negative, so uncovered road is simply road with ' +
+      'no cell over it, and the legend says so rather than leaving a reader to infer it.',
+  );
+  p();
+  p('![The coverage legend](screenshots/d3-06-coverage-legend.png)');
+  p();
+  p(
+    'Regenerate both with `node packages/web/scripts/verify-coverage-map.mjs <token-file> ' +
+      '<web-url> <api-url>`, which also checks the cell count against `camera_coverage` in Postgres ' +
+      'and times a statewide pan.',
+  );
+  p();
   p(
     `A per-department breakdown is **not** given, and the reason is a finding: ` +
       `\`cameras.department_id\` is NULL for every camera in this estate, so a departmental trust ` +
@@ -409,10 +435,36 @@ export function gapAnalysisMarkdown(a: GapAnalysis): string {
   p();
   p('---');
   p();
+  p('### Reproducing this exact report');
+  p();
+  p('```bash');
   p(
-    `Regenerate with \`npm run report:gap-analysis\`. Engine: ` +
-      '`packages/api/src/services/coverage.ts`. Renderers: ' +
-      '`packages/api/src/services/gap-report.ts`.',
+    '# 1 · a road network. `data/` is gitignored, so a fresh checkout has neither extract nor graph.',
+  );
+  p('brew install osmium-tool && ./scripts/import-osm.sh      # see docs/road-network-setup.md');
+  p('');
+  p('# 2 · a geolocated estate, through the bulk-import endpoint — never raw SQL.');
+  p('curl -s -X POST "$API/api/v1/cameras/bulk" -H "authorization: Bearer $TOKEN" \\');
+  p('  -F "file=@fixtures/cameras-bulk-sample.csv;type=text/csv"');
+  p('');
+  p('# 3 · the report.');
+  p('npm run report:gap-analysis');
+  p('```');
+  p();
+  p(
+    '**Order matters, and this bit is a trap.** `packages/api/src/routes/cameras.test.ts` cleans up ' +
+      "after the bulk-import test with `delete from cameras where external_id like 'GJ-%'` — the " +
+      'same prefix the sample fixture uses. So running the API test suite **wipes the geolocated ' +
+      'estate**, and a `npm run test && npm run report:gap-analysis` sequence finds 0 placed ' +
+      'cameras. Re-import step 2 after any test run. The generator refuses rather than emitting a ' +
+      'report of zeroes, so the failure is loud — but the fix is the re-import, not the generator.',
+  );
+  p();
+  p(
+    'Engine: `packages/api/src/services/coverage.ts`. Renderers: ' +
+      '`packages/api/src/services/gap-report.ts`. The generator refuses to write anything if a ' +
+      'slice fails reconciliation, if `road_network` is empty, or if no camera carries coordinates ' +
+      '— a report full of well-formatted zeroes reads as a finding, and it is not one.',
   );
   p();
   return L.join('\n');
@@ -644,7 +696,7 @@ export function gapAnalysisPdf(a: GapAnalysis): Buffer {
     'Mapping where cameras are is a map anyone can draw. cam03 returned 67 sightings in the same ' +
       'city and hour that cam04 returned 33,548 — a 500x spread — and cam03 is not broken: it ' +
       'decoded 5,582 frames cleanly at 23.16 fps. It simply sees almost no vehicles (D1-09, #13). A ' +
-      'coverage polygon for cam03 would be the same size and colour as cam04\'s. Yield is not a ' +
+      "coverage polygon for cam03 would be the same size and colour as cam04's. Yield is not a " +
       'geometric property, which is why the trust band, not the polygon, decides whether a metre of ' +
       'road counts as covered. Likewise 8 of 30 measured cameras fail night usability (D1-05, #9): a ' +
       'junction covered only by a night-blind camera is uncovered for half of every day.',

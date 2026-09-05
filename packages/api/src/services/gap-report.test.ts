@@ -140,7 +140,14 @@ describe('the report is generated, not written (AC 6)', () => {
     // `540,584` also appears, in §7's citation of D3-01 — that one is fixed prose about another
     // ticket's measurement and is supposed to survive, which is exactly the distinction §7 exists
     // to draw.
-    for (const stale of ['saakshi_test', '2026-09-06', '5,40,584', '218026.20', '6,750', '80 cameras']) {
+    for (const stale of [
+      'saakshi_test',
+      '2026-09-06',
+      '5,40,584',
+      '218026.20',
+      '6,750',
+      '80 cameras',
+    ]) {
       expect(a).toContain(stale);
       expect(b).not.toContain(stale);
     }
@@ -164,8 +171,18 @@ describe('the report is generated, not written (AC 6)', () => {
     const pdf = gapAnalysisPdf(
       analysis({
         all: slice({ cameras: 0, coveredKm: 0, byDistrict: [] }),
-        trustedOnly: slice({ label: 'Trusted cameras only', cameras: 0, coveredKm: 0, byDistrict: [] }),
-        anprViable: slice({ label: 'ANPR-viable cameras only', cameras: 0, coveredKm: 0, byDistrict: [] }),
+        trustedOnly: slice({
+          label: 'Trusted cameras only',
+          cameras: 0,
+          coveredKm: 0,
+          byDistrict: [],
+        }),
+        anprViable: slice({
+          label: 'ANPR-viable cameras only',
+          cameras: 0,
+          coveredKm: 0,
+          byDistrict: [],
+        }),
         deltaKm: 0,
         deltaShare: null,
         junctions: { total: 0, covered: 0, uncovered: 0, worst: [] },
@@ -189,7 +206,9 @@ describe('the report states its own method and does not overclaim (AC 7)', () =>
   it('labels the radii as assumptions rather than measurements', () => {
     expect(md).toContain('The radii are assumptions');
     // Every row of the radius table carries the provenance tag.
-    const rows = md.split('\n').filter((l) => /^\| `(anpr_viable|detection_only|unclassified)` \|/.test(l));
+    const rows = md
+      .split('\n')
+      .filter((l) => /^\| `(anpr_viable|detection_only|unclassified)` \|/.test(l));
     expect(rows).toHaveLength(3);
     for (const row of rows) expect(row).toContain('assumed');
   });

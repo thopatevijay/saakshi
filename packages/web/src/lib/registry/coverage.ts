@@ -103,7 +103,10 @@ export interface CoverageFeatureCollection {
   features: CoverageFeature[];
 }
 
-export const EMPTY_COVERAGE: CoverageFeatureCollection = { type: 'FeatureCollection', features: [] };
+export const EMPTY_COVERAGE: CoverageFeatureCollection = {
+  type: 'FeatureCollection',
+  features: [],
+};
 
 /** Cell counts per state — the legend's numbers. */
 export function countByState(data: CoverageFeatureCollection): Record<CoverageState, number> {
