@@ -61,10 +61,7 @@ export const WatchlistEntryCreate = z
     if (body.entityType === 'vehicle' && (body.plate === null || body.plate === undefined)) {
       ctx.addIssue({ code: 'custom', path: ['plate'], message: 'a vehicle entry needs a plate' });
     }
-    if (
-      body.entityType === 'person' &&
-      (body.personRef === null || body.personRef === undefined)
-    ) {
+    if (body.entityType === 'person' && (body.personRef === null || body.personRef === undefined)) {
       ctx.addIssue({
         code: 'custom',
         path: ['personRef'],

@@ -101,7 +101,11 @@ export class TrigramPlateMatcher implements PlateMatcher {
     `);
 
     return rows
-      .map((row) => ({ ...row, distance: Number(row.distance), similarity: Number(row.similarity) }))
+      .map((row) => ({
+        ...row,
+        distance: Number(row.distance),
+        similarity: Number(row.similarity),
+      }))
       .filter((row) => row.distance <= maxDistance)
       .sort((a, b) => a.distance - b.distance || b.similarity - a.similarity)
       .slice(0, limit)

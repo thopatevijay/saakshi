@@ -101,6 +101,15 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
   const { db } = options;
   const registry = options.registry ?? createWatchlistRegistry({ db });
 
+  // A department hands over a CSV, so `curl --data-binary @watchlist.csv -H 'content-type: text/csv'`
+  // has to work. Fastify has no parser for it and answers 415 without one. Registered here rather
+  // than in `server.ts` so the watchlist owns its own wire formats; multipart still works too.
+  if (!app.hasContentTypeParser('text/csv')) {
+    app.addContentTypeParser('text/csv', { parseAs: 'string' }, (_request, body, done) => {
+      done(null, body);
+    });
+  }
+
   // ── GET /watchlist ────────────────────────────────────────────────────────────────────────────
   app.get(
     '/api/v1/watchlist',
@@ -111,7 +120,11 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
         tags: ['watchlist'],
         summary: 'List watchlist entries, filterable and keyset-paginated',
         querystring: WatchlistListQuery,
-        response: { 200: Paginated(WatchlistEntryResponse), 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          200: Paginated(WatchlistEntryResponse),
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request) => {
@@ -172,10 +185,16 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
       preHandler: [requireRole(READ_ROLES)],
       schema: {
         tags: ['watchlist'],
-        summary: 'Look a plate up across every connector. Requires a stated purpose; always audited',
+        summary:
+          'Look a plate up across every connector. Requires a stated purpose; always audited',
         params: z.object({ plate: z.string().min(1).max(24) }),
         querystring: LookupQuery,
-        response: { 200: LookupResponse, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          200: LookupResponse,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request) => {
@@ -222,7 +241,12 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
         summary: 'Look a case reference up. Exact only — a reference is typed, not read by OCR',
         params: z.object({ ref: z.string().min(1).max(200) }),
         querystring: LookupQuery,
-        response: { 200: LookupResponse, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          200: LookupResponse,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request) => {
@@ -263,7 +287,12 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
         tags: ['watchlist'],
         summary: 'One watchlist entry',
         params: z.object({ id: z.uuid() }),
-        response: { 200: WatchlistEntryResponse, 401: ErrorResponse, 403: ErrorResponse, 404: ErrorResponse },
+        response: {
+          200: WatchlistEntryResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+          404: ErrorResponse,
+        },
       },
     },
     async (request, reply) => {
@@ -290,7 +319,12 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
         tags: ['watchlist'],
         summary: 'Create an entry. Operators are read-only on the watchlist',
         body: WatchlistEntryCreate,
-        response: { 201: WatchlistEntryResponse, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          201: WatchlistEntryResponse,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request, reply) => {
@@ -341,7 +375,13 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
         summary: 'Update an entry',
         params: z.object({ id: z.uuid() }),
         body: WatchlistEntryPatch,
-        response: { 200: WatchlistEntryResponse, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse, 404: ErrorResponse },
+        response: {
+          200: WatchlistEntryResponse,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+          404: ErrorResponse,
+        },
       },
     },
     async (request, reply) => {
@@ -442,9 +482,15 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
       preHandler: [requireRole(WRITE_ROLES)],
       schema: {
         tags: ['watchlist'],
-        summary: 'CSV bulk import, upserted on (source_system, source_ref), per-row rejection report',
+        summary:
+          'CSV bulk import, upserted on (source_system, source_ref), per-row rejection report',
         consumes: ['multipart/form-data', 'text/csv'],
-        response: { 200: WatchlistImportReport, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          200: WatchlistImportReport,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request, reply) => {
@@ -458,7 +504,16 @@ export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions
         }
         text = (await file.toBuffer()).toString('utf8');
       } else {
-        text = typeof request.body === 'string' ? request.body : String(request.body ?? '');
+        // The `text/csv` parser hands the body through as a string. Anything else — a JSON body,
+        // an empty request — has no rows to import, and saying so beats stringifying an object into
+        // a CSV parser and reporting a bewildering per-row rejection list.
+        if (typeof request.body !== 'string') {
+          return reply.code(400).send({
+            error: 'bad_request',
+            message: 'send CSV as multipart/form-data or with content-type: text/csv',
+          });
+        }
+        text = request.body;
       }
 
       let batch;

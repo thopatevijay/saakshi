@@ -45,7 +45,9 @@ const timestamp = z
   .trim()
   .optional()
   .transform((v) => (v === undefined || v === '' ? null : v))
-  .refine((v) => v === null || !Number.isNaN(Date.parse(v)), { message: 'not a parseable instant' });
+  .refine((v) => v === null || !Number.isNaN(Date.parse(v)), {
+    message: 'not a parseable instant',
+  });
 
 /** The per-system detail columns, in the order `docs/watchlist-integration.md` documents them. */
 const META_COLUMNS = [
@@ -91,7 +93,11 @@ export const WatchlistCsvRow = z
       });
     }
     if (row.valid_to !== null && row.valid_from !== null && row.valid_to <= row.valid_from) {
-      ctx.addIssue({ code: 'custom', path: ['valid_to'], message: 'valid_to must be after valid_from' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['valid_to'],
+        message: 'valid_to must be after valid_from',
+      });
     }
   });
 export type WatchlistCsvRow = z.infer<typeof WatchlistCsvRow>;
@@ -132,7 +138,10 @@ function metaFrom(raw: Record<string, string | undefined>): WatchlistMeta {
   return meta;
 }
 
-export function toEntry(row: WatchlistCsvRow, raw: Record<string, string | undefined>): WatchlistEntryInput {
+export function toEntry(
+  row: WatchlistCsvRow,
+  raw: Record<string, string | undefined>,
+): WatchlistEntryInput {
   return {
     category: row.category,
     entityType: row.entity_type,
@@ -242,7 +251,10 @@ export async function upsertWatchlistEntries(
   }
 
   if (unkeyed.length > 0) {
-    const rows = await db.insert(watchlistEntries).values(unkeyed).returning({ id: watchlistEntries.id });
+    const rows = await db
+      .insert(watchlistEntries)
+      .values(unkeyed)
+      .returning({ id: watchlistEntries.id });
     inserted += rows.length;
   }
 
