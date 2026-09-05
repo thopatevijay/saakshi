@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from prometheus_client import CollectorRegistry
 
-from workers.prober.metrics import COMPONENT, ProberMetrics
+from workers.prober.metrics import COMPONENT, ProberMetrics, drift_meaning, unmeasurable_reason
 from workers.prober.probe import ProbeResult
 
 
@@ -106,7 +106,13 @@ class TestDriftCarriesItsMeaning:
                 connectable=True,
                 decodable=True,
                 pts_drift_ms=124_007,
-                breakdown={"pts_drift_meaning": "vod"},
+                # The probe stores a SENTENCE, not a token. This is the real stored value.
+                breakdown={
+                    "pts_drift_meaning": (
+                        "vod_pull_rate_skew — the sign is the direction: positive means the file "
+                        "arrived slower than real time."
+                    )
+                },
             )
         )
         metrics.record(
@@ -115,7 +121,12 @@ class TestDriftCarriesItsMeaning:
                 connectable=True,
                 decodable=True,
                 pts_drift_ms=42,
-                breakdown={"pts_drift_meaning": "live"},
+                breakdown={
+                    "pts_drift_meaning": (
+                        "live_clock_drift — encoder clock against wall clock. Score it: a wrong "
+                        "clock corrupts every route reconstruction this camera contributes to."
+                    )
+                },
             )
         )
 
@@ -131,6 +142,13 @@ class TestDriftCarriesItsMeaning:
             sample(registry, "saakshi_prober_camera_pts_drift_ms", camera="cam99", meaning="live")
             == 42
         )
+
+    def test_the_stored_sentence_collapses_to_a_token_a_query_can_match(self) -> None:
+        """The label must be matchable. `meaning="live"` in an alert rule has to fire."""
+        assert drift_meaning("live_clock_drift — encoder clock against wall clock.") == "live"
+        assert drift_meaning("vod_pull_rate_skew — the sign is the direction") == "vod"
+        assert drift_meaning(None) == "unknown"
+        assert drift_meaning("") == "unknown"
 
     def test_drift_with_no_recorded_meaning_is_labelled_unknown_not_guessed(self) -> None:
         registry = CollectorRegistry()
@@ -176,6 +194,33 @@ class TestFailureIsNotAVerdict:
             is None
         )
         assert sample(registry, "saakshi_prober_results_total", outcome="retryable") == 1.0
+
+    def test_an_unreachable_camera_says_unreachable_not_unknown(self) -> None:
+        """The probe never got far enough to try. That is a different fact from "unmeasurable"."""
+        registry = CollectorRegistry()
+        metrics = ProberMetrics(registry)
+
+        metrics.record(
+            ProbeResult(
+                "cam19",
+                connectable=False,
+                decodable=False,
+                measured_fps=None,
+                error="HTTPNotFoundError: 404",
+                breakdown={"error": "HTTPNotFoundError: 404"},
+            )
+        )
+
+        assert (
+            sample(
+                registry,
+                "saakshi_prober_camera_fps_unmeasurable",
+                camera="cam19",
+                reason="unreachable",
+            )
+            == 1.0
+        )
+        assert unmeasurable_reason(connectable=True, recorded=None) == "not_recorded"
 
     def test_outcomes_are_counted_apart(self) -> None:
         registry = CollectorRegistry()

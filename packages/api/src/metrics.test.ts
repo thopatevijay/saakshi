@@ -15,6 +15,7 @@ import { loadEnv, type Env } from './env.js';
 import { createDb, createSql, type Db, type Sql } from './db/client.js';
 import {
   UPTIME_TARGET_RATIO,
+  driftMeaning,
   observeHttp,
   recordRelayStats,
   refreshBusMetrics,
@@ -66,7 +67,12 @@ beforeAll(async () => {
     insert into camera_health_checks
       (camera_id, checked_at, connectable, decodable, measured_fps, pts_drift_ms, breakdown)
     values (${idOf(MEASURED)}::uuid, now(), true, true, 14.99, 12,
-            ${JSON.stringify({ pts_drift_meaning: 'live', fps: { declared: 30 } })}::jsonb)
+            ${JSON.stringify({
+              pts_drift_meaning:
+                'live_clock_drift — encoder clock against wall clock. Score it: a wrong clock ' +
+                'corrupts every route reconstruction this camera contributes to.',
+              fps: { declared: 30 },
+            })}::jsonb)
   `);
 
   // A camera whose rate could NOT be measured. This is the row that must not become a zero.
@@ -82,7 +88,11 @@ beforeAll(async () => {
     insert into camera_health_checks
       (camera_id, checked_at, connectable, decodable, pts_drift_ms, breakdown)
     values (${idOf(VOD_DRIFT)}::uuid, now(), true, true, 124007,
-            ${JSON.stringify({ pts_drift_meaning: 'vod' })}::jsonb)
+            ${JSON.stringify({
+              pts_drift_meaning:
+                'vod_pull_rate_skew — the sign is the direction: positive means the file ' +
+                'arrived slower than real time.',
+            })}::jsonb)
   `);
 });
 
@@ -229,6 +239,21 @@ describe('the estate snapshot', () => {
     );
 
     await db.execute(sql`update cameras set deleted_at = null where external_id = ${MEASURED}`);
+  });
+});
+
+describe('driftMeaning', () => {
+  it('collapses the stored sentence to a token an alert rule can actually match', () => {
+    // The prober stores prose, which is right for a UI and fatal for a label: an alert on
+    // `meaning="live"` would never fire, and every wording would mint a new time series.
+    expect(driftMeaning('live_clock_drift — encoder clock against wall clock. Score it: …')).toBe(
+      'live',
+    );
+    expect(driftMeaning('vod_pull_rate_skew — the sign is the direction: positive means …')).toBe(
+      'vod',
+    );
+    expect(driftMeaning(null)).toBe('unknown');
+    expect(driftMeaning('')).toBe('unknown');
   });
 });
 

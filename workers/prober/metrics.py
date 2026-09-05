@@ -37,6 +37,34 @@ log = logging.getLogger("saakshi.prober.metrics")
 COMPONENT = "prober-worker"
 
 
+def drift_meaning(raw: object) -> str:
+    """`breakdown.pts_drift_meaning` as a queryable label.
+
+    The probe stores a *sentence* — `"live_clock_drift — encoder clock against wall clock. Score
+    it: …"` — which is right for a UI explaining a number to an operator and wrong for a Prometheus
+    label: an alert rule matching `meaning="live"` would never fire, and every distinct wording
+    would mint a new time series. Only the leading token is load-bearing, so only it becomes the
+    label; the prose stays where it is useful.
+    """
+    token = str(raw or "").split(" ")[0]
+    if token.startswith("live"):
+        return "live"
+    if token.startswith("vod"):
+        return "vod"
+    return "unknown"
+
+
+def unmeasurable_reason(*, connectable: bool, recorded: object) -> str:
+    """Why a camera has no measured frame rate.
+
+    An unreachable camera is not one whose rate was unmeasurable for reasons unknown — the probe
+    never got far enough to try, and the breakdown carries `error` instead of an `fps` block.
+    """
+    if not connectable:
+        return "unreachable"
+    return str(recorded) if recorded else "not_recorded"
+
+
 class ProberMetrics:
     """Gauges and counters for one prober process, updated result by result."""
 
@@ -174,9 +202,8 @@ class ProberMetrics:
         if result.measured_fps is None:
             # A NULL is not a zero. No fps sample at all; a marker instead, carrying the reason the
             # prober itself recorded rather than one invented here.
-            reason = "unknown"
-            if isinstance(fps, dict):
-                reason = str(fps.get("unmeasurable_reason") or "unknown")
+            recorded = fps.get("unmeasurable_reason") if isinstance(fps, dict) else None
+            reason = unmeasurable_reason(connectable=result.connectable, recorded=recorded)
             self._forget(self.measured_fps, labels)
             self.fps_unmeasurable.labels(*labels, reason).set(1.0)
         else:
@@ -192,10 +219,8 @@ class ProberMetrics:
             self.night_usable.labels(*labels).set(1.0 if result.night_usable else 0.0)
 
         if result.pts_drift_ms is not None:
-            meaning = "unknown"
-            if isinstance(result.breakdown, dict):
-                meaning = str(result.breakdown.get("pts_drift_meaning") or "unknown")
-            self.pts_drift_ms.labels(*labels, meaning).set(float(result.pts_drift_ms))
+            raw = result.breakdown.get("pts_drift_meaning") if isinstance(result.breakdown, dict) else None
+            self.pts_drift_ms.labels(*labels, drift_meaning(raw)).set(float(result.pts_drift_ms))
 
         if isinstance(result.breakdown, dict) and result.breakdown.get("probe_ms") is not None:
             self.probe_ms.labels(*labels).set(float(result.breakdown["probe_ms"]))

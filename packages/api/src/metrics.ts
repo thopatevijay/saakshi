@@ -515,6 +515,37 @@ type CountRow = {
   n: string;
 };
 
+/**
+ * `breakdown.pts_drift_meaning` as a queryable label.
+ *
+ * The prober stores a *sentence* — `"live_clock_drift — encoder clock against wall clock. Score
+ * it: …"` — which is the right thing for a UI that explains a number to an operator and the wrong
+ * thing for a Prometheus label: an alert rule matching `meaning="live"` would never fire, and every
+ * distinct wording would mint a new time series. Only the leading token is load-bearing, so only
+ * the leading token becomes the label. The prose stays where it is useful, in the API's trust
+ * breakdown.
+ */
+export function driftMeaning(raw: string | null): 'live' | 'vod' | 'unknown' {
+  if (raw === null) return 'unknown';
+  const token = raw.split(' ')[0] ?? '';
+  if (token.startsWith('live')) return 'live';
+  if (token.startsWith('vod')) return 'vod';
+  return 'unknown';
+}
+
+/**
+ * Why a camera has no measured frame rate.
+ *
+ * An unreachable camera is not a camera whose rate was measured and found wanting, nor one whose
+ * rate was unmeasurable for reasons unknown — the probe never got far enough to try, and the
+ * breakdown carries `error` instead of an `fps` block. Saying `unreachable` rather than `unknown`
+ * is the difference between a board that explains itself and one that shrugs.
+ */
+function unmeasurableReason(connectable: boolean | null, recorded: string | null): string {
+  if (connectable === false) return 'unreachable';
+  return recorded ?? 'not_recorded';
+}
+
 function num(value: string | null): number | null {
   if (value === null) return null;
   const parsed = Number(value);
@@ -646,11 +677,17 @@ export async function refreshEstateMetrics(db: Db, bands: BandThresholds): Promi
     } else if (row.connectable !== null) {
       // Only for a camera that was actually probed: an absent measurement on a never-probed camera
       // is not an unmeasurable frame rate, it is no attempt.
-      cameraFpsUnmeasurable.set({ camera, reason: row.unmeasurable_reason ?? 'unknown' }, 1);
+      cameraFpsUnmeasurable.set(
+        { camera, reason: unmeasurableReason(row.connectable, row.unmeasurable_reason) },
+        1,
+      );
     }
 
     if (row.pts_drift_ms !== null) {
-      cameraPtsDrift.set({ camera, meaning: row.pts_drift_meaning ?? 'unknown' }, row.pts_drift_ms);
+      cameraPtsDrift.set(
+        { camera, meaning: driftMeaning(row.pts_drift_meaning) },
+        row.pts_drift_ms,
+      );
     }
 
     const blur = num(row.blur_score);
