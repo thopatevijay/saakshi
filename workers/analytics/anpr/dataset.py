@@ -59,6 +59,15 @@ BROWSER_UA = (
 )
 
 FIXTURES = pathlib.Path("fixtures/plate-eval")
+#: JPEG, quality 95, for the committed crops.
+#:
+#: Lossless PNG would be the instinct, and it costs **21 MB** for this set against 3 MB. The
+#: source frames are already JPEG (ffmpeg `-q:v 2`), so a q95 re-encode of an already-lossy crop
+#: adds a second generation of a compression the pixels have been through once; the alternative
+#: is a repository nobody wants to clone for an evaluation set of 120 images. Every number in
+#: `docs/anpr-accuracy.md` is measured on **these files**, not on a lossless intermediate, so the
+#: committed set and the measurement are the same thing.
+CROP_ENCODE = [int(cv2.IMWRITE_JPEG_QUALITY), 95]
 #: Daylight sits here; the recording starts at 21:00 (D0-01, `.github/plan/D0-01-recon-camera-grid.md`).
 DAY_OFFSET_S = 39600
 NIGHT_OFFSET_S = 7200
@@ -82,6 +91,11 @@ class Instance:
     plate_width_px: float | None = None
     plate_crop: str | None = None
     stratum: str = "representative"
+    #: Every native vehicle crop belonging to this **vehicle pass**, best first — the frames
+    #: `deduplicate` folded into this instance plus this one. This is what makes AC 1's
+    #: best-shot-versus-every-frame comparison measurable on real footage: the two strategies differ
+    #: only in how many of these the OCR is asked to read.
+    pass_crops: list[str] = field(default_factory=list)
 
     # ── the human's part ────────────────────────────────────────────────────────────────────────
     #: `true` when a human can see a plate region at all (readable or not).
@@ -233,13 +247,19 @@ def mine(
                 instance.plate_conf = round(best.confidence, 3)
                 instance.plate_width_px = round(best.w, 1)
                 if plate_crop.size:
-                    name = f"{instance.id}_plate.png"
-                    cv2.imwrite(str(crops_dir / name), _upscale(plate_crop, 480))
+                    name = f"{instance.id}_plate.jpg"
+                    cv2.imwrite(str(crops_dir / name), plate_crop, CROP_ENCODE)
                     instance.plate_crop = f"crops/{name}"
-            name = f"{instance.id}_vehicle.png"
-            cv2.imwrite(str(crops_dir / name), _upscale(vehicle_crop, 320))
+            name = f"{instance.id}_vehicle.jpg"
+            # **Native resolution, never upscaled.** The evaluator re-runs the real pipeline over
+            # this file, and an upscaled crop would hand the plate detector a vehicle four times the
+            # size the camera delivered — measuring a resolution the estate does not have. The
+            # upscaling for human eyes happens in `sheet`, on a copy nothing is measured from.
+            cv2.imwrite(str(crops_dir / name), vehicle_crop, CROP_ENCODE)
             instance.vehicle_crop = f"crops/{name}"
             pool.append(instance)
+
+    pool = deduplicate(pool)
 
     rng = random.Random(seed)
     with_plate = [i for i in pool if i.plate_width_px is not None]
@@ -253,32 +273,116 @@ def mine(
     rng.shuffle(remaining)
     chosen_representative = remaining[:representative]
 
+    chosen = chosen_enriched + chosen_representative
     log.info(
-        "%s: %d vehicle instances mined from %d frames — %d with a plate box; "
+        "%s: %d vehicle passes mined from %d frames — %d with a plate box; "
         "sampling %d representative + %d enriched",
         condition, len(pool), len(frames), len(with_plate),
         len(chosen_representative), len(chosen_enriched),
     )
-    return Manifest(instances=chosen_enriched + chosen_representative)
+    _prune_unreferenced_crops(crops_dir, chosen, condition)
+    return Manifest(instances=chosen)
 
 
-def _upscale(image: np.ndarray, target_width: int) -> np.ndarray:
-    """Nearest-neighbour upscale for human inspection. **Never fed to a model.**
+def _prune_unreferenced_crops(
+    crops_dir: pathlib.Path, chosen: list[Instance], condition: str
+) -> int:
+    """Deletes the crops of instances that were mined but not sampled.
 
-    Nearest rather than cubic on purpose: a human labelling a 40-px plate must see the pixels that
-    are there, not an interpolation's plausible guess at the ones that are not.
+    Mining writes a crop for every vehicle it finds — thousands — and only a few dozen are sampled.
+    Committing the rest would put tens of megabytes of unlabelled, unmeasured images in the
+    repository, which is the opposite of what a committed fixture set is for. Scoped by condition so
+    mining `night` cannot delete the `day` set.
     """
-    if image.shape[1] >= target_width:
-        return image
-    scale = max(1, int(round(target_width / max(1, image.shape[1]))))
-    return cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+    referenced = {
+        pathlib.Path(path).name
+        for instance in chosen
+        for path in [*instance.pass_crops, instance.plate_crop or ""]
+        if path
+    }
+    removed = 0
+    for path in crops_dir.glob(f"{condition}_*"):
+        if path.name not in referenced:
+            path.unlink()
+            removed += 1
+    log.info("%s: pruned %d unreferenced crops, kept %d", condition, removed, len(referenced))
+    return removed
+
+
+#: Frames within which two overlapping vehicle boxes are assumed to be the same vehicle pass.
+#:
+#: Frames are sampled at 2 fps, so 6 frames is 3 seconds — longer than a vehicle takes to cross one
+#: of these junction views, and short enough that two different vehicles stopping in the same lane
+#: minutes apart are still counted separately.
+DEDUPE_WINDOW_FRAMES = 6
+#: Vehicle-box overlap above which two instances are the same vehicle.
+DEDUPE_IOU = 0.3
+
+
+def _iou(a: list[float], b: list[float]) -> float:
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    x0, y0 = max(ax, bx), max(ay, by)
+    x1, y1 = min(ax + aw, bx + bw), min(ay + ah, by + bh)
+    if x1 <= x0 or y1 <= y0:
+        return 0.0
+    intersection = (x1 - x0) * (y1 - y0)
+    return intersection / (aw * ah + bw * bh - intersection)
+
+
+def deduplicate(pool: list[Instance]) -> list[Instance]:
+    """One instance per vehicle *pass*, not one per frame.
+
+    Without this the set is dishonest in the most flattering possible direction: at 2 fps a vehicle
+    crossing a junction appears in six consecutive frames, so an "enriched" stratum taken as the
+    top-N by plate width would be six views of the same car, and a set of "50 hand-labelled plates"
+    would be eight vehicles. Every count in `docs/anpr-accuracy.md` depends on this being right.
+
+    Matched by box overlap within a short frame window, because there is no tracker here — these are
+    sampled stills, not a decoded stream. The one kept is the one with the widest plate, which is the
+    best evidence that pass produced.
+    """
+    kept: list[Instance] = []
+    for instance in sorted(pool, key=lambda i: (i.camera, i.frame)):
+        instance.pass_crops = [instance.vehicle_crop]
+        index = _frame_index(instance.frame)
+        duplicate_of = None
+        for candidate in reversed(kept):
+            if candidate.camera != instance.camera:
+                continue
+            if index - _frame_index(candidate.frame) > DEDUPE_WINDOW_FRAMES:
+                break
+            if _iou(candidate.vehicle_box, instance.vehicle_box) >= DEDUPE_IOU:
+                duplicate_of = candidate
+                break
+        if duplicate_of is None:
+            kept.append(instance)
+            continue
+        # The pass keeps every frame of itself; only the *representative* one changes.
+        siblings = duplicate_of.pass_crops + [instance.vehicle_crop]
+        if (instance.plate_width_px or 0.0) > (duplicate_of.plate_width_px or 0.0):
+            kept[kept.index(duplicate_of)] = instance
+            instance.pass_crops = siblings
+        else:
+            duplicate_of.pass_crops = siblings
+    return kept
+
+
+def _frame_index(frame_name: str) -> int:
+    stem = pathlib.Path(frame_name).stem
+    tail = stem.rsplit("_", 1)[-1]
+    return int(tail) if tail.isdigit() else 0
 
 
 # ── contact sheets ──────────────────────────────────────────────────────────────────────────────
 
 
-def sheet(manifest: Manifest, out_dir: pathlib.Path, *, condition: str, per_sheet: int = 12) -> int:
-    """Grids of numbered crops, so a human can label many instances per glance."""
+def sheet(manifest: Manifest, out_dir: pathlib.Path, *, condition: str, per_sheet: int = 8) -> int:
+    """Grids of numbered crops, so a human can label many instances per glance.
+
+    Every tile is labelled with the instance id, so a verdict can never be written against the wrong
+    row — the single most likely way a hand-labelled set goes quietly wrong.
+    """
     sheets_dir = out_dir / "sheets"
     sheets_dir.mkdir(parents=True, exist_ok=True)
     subset = [i for i in manifest.instances if i.condition == condition]
@@ -286,24 +390,28 @@ def sheet(manifest: Manifest, out_dir: pathlib.Path, *, condition: str, per_shee
     for start in range(0, len(subset), per_sheet):
         batch = subset[start : start + per_sheet]
         tiles = []
-        for offset, instance in enumerate(batch):
+        for instance in batch:
             source = instance.plate_crop or instance.vehicle_crop
             image = cv2.imread(str(out_dir / source))
             if image is None:
                 continue
-            tile = cv2.resize(image, (480, 160), interpolation=cv2.INTER_NEAREST)
-            cv2.rectangle(tile, (0, 0), (58, 26), (0, 0, 0), -1)
+            # INTER_NEAREST: a human labelling a 30-px plate must see the pixels that are there,
+            # not a cubic interpolation's plausible guess at the ones that are not.
+            tile = cv2.resize(image, (520, 180), interpolation=cv2.INTER_NEAREST)
+            caption = f"{instance.id}  {instance.camera} {instance.vehicle_class}"
+            if instance.plate_width_px:
+                caption += f"  plate {int(instance.plate_width_px)}px"
+            cv2.rectangle(tile, (0, 0), (520, 24), (0, 0, 0), -1)
             cv2.putText(
-                tile, str(start + offset), (4, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
-                (255, 255, 255), 2, cv2.LINE_AA,
+                tile, caption, (4, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
+                (255, 255, 255), 1, cv2.LINE_AA,
             )
             tiles.append(tile)
         if not tiles:
             continue
         rows = [np.hstack(tiles[i : i + 2]) for i in range(0, len(tiles) - len(tiles) % 2, 2)]
         if len(tiles) % 2:
-            last = np.hstack([tiles[-1], np.zeros_like(tiles[-1])])
-            rows.append(last)
+            rows.append(np.hstack([tiles[-1], np.zeros_like(tiles[-1])]))
         grid = np.vstack(rows)
         path = sheets_dir / f"{condition}_{start // per_sheet:02d}.png"
         cv2.imwrite(str(path), grid)

@@ -49,11 +49,25 @@ __all__ = [
 
 #: The default backend, **set by measurement rather than by preference**.
 #:
-#: The ticket names `fast-plate-ocr` primary and PaddleOCR fallback. On this estate's plates the
-#: order measured the other way round — see `docs/anpr-accuracy.md` for the numbers and
-#: `fixtures/plate-eval/` for the set they were measured on. The interface is unchanged and either
-#: name selects either engine; only the default moved, and it moved because of data.
-DEFAULT_OCR_BACKEND = "paddle_ppocr"
+#: The ticket names `fast-plate-ocr` primary and PaddleOCR the fallback, and the measurement on
+#: `fixtures/plate-eval/` agrees — but not for the reason one would guess, and not by the metric one
+#: would guess. Neither engine reads a single plate on this estate exactly right. What separates
+#: them is how they fail:
+#:
+#: | | `fast_plate_ocr` | `paddle_ppocr` |
+#: |---|---|---|
+#: | exact reads on the 3 legible plates | 0 | 0 |
+#: | **character accuracy on those plates** | **68.5%** | not measurable — it read none of them |
+#: | reads emitted across 120 instances | 52 | 7 |
+#:
+#: A partial read is worth something and a silence is worth nothing: D2-04's confusion-aware fuzzy
+#: matching exists precisely to recover a plate from a string that is two characters wrong, and it
+#: has nothing to work with when the recogniser abstains. The cost is the 52-against-7 column — far
+#: more wrong strings — which is what `OCR_CONF_MIN` and D2-04's scoring are for, and why the eval
+#: prints precision at rising confidence floors.
+#:
+#: `docs/anpr-accuracy.md` carries the full table.
+DEFAULT_OCR_BACKEND = "fast_plate_ocr"
 
 #: Characters an Indian plate can contain. Everything else a recogniser emits — spaces, hyphens,
 #: the IND country mark, the state emblem misread as a glyph — is dropped before voting, because a
@@ -87,9 +101,14 @@ class OcrRead:
 
 @runtime_checkable
 class OcrBackend(Protocol):
-    """What the engine needs. Deliberately one method — the swap has nothing else to get wrong."""
+    """What the engine needs: a name, one method, and how it wants its pixels resampled.
+
+    `preferred_interpolation` is the one piece of preprocessing an engine cannot be given generically
+    — see `workers/analytics/anpr/rectify.py::_interpolation` for the measurement. `None` means "no
+    preference"."""
 
     name: str
+    preferred_interpolation: int | None
 
     def read(self, plate_image: Frame) -> OcrRead | None: ...
 
@@ -126,6 +145,10 @@ class FastPlateOcrBackend:
         from fast_plate_ocr import LicensePlateRecognizer  # noqa: PLC0415 — heavy, deferred
 
         self.name = "fast_plate_ocr"
+        # Cubic. A fixed-slot recogniser is hurt by the aliasing nearest-neighbour introduces at the
+        # 4x magnification a 48-px plate needs: measured `RJ3CA518` with cubic against `BJEE551`
+        # with nearest, on the same crop of the same plate.
+        self.preferred_interpolation = cv2.INTER_CUBIC
         self.model_name = model or os.environ.get(
             "SAAKSHI_FAST_PLATE_OCR_MODEL", "cct-s-v2-global-model"
         )
@@ -216,6 +239,11 @@ class PaddlePpocrBackend:
         from rapidocr import RapidOCR  # noqa: PLC0415 — heavy, deferred
 
         self.name = "paddle_ppocr"
+        # Nearest. PP-OCR's detection stage is a segmentation model and needs hard glyph edges; with
+        # cubic it returned **no text box at all** on every rectified estate crop, and with nearest
+        # it reads them. This single flag is the difference between this backend working and this
+        # backend appearing to be broken.
+        self.preferred_interpolation = cv2.INTER_NEAREST
         self._engine = RapidOCR(**options) if options else RapidOCR()
         self.model_name = "PP-OCRv6 (det+rec, ONNX via rapidocr)"
         self.stats = OcrStats()

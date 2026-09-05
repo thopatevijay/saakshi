@@ -157,8 +157,16 @@ def _spans_the_whole_crop(quad: np.ndarray, width: int, height: int, slack: int 
     )
 
 
-def rectify(crop: Frame, thresholds: AnprThresholds = ANPR_DEFAULTS) -> RectifyResult:
-    """Perspective-corrects a plate crop to the canonical `rectify_width x rectify_height`."""
+def rectify(
+    crop: Frame,
+    thresholds: AnprThresholds = ANPR_DEFAULTS,
+    interpolation: int | None = None,
+) -> RectifyResult:
+    """Perspective-corrects a plate crop to the canonical `rectify_width x rectify_height`.
+
+    `interpolation` is the OCR backend's preference — see `_interpolation`. `None` means "pick
+    by direction", which is what a caller with no recogniser in mind wants.
+    """
     width, height = thresholds.rectify_width, thresholds.rectify_height
     if crop.size == 0:
         return RectifyResult(image=crop, method="resize")
@@ -178,19 +186,56 @@ def rectify(crop: Frame, thresholds: AnprThresholds = ANPR_DEFAULTS) -> RectifyR
         )
         transform = cv2.getPerspectiveTransform(quad, destination)
         warped = cv2.warpPerspective(
-            crop, transform, (width, height), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE
+            crop,
+            transform,
+            (width, height),
+            flags=_interpolation(crop.shape[1], width, interpolation),
+            borderMode=cv2.BORDER_REPLICATE,
         )
         return RectifyResult(image=warped, method="quad", quad=quad)
 
     angle = _minarea_angle(crop)
     if angle is not None and abs(angle) > 1.0:
         rotated = _rotate(crop, angle)
-        resized = cv2.resize(rotated, (width, height), interpolation=cv2.INTER_CUBIC)
+        resized = cv2.resize(
+            rotated,
+            (width, height),
+            interpolation=_interpolation(rotated.shape[1], width, interpolation),
+        )
         return RectifyResult(image=resized, method="minarea", angle_deg=angle)
 
     return RectifyResult(
-        image=cv2.resize(crop, (width, height), interpolation=cv2.INTER_CUBIC), method="resize"
+        image=cv2.resize(
+            crop, (width, height), interpolation=_interpolation(crop.shape[1], width, interpolation)
+        ),
+        method="resize",
     )
+
+
+def _interpolation(source_width: int, target_width: int, override: int | None) -> int:
+    """Interpolation for the rectifying resize.
+
+    **The two recognisers want different answers here, and it is not a matter of taste — it decides
+    whether one of them reads anything at all.** A 48x16 plate warped to the canonical size is a 4x
+    magnification. Cubic interpolation cannot recover detail that was never sampled; it smooths each
+    glyph edge across four output pixels. Measured on the two recon frames that carry a plate a human
+    can read (`cam21`, `RJ39CA5180`; `cam06`, `GJ11CH2`):
+
+    | | `fast_plate_ocr` | `paddle_ppocr` |
+    |---|---|---|
+    | cubic | `RJ3CA518` · `GJ11EH2` | **nothing on either** |
+    | nearest | `BJEE551` · `G111EH2` | `DBIS136ETA` · `FGJ11CH2` |
+
+    PP-OCR's detection stage is a segmentation model and needs the hard edges nearest preserves; the
+    fixed-slot recogniser is hurt by the aliasing those same hard edges introduce. So the *backend*
+    chooses (`OcrBackend.preferred_interpolation`) rather than this function guessing, and with no
+    preference the usual rules apply: `INTER_AREA` downwards, `INTER_CUBIC` upwards.
+    """
+    if override is not None:
+        return override
+    if source_width <= 0:
+        return cv2.INTER_CUBIC
+    return cv2.INTER_AREA if target_width < source_width else cv2.INTER_CUBIC
 
 
 def _minarea_angle(crop: Frame) -> float | None:

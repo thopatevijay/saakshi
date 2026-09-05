@@ -48,6 +48,7 @@ from dataclasses import dataclass, field
 
 import cv2
 
+from .anpr.best_shot import best_shot_score
 from .anpr.dataset import Instance, load_manifest
 from .anpr.ocr import OcrBackend, create_ocr_backend, ocr_backend_name
 from .anpr.plates import DEFAULT_PLATE_MODEL, PlateDetector
@@ -81,6 +82,7 @@ class Outcome:
     stratum: str
     vehicle_class: str
     plate_width_px: float | None
+    pass_frames: int
     legible: bool
     label: str | None
     read: str | None
@@ -176,13 +178,17 @@ def _pct(value: float | None) -> str:
 
 
 class InstanceRunner:
-    """Runs the ANPR stage over one labelled instance, in one of two strategies.
+    """Runs the ANPR stage over one labelled **vehicle pass**, in one of two strategies.
 
-    Deliberately **not** `AnprEngine`: an instance is a single frame, not a track, so there is no
-    multi-frame buffer to fill. What is measured here is detect -> rectify -> OCR -> vote on the
-    evidence the estate actually provides for that vehicle, which is exactly what the engine would
-    do for a track that produced one candidate. `--compare` then varies the *number* of reads the
-    vote gets, which is the axis AC 1 is about.
+    A pass is every frame in which that vehicle was tracked (`pass_crops`), so the two strategies
+    differ in exactly the way AC 1 asks about:
+
+    - **best-shot** — score every frame of the pass (`area x sharpness x frontality`), OCR the top
+      N, vote over those N;
+    - **every-frame** — OCR every frame of the pass, vote over all of them.
+
+    Same footage, same models, same vote. The only variables are the number of OCR inferences and
+    which reads reach the vote, which is precisely the claim being tested.
     """
 
     def __init__(
@@ -197,42 +203,48 @@ class InstanceRunner:
         self.ocr = ocr
         self.thresholds = thresholds
 
+    def _candidate(self, crop_path: str) -> tuple[float, object] | None:
+        """Best-shot score and plate crop for one frame of a pass, or `None` if no plate."""
+        image = cv2.imread(str(self.fixtures / crop_path))
+        if image is None or image.size == 0:
+            return None
+        boxes = [
+            box for box in self.plates.detect(image) if box.w >= self.thresholds.plate_min_width_px
+        ]
+        if not boxes:
+            return None
+        box = max(boxes, key=lambda b: b.w)
+        pad_x = int(box.w * self.thresholds.crop_pad_ratio * 2)
+        pad_y = int(box.h * self.thresholds.crop_pad_ratio * 2)
+        x0 = max(0, int(box.x) - pad_x)
+        y0 = max(0, int(box.y) - pad_y)
+        x1 = min(image.shape[1], int(box.x + box.w) + pad_x)
+        y1 = min(image.shape[0], int(box.y + box.h) + pad_y)
+        crop = image[y0:y1, x0:x1]
+        if crop.size == 0:
+            return None
+        return best_shot_score(box.w, box.h, crop, self.thresholds), crop
+
     def run(self, instance: Instance, *, every_frame: bool) -> Outcome:
         legible = bool(instance.label)
-        crop_path = self.fixtures / instance.vehicle_crop
-        image = cv2.imread(str(crop_path))
+        frames = instance.pass_crops or [instance.vehicle_crop]
+
+        scored = [c for c in (self._candidate(path) for path in frames) if c is not None]
+        scored.sort(key=lambda item: -item[0])
+        chosen = scored if every_frame else scored[: self.thresholds.best_shot_top_n]
+
         reads = []
         rectify_method = "none"
         ocr_calls = 0
-
-        # The stored vehicle crop is upscaled for human inspection; the pipeline sees the real
-        # pixels, so the plate box is re-detected here at the crop's own scale.
-        if image is not None and image.size:
-            boxes = [
-                box
-                for box in self.plates.detect(image)
-                if box.w >= self.thresholds.plate_min_width_px
-            ]
-            boxes.sort(key=lambda box: -box.w)
-            # One read in the best-shot strategy, every candidate box in the control arm — the
-            # single-frame analogue of "OCR the best shots" versus "OCR everything".
-            candidates = boxes if every_frame else boxes[:1]
-            for box in candidates:
-                pad_x = int(box.w * self.thresholds.crop_pad_ratio * 2)
-                pad_y = int(box.h * self.thresholds.crop_pad_ratio * 2)
-                x0 = max(0, int(box.x) - pad_x)
-                y0 = max(0, int(box.y) - pad_y)
-                x1 = min(image.shape[1], int(box.x + box.w) + pad_x)
-                y1 = min(image.shape[0], int(box.y + box.h) + pad_y)
-                crop = image[y0:y1, x0:x1]
-                if crop.size == 0:
-                    continue
-                rectified = rectify(crop, self.thresholds)
-                rectify_method = rectified.method
-                read = self.ocr.read(rectified.image)
-                ocr_calls += 1
-                if read is not None:
-                    reads.append(read)
+        for _score, crop in chosen:
+            rectified = rectify(
+                crop, self.thresholds, getattr(self.ocr, "preferred_interpolation", None)
+            )
+            rectify_method = rectified.method
+            read = self.ocr.read(rectified.image)
+            ocr_calls += 1
+            if read is not None:
+                reads.append(read)
 
         voted = vote_reads(reads)
         if voted is not None and voted.confidence < self.thresholds.ocr_conf_min:
@@ -252,6 +264,7 @@ class InstanceRunner:
             stratum=instance.stratum,
             vehicle_class=instance.vehicle_class,
             plate_width_px=instance.plate_width_px,
+            pass_frames=len(frames),
             legible=legible,
             label=instance.label,
             read=text,
@@ -307,8 +320,38 @@ def evaluate(
         "instances_labelled": len(labelled),
         "wall_s": round(elapsed, 1),
         "buckets": {name: b.as_dict() for name, b in sorted(buckets.items())},
+        "confidence_floors": confidence_floor_sweep(outcomes),
         "outcomes": [vars(o) for o in outcomes],
     }
+
+
+#: Floors the sweep reports. `SAAKSHI_OCR_CONF_MIN` is the knob they inform.
+CONFIDENCE_FLOORS = (0.0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+
+
+def confidence_floor_sweep(outcomes: list[Outcome]) -> list[dict]:
+    """Precision and recall as the confidence floor rises.
+
+    The row that matters for a police system is not the one with the best F1. **A wrong plate read
+    is a false watchlist hit against an innocent vehicle**, so precision is worth more than recall
+    here, and this table is what lets `SAAKSHI_OCR_CONF_MIN` be set from data rather than from
+    taste — by D2-04, which owns fuzzy matching, and by whoever tunes a live deployment.
+    """
+    rows: list[dict] = []
+    legible = sum(1 for o in outcomes if o.legible)
+    for floor in CONFIDENCE_FLOORS:
+        kept = [o for o in outcomes if o.read is not None and (o.confidence or 0.0) >= floor]
+        correct = sum(1 for o in kept if o.correct)
+        rows.append(
+            {
+                "floor": floor,
+                "reads": len(kept),
+                "correct": correct,
+                "precision": _round(correct / len(kept)) if kept else None,
+                "recall": _round(correct / legible) if legible else None,
+            }
+        )
+    return rows
 
 
 # ── rendering ───────────────────────────────────────────────────────────────────────────────────
@@ -359,6 +402,16 @@ def render(result: dict) -> str:
             f"{_pct(row['detection_recall']):>9}{_pct(row['read_recall']):>10}"
             f"{_pct(row['precision']):>8}{_pct(row['f1']):>8}"
             f"{_pct(row['character_accuracy']):>10}{row['ocr_calls']:>6}"
+        )
+
+    lines.append("")
+    lines.append("  precision / recall as the confidence floor rises")
+    lines.append(f"  {'floor':<9}{'reads':>7}{'correct':>9}{'precision':>11}{'recall':>9}")
+    lines.append("  " + "-" * 43)
+    for row in result["confidence_floors"]:
+        lines.append(
+            f"  {row['floor']:<9.2f}{row['reads']:>7}{row['correct']:>9}"
+            f"{_pct(row['precision']):>11}{_pct(row['recall']):>9}"
         )
 
     lines.append("")

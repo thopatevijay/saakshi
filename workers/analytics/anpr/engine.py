@@ -280,7 +280,13 @@ class AnprEngine:
         )
 
     def _read_candidate(self, candidate: PlateCandidate) -> OcrRead | None:
-        rectified = rectify(candidate.crop, self.thresholds)
+        # The backend picks the resampling. It is the one preprocessing choice that is not
+        # generic across recognisers — see `rectify._interpolation`.
+        rectified = rectify(
+            candidate.crop,
+            self.thresholds,
+            getattr(self.ocr, "preferred_interpolation", None),
+        )
         self.stats.note_rectify(rectified.method)
         read = self.ocr.read(rectified.image)
         self.stats.ocr_calls += 1
