@@ -1,0 +1,54 @@
+{
+  "$comment": "D3-09 · real provider responses, recorded by `npm run demo:provider-swap -- --all --record`. Replayed offline by query-compiler.test.ts so the parse-and-validate path is exercised against genuine model output with no network and no credential.",
+  "recordedAt": "2026-09-05T15:53:27.131Z",
+  "transcripts": {
+    "plate-exact": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": {\n      \"pattern\": \"GJ01AB1234\",\n      \"mode\": \"exact\",\n      \"maxDistance\": 0\n    },\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "plate-partial": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": {\n      \"pattern\": \"GJ01AB\",\n      \"mode\": \"prefix\",\n      \"maxDistance\": 2\n    },\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "plate-unclear": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": {\n      \"pattern\": \"GJ32DD10\",\n      \"mode\": \"fuzzy\",\n      \"maxDistance\": 2\n    },\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "colour-class": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [\"car\"],\n    \"colours\": [\"white\"],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "body-type-is-car": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [\"car\"],\n    \"colours\": [\"white\"],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "two-wheelers": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [\"motorcycle\"],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [\"cam05\"],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": \"2026-09-04T23:00:00.000Z\",\n      \"to\": \"2026-09-05T00:00:00.000Z\"\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "time-window": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": \"2026-09-04T02:00:00.000Z\",\n      \"to\": \"2026-09-04T04:00:00.000Z\"\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "camera-named": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"cameras\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [\"cam01\", \"cam05\"],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "district": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [\"truck\"],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [\"Gandhinagar\"],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "landmark-not-in-catalogue": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": \"Adalaj stepwell\",\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "radius": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": \"23.0225, 72.5714\",\n      \"radius\": {\"lat\": 23.0225, \"lon\": 72.5714, \"metres\": 500}\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "sequence-camera": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [\"cam01\", \"cam05\"],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": \"2026-09-05T08:30:00.000Z\",\n      \"to\": \"2026-09-05T09:00:00.000Z\"\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": {\"place\": {\"cameraExternalIds\": [\"cam01\"], \"districts\": [], \"nearName\": null, \"radius\": null}, \"withinMinutes\": 30},\n  \"limit\": 100\n}"
+    },
+    "entity-cameras": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"cameras\",\n  \"filters\": {\n    \"plate\": {\n      \"pattern\": \"GJ01AB1234\",\n      \"mode\": \"exact\",\n      \"maxDistance\": 0\n    },\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "confidence-floor": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0.8,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "best-shot": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [\"cam05\"],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": true\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    },
+    "unanswerable": {
+      "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": null,\n    \"classes\": [\"car\"],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"
+    }
+  }
+}

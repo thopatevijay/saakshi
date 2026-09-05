@@ -60,7 +60,8 @@ export async function postJson(
   } catch (error) {
     // A timeout arrives as an AbortError, and it is worth separating: it is the failure a busy
     // control room actually hits, and the remedy (a smaller model, a longer budget) is specific.
-    const aborted = error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError');
+    const aborted =
+      error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError');
     throw new ProviderHttpError(
       aborted ? `no response within ${options.timeoutMs} ms` : describe(error),
       null,
@@ -82,9 +83,13 @@ export async function postJson(
   }
 
   try {
-    return (await response.json()) as unknown;
+    return await response.json();
   } catch {
-    throw new ProviderHttpError('provider returned a body that is not JSON', response.status, 'malformed');
+    throw new ProviderHttpError(
+      'provider returned a body that is not JSON',
+      response.status,
+      'malformed',
+    );
   }
 }
 

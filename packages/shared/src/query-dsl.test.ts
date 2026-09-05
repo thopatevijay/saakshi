@@ -108,6 +108,27 @@ describe('QueryDSL', () => {
     expect(QueryDSL.safeParse(dsl).success).toBe(false);
   });
 
+  it('drops an empty name entry, and only an empty one', () => {
+    // Measured: a local 7B writes `districts: [""]` to mean "no district constraint", because the
+    // schema demands the property be present. There is one reading of that, and keeping it would
+    // filter on `district = ''` — a phantom constraint that returns nothing and says nothing.
+    const dsl = valid() as { filters: { place: Record<string, unknown> } };
+    dsl.filters.place['districts'] = ['', '  ', 'Ahmedabad'];
+    dsl.filters.place['cameraExternalIds'] = [''];
+    const result = QueryDSL.safeParse(dsl);
+    expect(result.success).toBe(true);
+    expect(result.data?.filters.place.districts).toEqual(['Ahmedabad']);
+    expect(result.data?.filters.place.cameraExternalIds).toEqual([]);
+  });
+
+  it('does not correct a name that is merely wrong', () => {
+    // The line: an empty string is a non-value and is dropped; a wrong value is kept verbatim and
+    // reported back to the officer as unrecognised. Correcting it would be guessing at intent.
+    const dsl = valid() as { filters: { place: Record<string, unknown> } };
+    dsl.filters.place['districts'] = ['Sector 18'];
+    expect(QueryDSL.safeParse(dsl).data?.filters.place.districts).toEqual(['Sector 18']);
+  });
+
   it('recognises the filter that constrains nothing', () => {
     expect(isUnconstrained(EMPTY_QUERY_DSL)).toBe(true);
     const narrowed = structuredClone(EMPTY_QUERY_DSL);
@@ -154,7 +175,9 @@ describe('queryDslJsonSchema — derived, never hand-maintained', () => {
     // reach the model as a description — a silently ignored keyword reads as protection and is not.
     const plate = (
       (queryDslJsonSchema() as { properties: { filters: { properties: Record<string, unknown> } } })
-        .properties.filters.properties['plate'] as { anyOf: { properties?: Record<string, { description?: string }> }[] }
+        .properties.filters.properties['plate'] as {
+        anyOf: { properties?: Record<string, { description?: string }> }[];
+      }
     ).anyOf[0];
     expect(plate?.properties?.['pattern']?.description).toContain('^[A-Z0-9?*]+$');
     expect(plate?.properties?.['maxDistance']?.description).toContain('at most 2');
@@ -181,7 +204,11 @@ describe('queryDslJsonSchema — derived, never hand-maintained', () => {
 
   it('refuses an object that a provider would be free to extend', () => {
     expect(() =>
-      assertStrictSubset({ type: 'object', properties: { a: { type: 'string' } }, required: ['a'] }),
+      assertStrictSubset({
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        required: ['a'],
+      }),
     ).toThrow(StrictSchemaError);
   });
 

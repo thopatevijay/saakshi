@@ -4107,6 +4107,361 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/query/compile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compile a plain-English question into an editable filter. Runs nothing.
+         * @description The model emits a constrained filter, never prose and never data. The filter is returned for the officer to review and edit; `POST /api/v1/query/run` is what executes it. A compiler that is unconfigured or failing returns `ok: false` with a message and `degradeTo: "manual_filter"` — never an error, never a silent empty result.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        text: string;
+                        purpose: string;
+                        case_ref?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ok: boolean;
+                            /** @enum {string} */
+                            provider: "openai" | "anthropic" | "ollama" | "none";
+                            model: string | null;
+                            dsl: {
+                                /** @enum {number} */
+                                version: 1;
+                                /** @enum {string} */
+                                entity: "sightings" | "cameras";
+                                filters: {
+                                    plate: {
+                                        pattern: string;
+                                        /** @enum {string} */
+                                        mode: "exact" | "fuzzy" | "prefix";
+                                        maxDistance: number;
+                                    } | null;
+                                    classes: ("car" | "motorcycle" | "bus" | "truck" | "auto_rickshaw" | "bicycle" | "person" | "unknown")[];
+                                    colours: ("white" | "black" | "silver" | "grey" | "red" | "blue" | "green" | "yellow" | "orange" | "brown" | "unknown")[];
+                                    place: {
+                                        cameraExternalIds: string[];
+                                        districts: string[];
+                                        nearName: string | null;
+                                        radius: {
+                                            lat: number;
+                                            lon: number;
+                                            metres: number;
+                                        } | null;
+                                    };
+                                    time: {
+                                        /** Format: date-time */
+                                        from: string | null;
+                                        /** Format: date-time */
+                                        to: string | null;
+                                    };
+                                    minConfidence: number;
+                                    bestShotOnly: boolean;
+                                };
+                                sequence: {
+                                    place: {
+                                        cameraExternalIds: string[];
+                                        districts: string[];
+                                        nearName: string | null;
+                                        radius: {
+                                            lat: number;
+                                            lon: number;
+                                            metres: number;
+                                        } | null;
+                                    };
+                                    withinMinutes: number;
+                                } | null;
+                                limit: number;
+                            } | null;
+                            summary: string[];
+                            unconstrained: boolean;
+                            /** @enum {string|null} */
+                            reason: "not_configured" | "provider_error" | "schema_rejected" | "not_understood" | null;
+                            message: string | null;
+                            issues: string[];
+                            /** @enum {string|null} */
+                            degradeTo: "manual_filter" | null;
+                            tookMs: number;
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/query/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run a filter. Takes a filter only — there is no natural-language input here.
+         * @description The filter is held to the same schema whether a model wrote it or an officer edited it. It executes inside a read-only transaction against a fully parameterised query; no model output is ever interpolated into SQL. An empty result is a 200 with an `emptyReason`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        dsl: {
+                            /** @enum {number} */
+                            version: 1;
+                            /** @enum {string} */
+                            entity: "sightings" | "cameras";
+                            filters: {
+                                plate: {
+                                    pattern: string;
+                                    /** @enum {string} */
+                                    mode: "exact" | "fuzzy" | "prefix";
+                                    maxDistance: number;
+                                } | null;
+                                classes: ("car" | "motorcycle" | "bus" | "truck" | "auto_rickshaw" | "bicycle" | "person" | "unknown")[];
+                                colours: ("white" | "black" | "silver" | "grey" | "red" | "blue" | "green" | "yellow" | "orange" | "brown" | "unknown")[];
+                                place: {
+                                    cameraExternalIds: string[];
+                                    districts: string[];
+                                    nearName: string | null;
+                                    radius: {
+                                        lat: number;
+                                        lon: number;
+                                        metres: number;
+                                    } | null;
+                                };
+                                time: {
+                                    /** Format: date-time */
+                                    from: string | null;
+                                    /** Format: date-time */
+                                    to: string | null;
+                                };
+                                minConfidence: number;
+                                bestShotOnly: boolean;
+                            };
+                            sequence: {
+                                place: {
+                                    cameraExternalIds: string[];
+                                    districts: string[];
+                                    nearName: string | null;
+                                    radius: {
+                                        lat: number;
+                                        lon: number;
+                                        metres: number;
+                                    } | null;
+                                };
+                                withinMinutes: number;
+                            } | null;
+                            limit: number;
+                        };
+                        purpose: string;
+                        case_ref?: string;
+                        text?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            entity: "sightings" | "cameras";
+                            sightings: {
+                                sightingId: string;
+                                ts: string;
+                                framePtsMs: number;
+                                trackId: number;
+                                cameraId: string;
+                                cameraExternalId: string;
+                                cameraName: string;
+                                district: string | null;
+                                lat: number | null;
+                                lon: number | null;
+                                class: string;
+                                detConfidence: number;
+                                vehicleColor: string | null;
+                                isBestShot: boolean;
+                                cropUri: string | null;
+                                plateNormalized: string | null;
+                                plateRawText: string | null;
+                                ocrConfidence: number | null;
+                            }[];
+                            cameras: {
+                                cameraId: string;
+                                cameraExternalId: string;
+                                cameraName: string;
+                                district: string | null;
+                                lat: number | null;
+                                lon: number | null;
+                                sightingCount: number;
+                                firstSeen: string;
+                                lastSeen: string;
+                            }[];
+                            resolvedPlates: {
+                                plate: string;
+                                distance: number;
+                                /** @enum {string} */
+                                matchType: "exact" | "fuzzy";
+                            }[];
+                            unknownCameras: string[];
+                            unknownDistricts: string[];
+                            rowCount: number;
+                            /** @enum {string|null} */
+                            emptyReason: "plate_not_searchable" | "no_matching_plate" | "unknown_camera" | "no_rows" | null;
+                            sqlPreview: string;
+                            tookMs: number;
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/streams/{id}/manifest": {
         parameters: {
             query?: never;

@@ -27,7 +27,7 @@
 import { z } from 'zod';
 import { QueryDSL, describeQueryDsl, isUnconstrained } from '@saakshi/shared';
 import type { App } from '../server.js';
-import { authenticate, requireRole, type Principal } from '../auth.js';
+import { authenticate, requireRole } from '../auth.js';
 import type { Db } from '../db/client.js';
 import { ErrorResponse } from './camera-contracts.js';
 import { CaseReference, PurposeStatement } from './audit-contracts.js';
@@ -170,7 +170,12 @@ export function registerQueryRoutes(app: App, options: QueryRouteOptions): void 
           'compiler that is unconfigured or failing returns `ok: false` with a message and ' +
           '`degradeTo: "manual_filter"` — never an error, never a silent empty result.',
         body: CompileRequest,
-        response: { 200: CompileResponse, 400: ErrorResponse, 401: ErrorResponse, 403: ErrorResponse },
+        response: {
+          200: CompileResponse,
+          400: ErrorResponse,
+          401: ErrorResponse,
+          403: ErrorResponse,
+        },
       },
     },
     async (request): Promise<z.infer<typeof CompileResponse>> => {
@@ -181,7 +186,7 @@ export function registerQueryRoutes(app: App, options: QueryRouteOptions): void 
       // Audited whether or not it compiled. An officer typing a registration into the box has
       // searched for that registration in every sense that matters to an auditor, and a compile
       // that failed is still a record of what was asked.
-      await writeAudit(options.db, request.principal as Principal | undefined, {
+      await writeAudit(options.db, request.principal, {
         action: 'query.nl.compile',
         targetType: 'query',
         targetId: outcome.ok ? outcome.dsl.entity : 'rejected',
@@ -191,7 +196,7 @@ export function registerQueryRoutes(app: App, options: QueryRouteOptions): void 
           text: body.text,
           provider: outcome.provider,
           model: outcome.model,
-          dsl: outcome.ok ? (outcome.dsl as unknown as Record<string, unknown>) : null,
+          dsl: outcome.ok ? outcome.dsl : null,
           reason: outcome.ok ? null : outcome.reason,
           issues: outcome.ok ? [] : outcome.issues,
         },
@@ -251,7 +256,7 @@ export function registerQueryRoutes(app: App, options: QueryRouteOptions): void 
       const body = request.body;
       const result = await executor.run(body.dsl);
 
-      await writeAudit(options.db, request.principal as Principal | undefined, {
+      await writeAudit(options.db, request.principal, {
         action: 'query.nl.run',
         targetType: 'query',
         targetId: body.dsl.entity,
@@ -259,7 +264,7 @@ export function registerQueryRoutes(app: App, options: QueryRouteOptions): void 
         caseRef: body.case_ref ?? null,
         params: {
           text: body.text ?? null,
-          dsl: body.dsl as unknown as Record<string, unknown>,
+          dsl: body.dsl,
           summary: describeQueryDsl(body.dsl),
           emptyReason: result.emptyReason,
           unknownCameras: result.unknownCameras,
@@ -292,7 +297,9 @@ export function registerQueryRoutes(app: App, options: QueryRouteOptions): void 
  * question a control room asks names a handful. The console reports a name the estate does not
  * have rather than the model inventing a neighbouring one.
  */
-async function loadVocabulary(db: Db): Promise<{ cameraExternalIds: string[]; districts: string[] }> {
+async function loadVocabulary(
+  db: Db,
+): Promise<{ cameraExternalIds: string[]; districts: string[] }> {
   const rows = (await db.execute<{ external_id: string; district: string | null }>(sql`
     select external_id, district from cameras order by external_id limit 200
   `)) as unknown as { external_id: string; district: string | null }[];

@@ -6,7 +6,6 @@
  * tell which provider it got. There is no `if (provider === 'openai')` anywhere past this file, and
  * that absence is what `npm run demo:provider-swap` demonstrates on stage.
  */
-import type { Env } from '../env.js';
 import { NoneCompiler, type QueryCompiler, type QueryProvider } from './compiler.js';
 import { AnthropicCompiler } from './anthropic.js';
 import { OllamaCompiler } from './ollama.js';
@@ -81,7 +80,7 @@ export interface CompilerFactoryOptions {
  * a vendor-neutrality argument has to be able to answer.
  */
 export function createQueryCompiler(
-  provider: QueryProvider | Env['QUERY_COMPILER'],
+  provider: QueryProvider,
   options: CompilerFactoryOptions = {},
 ): QueryCompiler {
   const secrets = options.secrets ?? providerSecretsFromEnv();

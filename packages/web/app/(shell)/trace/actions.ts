@@ -19,7 +19,14 @@
 import { getSession } from '@/src/lib/session';
 import { apiClient } from '@/src/lib/api/client';
 import { purposeIsStated, toTraceApiQuery, type TraceQueryState } from '@/src/lib/trace/query';
-import type { TraceState } from './types';
+import type { QueryCompileState, QueryRunState, TraceState } from './types';
+import {
+  canCompile,
+  canRun,
+  toCompileRequest,
+  toRunRequest,
+  type ConsoleState,
+} from '@/src/lib/query-console/console';
 
 export async function runTrace(state: TraceQueryState): Promise<TraceState> {
   if (state.plate === '') return { trace: null, error: null, elapsedMs: 0 };
@@ -48,4 +55,60 @@ export async function runTrace(state: TraceQueryState): Promise<TraceState> {
   }
 
   return { trace: data, error: null, elapsedMs: Date.now() - started };
+}
+
+/**
+ * Compile a question into a filter (D3-09). **Runs nothing.**
+ *
+ * A compiler that is unconfigured or failing is not an error here: the payload carries `ok: false`
+ * with a message and `degradeTo: "manual_filter"`, and the console renders that as a state. Only a
+ * transport or authorisation failure is an `error`, because only those are things the officer
+ * cannot simply work around by using the filter below.
+ */
+export async function compileQuestion(state: ConsoleState): Promise<QueryCompileState> {
+  if (!canCompile(state)) return { outcome: null, error: null };
+
+  const session = await getSession();
+  if (session === null) return { outcome: null, error: 'Your session has expired. Sign in again.' };
+
+  const { data, error, response } = await apiClient(session.token).POST('/api/v1/query/compile', {
+    body: toCompileRequest(state),
+  });
+
+  if (error !== undefined || data === undefined) {
+    const message =
+      response.status === 403
+        ? 'Your role may not run investigative queries.'
+        : `The question could not be compiled (HTTP ${String(response.status)}). Use the filters below.`;
+    return { outcome: null, error: message };
+  }
+  return { outcome: data, error: null };
+}
+
+/**
+ * Run a filter (D3-09).
+ *
+ * It sends `state.draft` — the filter as the officer left it after editing — because that is the
+ * one the officer approved. The API would accept no natural-language question here even if this
+ * function tried to send one: `/api/v1/query/run` has no such field.
+ */
+export async function runCompiledQuery(state: ConsoleState): Promise<QueryRunState> {
+  const body = toRunRequest(state);
+  if (body === null || !canRun(state)) return { result: null, error: null };
+
+  const session = await getSession();
+  if (session === null) return { result: null, error: 'Your session has expired. Sign in again.' };
+
+  const { data, error, response } = await apiClient(session.token).POST('/api/v1/query/run', {
+    body,
+  });
+
+  if (error !== undefined || data === undefined) {
+    const message =
+      response.status === 403
+        ? 'Your role may not run investigative queries.'
+        : `The filter could not be run (HTTP ${String(response.status)}).`;
+    return { result: null, error: message };
+  }
+  return { result: data, error: null };
 }

@@ -160,11 +160,18 @@ describe('layer 2 — no model output is ever interpolated into SQL (AC 11)', ()
     // query written by hand in `sql.ts`. A model cannot reach a fifth, and cannot name a table.
     const shapes = new Set<string>();
     for (const entity of ['sightings', 'cameras'] as const) {
-      for (const sequence of [null, FIXTURES.fixtures.find((f) => f.id === 'sequence')?.expected.sequence ?? null]) {
+      for (const sequence of [
+        null,
+        FIXTURES.fixtures.find((f) => f.id === 'sequence')?.expected.sequence ?? null,
+      ]) {
         const dsl = structuredClone(FIXTURES.fixtures[0]?.expected) as Dsl;
         dsl.entity = entity;
         dsl.sequence = sequence;
-        shapes.add(renderQuery(compileQuery(dsl, ['X']).query).text.replace(/\s+/g, ' ').trim());
+        shapes.add(
+          renderQuery(compileQuery(dsl, ['X']).query)
+            .text.replace(/\s+/g, ' ')
+            .trim(),
+        );
       }
     }
     expect(shapes.size).toBeLessThanOrEqual(4);
@@ -172,9 +179,15 @@ describe('layer 2 — no model output is ever interpolated into SQL (AC 11)', ()
       // Each one names only our own tables. No identifier is ever attacker-supplied.
       const tables = [...shape.matchAll(/\b(?:from|join)\s+([a-z_]+)/g)].map((m) => m[1]);
       for (const table of tables) {
-        expect(['sightings', 'cameras', 'plate_reads', 'leg_a', 'leg_b', 'hits', 'paired']).toContain(
-          table,
-        );
+        expect([
+          'sightings',
+          'cameras',
+          'plate_reads',
+          'leg_a',
+          'leg_b',
+          'hits',
+          'paired',
+        ]).toContain(table);
       }
     }
   });
@@ -239,9 +252,7 @@ describe('layer 3 — hostile questions through the real compiler', () => {
     new OllamaCompiler({
       model: 'compromised',
       fetch: () =>
-        Promise.resolve(
-          Response.json({ message: { content: JSON.stringify(payload) } }),
-        ),
+        Promise.resolve(Response.json({ message: { content: JSON.stringify(payload) } })),
     });
 
   for (const prompt of CORPUS.prompts) {

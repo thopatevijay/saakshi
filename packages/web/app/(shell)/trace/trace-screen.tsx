@@ -33,6 +33,7 @@ import {
 } from '@/src/lib/trace/query';
 import { runTrace } from './actions';
 import { EvidenceStrip } from './evidence-strip';
+import { QueryConsole } from './query-console';
 import { RouteSummary } from './route-summary';
 import { TraceTimeline, formatDuration } from './trace-timeline';
 import type { TracePayload, TraceSighting } from './types';
@@ -139,6 +140,14 @@ export function TraceScreen({
           </p>
         ) : null}
       </div>
+
+      {/*
+        D3-09's plain-English box sits above the deterministic filter, not instead of it. With
+        `QUERY_COMPILER=none` it explains itself and steps aside, and what is left is the filter
+        that was always the primary interface — which is exactly the graceful degradation the
+        ticket asks for, reached by placement rather than by a fallback path.
+      */}
+      <QueryConsole purpose={draft.purpose} caseRef={draft.caseRef} />
 
       {/* ── the query ─────────────────────────────────────────────────────────────────────── */}
       <form onSubmit={submit} role="search" className="flex flex-wrap items-end gap-3">

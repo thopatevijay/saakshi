@@ -149,9 +149,7 @@ export function extractText(body: unknown): string | null {
 }
 
 /** Maps a transport failure onto a reason and a sentence an officer can act on. */
-export function classify(
-  error: unknown,
-): ['provider_error', string] | ['schema_rejected', string] {
+export function classify(error: unknown): ['provider_error', string] | ['schema_rejected', string] {
   if (error instanceof SyntaxError) {
     return [
       'schema_rejected',

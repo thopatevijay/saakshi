@@ -50,7 +50,7 @@ function capturingFetch(respond: (body: unknown) => unknown): {
   const fetchImpl: HttpFetch = (url, init) => {
     seen = {
       url,
-      body: JSON.parse(String(init.body)) as Record<string, unknown>,
+      body: JSON.parse(init.body as string) as Record<string, unknown>,
       headers: init.headers as Record<string, string>,
     };
     return Promise.resolve(
@@ -303,7 +303,9 @@ describe('AC 5 — every provider failure degrades, none throws', () => {
       expect(outcome.ok).toBe(false);
       if (outcome.ok) continue;
       expect(outcome.reason).toBe('not_configured');
-      expect(outcome.message).toMatch(provider === 'openai' ? /OPENAI_API_KEY/ : /ANTHROPIC_API_KEY/);
+      expect(outcome.message).toMatch(
+        provider === 'openai' ? /OPENAI_API_KEY/ : /ANTHROPIC_API_KEY/,
+      );
     }
   });
 });

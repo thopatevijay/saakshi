@@ -186,7 +186,9 @@ export class NoneCompiler implements QueryCompiler {
   readonly provider = 'none' as const;
   readonly model = null;
 
-  compile(): Promise<CompileOutcome> {
+  // Takes the input it will not use, so the class satisfies `QueryCompiler` at the call site as
+  // well as structurally — a caller holding a `NoneCompiler` directly should not have to know.
+  compile(_input: CompileInput): Promise<CompileOutcome> {
     return Promise.resolve(
       fail('none', null, 'not_configured', NOT_CONFIGURED_MESSAGE, Date.now()),
     );
@@ -221,10 +223,16 @@ export function systemPrompt(input: CompileInput): string {
     'Rules:',
     '- Emit only the filter object. Every property must be present; use null or [] for "no constraint".',
     '',
-    '- **Never invent a constraint the officer did not state.** This is the most important rule. If',
-    '  they did not name a registration, plate MUST be null. If they did not state a confidence,',
-    '  minConfidence MUST be 0. An invented constraint silently hides the sightings the officer was',
-    '  looking for, and they cannot tell that it did.',
+    '- **Never invent a constraint the officer did not state.** This is the most important rule.',
+    '  An invented constraint silently hides the sightings the officer was looking for, and they',
+    '  cannot tell that it did. Concretely, unless the officer said so:',
+    '    plate = null · classes = [] · colours = [] · minConfidence = 0 · bestShotOnly = false',
+    '    cameraExternalIds = [] · districts = [] · nearName = null · radius = null',
+    '    time.from = null · time.to = null · sequence = null · limit = 100',
+    '  "Show me everything" is every one of those. Listing every camera in the vocabulary is NOT the',
+    '  same as no camera constraint — leave the list empty.',
+    '  A question this system cannot answer at all (who was driving, what were they wearing — there',
+    '  is no face recognition and no biometric processing here) is also every one of those.',
     '',
     '- plate.pattern is a literal registration or the start of one — letters and digits only, e.g.',
     '  GJ01AB1234 or GJ01AB. It is NOT a regular expression and NOT a description. If you cannot',
@@ -232,13 +240,26 @@ export function systemPrompt(input: CompileInput): string {
     '- Use mode "exact" for a complete registration, "prefix" when the officer gives only the start of',
     '  one, and "fuzzy" when they say the read was unclear or partial. maxDistance may never exceed 2.',
     '',
-    '- Vehicle body descriptions ("hatchback", "sedan", "SUV") are cars: use classes ["car"]. Colours',
-    '  must come from the colour list; a colour that is not in it is no colour constraint at all.',
+    '- classes is [] unless the officer NAMES a vehicle type. "Show me every sighting of GJ01AB1234"',
+    '  has no vehicle type in it, so classes is []. Do not default to ["car"] — that would hide every',
+    '  motorcycle, truck and rickshaw the officer was asking about. Body descriptions ("hatchback",',
+    '  "sedan", "SUV") do name a type, and that type is "car".',
+    '- Colours must come from the colour list; a colour that is not in it is no colour constraint.',
+    '',
+    'Worked example — "Show me every sighting of GJ01AB1234":',
+    '  plate {pattern GJ01AB1234, mode exact, maxDistance 0} · classes [] · colours []',
+    '  cameraExternalIds [] · districts [] · nearName null · radius null',
+    '  time {from null, to null} · minConfidence 0 · bestShotOnly false · sequence null · limit 100',
+    '  Note how much of that is empty. That is correct: the officer named one thing, so exactly one',
+    '  constraint is set.',
+    '',
     '- Use only camera ids and districts from the vocabulary below. If the officer names a place that',
     '  is not in it, put it in place.nearName instead of guessing a camera or a district.',
     '- "then later near X", "and afterwards seen at Y" is the sequence field, not a second filter.',
     '- entity is "sightings" for "which vehicles / show me vehicles", and "cameras" only for "which',
     '  cameras / where was it seen".',
+    '- limit is 100 unless the officer asked for a specific number of results. It may not exceed 500.',
+    '- A coordinate pair is a radius, not a place name: put it in place.radius and leave nearName null.',
     '- If the question cannot be expressed with these fields, return the filter with every constraint',
     '  empty rather than inventing constraints that were not asked for.',
   ];

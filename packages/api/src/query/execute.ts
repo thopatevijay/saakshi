@@ -69,10 +69,7 @@ export interface QueryCameraRow {
  * — which is the one an officer can fix by rephrasing.
  */
 export type QueryEmptyReason =
-  | 'plate_not_searchable'
-  | 'no_matching_plate'
-  | 'unknown_camera'
-  | 'no_rows';
+  'plate_not_searchable' | 'no_matching_plate' | 'unknown_camera' | 'no_rows';
 
 export interface QueryRunResult {
   entity: 'sightings' | 'cameras';
@@ -113,11 +110,15 @@ export class QueryExecutor {
 
     const resolution = await this.resolvePlates(dsl);
     const { unknownCameras, unknownDistricts } = await this.unknownNames(dsl);
-    const compiled = compileQuery(dsl, resolution.plates.map((p) => p.plate));
+    const compiled = compileQuery(
+      dsl,
+      resolution.plates.map((p) => p.plate),
+    );
 
     const rows = await this.readOnly(compiled.query);
 
-    const sightings = dsl.entity === 'sightings' || dsl.sequence !== null ? rows.map(toSighting) : [];
+    const sightings =
+      dsl.entity === 'sightings' || dsl.sequence !== null ? rows.map(toSighting) : [];
     const cameras = dsl.entity === 'cameras' && dsl.sequence === null ? rows.map(toCamera) : [];
     const rowCount = sightings.length + cameras.length;
 
@@ -150,7 +151,7 @@ export class QueryExecutor {
   private async readOnly(query: ReturnType<typeof compileQuery>['query']): Promise<QueryRow[]> {
     return this.db.transaction(async (tx) => {
       await tx.execute(sql`set transaction read only`);
-      return (await tx.execute<QueryRow>(query)) as unknown as QueryRow[];
+      return await tx.execute<QueryRow>(query);
     });
   }
 
@@ -311,9 +312,10 @@ function toSighting(row: QueryRow): QuerySightingRow {
     cropUri: row.crop_uri ?? null,
     plateNormalized: row.plate_normalized ?? null,
     plateRawText: row.plate_raw_text ?? null,
-    ocrConfidence: row.ocr_confidence === null || row.ocr_confidence === undefined
-      ? null
-      : Number(row.ocr_confidence),
+    ocrConfidence:
+      row.ocr_confidence === null || row.ocr_confidence === undefined
+        ? null
+        : Number(row.ocr_confidence),
   };
 }
 
@@ -350,7 +352,5 @@ function iso(value: string | Date | undefined): string {
  * form of "the model's output never became SQL".
  */
 export function previewOf(query: ReturnType<typeof compileQuery>['query']): string {
-  return renderQuery(query)
-    .text.replace(/\s+/g, ' ')
-    .trim();
+  return renderQuery(query).text.replace(/\s+/g, ' ').trim();
 }

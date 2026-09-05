@@ -47,5 +47,7 @@ export function loadNlQueryFixtures(): NlQueryFixtures {
 }
 
 export function loadInjectionCorpus(): InjectionCorpus {
-  return JSON.parse(readFileSync(fixturePath('nl-query-injections.json'), 'utf8')) as InjectionCorpus;
+  return JSON.parse(
+    readFileSync(fixturePath('nl-query-injections.json'), 'utf8'),
+  ) as InjectionCorpus;
 }

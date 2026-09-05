@@ -129,12 +129,53 @@ export type PlateFilter = z.infer<typeof PlateFilter>;
  * compiler, against the real catalogue, where a name that does not exist becomes an honest
  * "no such camera" rather than a filter that silently matches nothing.
  */
+/**
+ * A list of names, with empty entries dropped before validation.
+ *
+ * **This is the one normalisation the DSL performs, and the line it does not cross is worth being
+ * precise about.** It is not a repair of an invalid value — it is the removal of a *non-value*. A
+ * model asked for a closed object with every property present routinely writes `districts: [""]`
+ * to mean "no district constraint"; that was measured, on the first live run of a local 7B against
+ * the estate. There is exactly one reading of an empty string in a list of names, so dropping it
+ * involves no guess about intent.
+ *
+ * Keeping it would be actively worse than rejecting it: `district = ''` matches no camera, so the
+ * filter would run, return nothing, and give no indication that a phantom constraint was the
+ * reason. A silent wrong answer is the failure mode this whole ticket is arranged against.
+ *
+ * Note what is *not* normalised: a district that is merely wrong (`Sector 18`, where the estate has
+ * no such district) is kept exactly as written and reported back to the officer as unrecognised by
+ * `QueryExecutor.unknownNames`. Correcting that would be guessing.
+ */
+const NameList = (max: number) =>
+  z.preprocess(
+    (value) =>
+      Array.isArray(value)
+        ? value.filter((item) => typeof item !== 'string' || item.trim() !== '')
+        : value,
+    z.array(z.string().trim().min(1).max(64)).max(max),
+  );
+
+/**
+ * The same rule for a nullable name: `""` means `null`.
+ *
+ * Also measured on the first live run. A model told every property must be present writes the empty
+ * string where it means "nothing", and for the identical reason: `null` and `""` are two spellings
+ * of one idea, and only one of them is in the schema. Treating them as different would reject a
+ * filter that is correct in every respect.
+ */
+const NullableName = (max: number) =>
+  z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+    z.string().trim().min(1).max(max).nullable(),
+  );
+
 export const PlaceFilter = z
   .object({
-    cameraExternalIds: z.array(z.string().trim().min(1).max(64)).max(50),
-    districts: z.array(z.string().trim().min(1).max(64)).max(20),
+    cameraExternalIds: NameList(50),
+    districts: NameList(20),
     /** Free-text fragment matched against camera name and address — a landmark, e.g. "Adalaj". */
-    nearName: z.string().trim().min(1).max(80).nullable(),
+    nearName: NullableName(80),
     /** A true geographic radius, in metres, resolved by PostGIS against `cameras.location`. */
     radius: z
       .object({
@@ -306,7 +347,8 @@ export function describeQueryDsl(dsl: QueryDSL): string[] {
 
 function describePlace(place: PlaceFilter): string[] {
   const out: string[] = [];
-  if (place.cameraExternalIds.length > 0) out.push(`at camera ${place.cameraExternalIds.join(', ')}`);
+  if (place.cameraExternalIds.length > 0)
+    out.push(`at camera ${place.cameraExternalIds.join(', ')}`);
   if (place.districts.length > 0) out.push(`in district ${place.districts.join(', ')}`);
   if (place.nearName !== null) out.push(`near "${place.nearName}"`);
   if (place.radius !== null) {

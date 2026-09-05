@@ -27,7 +27,8 @@
     "demo:alerts": "tsx src/demo/alert-fixtures.ts",
     "audit:verify": "tsx src/jobs/audit-verify.ts",
     "export:bundle": "tsx src/jobs/export-bundle-cli.ts",
-    "export:verify": "tsx src/jobs/export-verify.ts"
+    "export:verify": "tsx src/jobs/export-verify.ts",
+    "demo:provider-swap": "tsx src/demo/provider-swap.ts"
   },
   "dependencies": {
     "@fastify/jwt": "^10.2.2",

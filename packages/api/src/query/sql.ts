@@ -315,7 +315,9 @@ function placeClause(place: PlaceFilter, alias: 'c' | 'cb' | 'ca'): SQL {
   }
   if (place.nearName !== null) {
     const pattern = `%${place.nearName}%`;
-    parts.push(sql` and (${c}.name ilike ${pattern} or coalesce(${c}.address, '') ilike ${pattern})`);
+    parts.push(
+      sql` and (${c}.name ilike ${pattern} or coalesce(${c}.address, '') ilike ${pattern})`,
+    );
   }
   if (place.radius !== null) {
     // PostGIS `geography` gives metres directly — the reason `cameras.location` is geography rather

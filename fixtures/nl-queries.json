@@ -2,17 +2,8 @@
   "$comment": "D3-09 · natural-language query fixtures. `now` anchors every relative expression so a run is reproducible. `expected` is the filter a correct compile produces; docs/nl-query.md carries the measured per-provider match rate, including where it fails.",
   "now": "2026-09-05T09:00:00.000Z",
   "vocabulary": {
-    "cameraExternalIds": [
-      "cam01",
-      "cam02",
-      "cam03",
-      "cam04",
-      "cam05"
-    ],
-    "districts": [
-      "Ahmedabad",
-      "Gandhinagar"
-    ]
+    "cameraExternalIds": ["cam01", "cam02", "cam03", "cam04", "cam05"],
+    "districts": ["Ahmedabad", "Gandhinagar"]
   },
   "fixtures": [
     {
@@ -120,12 +111,8 @@
         "entity": "sightings",
         "filters": {
           "plate": null,
-          "classes": [
-            "car"
-          ],
-          "colours": [
-            "white"
-          ],
+          "classes": ["car"],
+          "colours": ["white"],
           "place": {
             "cameraExternalIds": [],
             "districts": [],
@@ -152,12 +139,8 @@
         "entity": "sightings",
         "filters": {
           "plate": null,
-          "classes": [
-            "car"
-          ],
-          "colours": [
-            "white"
-          ],
+          "classes": ["car"],
+          "colours": ["white"],
           "place": {
             "cameraExternalIds": [],
             "districts": [],
@@ -184,14 +167,10 @@
         "entity": "sightings",
         "filters": {
           "plate": null,
-          "classes": [
-            "motorcycle"
-          ],
+          "classes": ["motorcycle"],
           "colours": [],
           "place": {
-            "cameraExternalIds": [
-              "cam05"
-            ],
+            "cameraExternalIds": ["cam05"],
             "districts": [],
             "nearName": null,
             "radius": null
@@ -247,10 +226,7 @@
           "classes": [],
           "colours": [],
           "place": {
-            "cameraExternalIds": [
-              "cam01",
-              "cam05"
-            ],
+            "cameraExternalIds": ["cam01", "cam05"],
             "districts": [],
             "nearName": null,
             "radius": null
@@ -275,15 +251,11 @@
         "entity": "sightings",
         "filters": {
           "plate": null,
-          "classes": [
-            "truck"
-          ],
+          "classes": ["truck"],
           "colours": [],
           "place": {
             "cameraExternalIds": [],
-            "districts": [
-              "Gandhinagar"
-            ],
+            "districts": ["Gandhinagar"],
             "nearName": null,
             "radius": null
           },
@@ -367,16 +339,10 @@
         "entity": "sightings",
         "filters": {
           "plate": null,
-          "classes": [
-            "car"
-          ],
-          "colours": [
-            "white"
-          ],
+          "classes": ["car"],
+          "colours": ["white"],
           "place": {
-            "cameraExternalIds": [
-              "cam01"
-            ],
+            "cameraExternalIds": ["cam01"],
             "districts": [],
             "nearName": null,
             "radius": null
@@ -412,9 +378,7 @@
           "classes": [],
           "colours": [],
           "place": {
-            "cameraExternalIds": [
-              "cam01"
-            ],
+            "cameraExternalIds": ["cam01"],
             "districts": [],
             "nearName": null,
             "radius": null
@@ -428,9 +392,7 @@
         },
         "sequence": {
           "place": {
-            "cameraExternalIds": [
-              "cam05"
-            ],
+            "cameraExternalIds": ["cam05"],
             "districts": [],
             "nearName": null,
             "radius": null
@@ -512,9 +474,7 @@
           "classes": [],
           "colours": [],
           "place": {
-            "cameraExternalIds": [
-              "cam05"
-            ],
+            "cameraExternalIds": ["cam05"],
             "districts": [],
             "nearName": null,
             "radius": null
