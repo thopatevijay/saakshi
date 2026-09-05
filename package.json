@@ -26,6 +26,7 @@
     "db:reset": "npm run db --workspace @saakshi/api -- reset",
     "db:status": "npm run db --workspace @saakshi/api -- status",
     "bench:api": "npm run bench:api --workspace @saakshi/api",
+    "bench:plate-search": "npm run bench:plate-search --workspace @saakshi/api",
     "adapter:probe": "npm run adapter:probe --workspace @saakshi/api --",
     "sync:catalogue": "npm run sync:catalogue --workspace @saakshi/api --",
     "trust:recompute": "npm run trust:recompute --workspace @saakshi/api --",

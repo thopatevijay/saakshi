@@ -357,7 +357,13 @@ describe('GET /api/v1/watchlist/lookup/vehicle/:plate', () => {
       .json<{ hits: { plateNormalized: string; matchType: string; matchDistance: number }[] }>()
       .hits.find((h) => h.plateNormalized === 'GJ35U0779');
     expect(hit?.matchType).toBe('fuzzy');
-    expect(hit?.matchDistance).toBe(2);
+    // Was `toBe(2)` — plain levenshtein's answer. D2-04 (#18) registered the confusion-aware metric
+    // through this module's own `PlateMatcher` seam, and under it two truncated characters cost
+    // 0.70 rather than 2. The capability this test protects is unchanged and still asserted above:
+    // the truncated string cam07 emitted recovers the real registration as a fuzzy hit. The unit it
+    // is measured in is not. `docs/fuzzy-matching.md` §2 and §10.
+    expect(hit?.matchDistance).toBeGreaterThan(0);
+    expect(hit?.matchDistance).toBeLessThan(1);
   });
 
   it('matches a measured ANPR output string exactly — the other live alert path', async () => {

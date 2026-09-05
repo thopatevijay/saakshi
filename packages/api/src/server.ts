@@ -24,6 +24,7 @@ import { registerSyncRoutes } from './routes/sync.js';
 import { registerTrustRoutes } from './routes/trust.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerWatchlistRoutes } from './routes/watchlist.js';
+import { registerPlateRoutes } from './routes/plates.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -130,6 +131,13 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'providers are mocks — there is no live VAHAN / SARTHI / eGujCop / AFIS / NAFIS ' +
             'connectivity, and no biometric data is processed anywhere in SAAKSHI.',
         },
+        {
+          name: 'plates',
+          description:
+            'Confusion-aware fuzzy plate search over sightings. Candidates are ranked ' +
+            'possibilities, never identifications — docs/fuzzy-matching.md carries the measured ' +
+            'precision and recall.',
+        },
         { name: 'health', description: 'Liveness' },
         { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
@@ -161,6 +169,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerTrustRoutes(app, { db });
     registerAuthRoutes(app, { db });
     registerWatchlistRoutes(app, { db });
+    registerPlateRoutes(app, { db });
   }
 
   return app;

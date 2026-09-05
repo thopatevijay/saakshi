@@ -11,6 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "db": "tsx src/db/migrate.ts",
     "bench:api": "tsx src/bench/api.ts",
+    "bench:plate-search": "tsx src/bench/plate-search.ts",
     "test": "vitest run --root ../..",
     "adapter:probe": "tsx src/adapters/probe-cli.ts",
     "sync:catalogue": "tsx src/jobs/catalogue-sync-cli.ts",

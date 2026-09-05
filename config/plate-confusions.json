@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "description": "Character-confusion matrix and cost model for SAAKSHI's weighted plate edit distance (D2-04). Config, not code: this file is read from disk at runtime, so changing a cost changes ranking with no rebuild. Every pair carries its own provenance — nothing here is a guess about Indian plates in general, it is what this estate was measured to do plus what is directly derivable from the D2-03 correction maps.",
+  "sources": {
+    "measured": "D2-01 (#15) / D2-05 (#19) — confusions observed on the sandbox estate's own output. n is small (3 human-legible plates over 120 hand-labelled vehicle instances); docs/anpr-accuracy.md carries the denominators.",
+    "derived-cross-class": "packages/shared/src/plate/grammar.ts ALPHA_TO_DIGIT / DIGIT_TO_ALPHA (D2-03, #17), including each entry's `alternatives`. A glyph pair the corrector is willing to repair is a glyph pair the search must be willing to cross.",
+    "derived-alpha-bridge": "Two letters are confusable with each other when ALPHA_TO_DIGIT maps them (or their alternatives) to the same digit — they are the same shape by transitivity. This is how the alpha-to-alpha confusions get modelled at all: they never change a character's class, so D2-03's slot-aware corrector is structurally blind to them.",
+    "closure": "C and E are both measured as read `F`, so they are confusable with each other."
+  },
+  "notModelled": {
+    "digitToDigit": "No digit-to-digit pair is modelled. None was measured on this estate and none is derivable from the correction maps (no two digits share a letter in DIGIT_TO_ALPHA). 1/7 and 5/6 are plausible on other estates; they are absent here because inventing them would be an accuracy claim without a measurement. This is a known gap, stated in docs/fuzzy-matching.md."
+  },
+  "costs": {
+    "substitution": 1.0,
+    "indel": 1.0,
+    "measured": 0.25,
+    "derived": 0.45,
+    "truncationTail": 0.35,
+    "stateCrossClass": 2.5
+  },
+  "tailAllowance": 2,
+  "trigramThreshold": 0.3,
+  "trigramThresholdNote": "pg_trgm similarity floor for candidate generation. Measured, not chosen: the tightest case that must survive is GJ32DD10 -> GJ32D0107 at similarity 0.357 (psql: select similarity('GJ32DD10','GJ32D0107')), so 0.3 keeps it with margin and 0.45 loses it. D2-05's TrigramPlateMatcher used 0.2 because its truncation probe was `$q like col || '%'`, which no index can serve; here truncation has its own indexed prefix probes, so the similarity floor only has to cover substitutions and can sit at pg_trgm's own default. At 250k plate reads the difference is 304 ms (0.2) versus 108 ms (0.3) on one query — see docs/fuzzy-matching.md section 7.",
+  "positionWeights": {
+    "state": 1.6,
+    "rto": 1.0,
+    "series": 0.9,
+    "number": 0.8,
+    "year": 1.0,
+    "marker": 1.6,
+    "class": 1.0,
+    "serial": 0.8,
+    "check": 1.0,
+    "mission": 1.0,
+    "unparsed": 1.0
+  },
+  "pairs": [
+    { "a": "C", "b": "F", "kind": "alpha", "cost": 0.25, "source": "measured" },
+    { "a": "D", "b": "B", "kind": "alpha", "cost": 0.25, "source": "measured" },
+    { "a": "E", "b": "F", "kind": "alpha", "cost": 0.25, "source": "measured" },
+    { "a": "0", "b": "D", "kind": "cross", "cost": 0.25, "source": "measured" },
+    { "a": "C", "b": "E", "kind": "alpha", "cost": 0.45, "source": "closure" },
+    { "a": "O", "b": "D", "kind": "alpha", "cost": 0.45, "source": "derived-alpha-bridge" },
+    { "a": "O", "b": "Q", "kind": "alpha", "cost": 0.45, "source": "derived-alpha-bridge" },
+    { "a": "D", "b": "Q", "kind": "alpha", "cost": 0.45, "source": "derived-alpha-bridge" },
+    { "a": "I", "b": "L", "kind": "alpha", "cost": 0.45, "source": "derived-alpha-bridge" },
+    { "a": "G", "b": "B", "kind": "alpha", "cost": 0.45, "source": "derived-alpha-bridge" },
+    { "a": "0", "b": "O", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "0", "b": "Q", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "1", "b": "I", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "1", "b": "L", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "2", "b": "Z", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "4", "b": "A", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "5", "b": "S", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "6", "b": "G", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "9", "b": "G", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "7", "b": "T", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "8", "b": "B", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" },
+    { "a": "6", "b": "B", "kind": "cross", "cost": 0.45, "source": "derived-cross-class" }
+  ]
+}

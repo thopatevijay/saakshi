@@ -314,13 +314,15 @@ kind of number that looks like a working demo and is not one.
 | seeded plate | what the pipeline emits | recovered? |
 |---|---|---|
 | `GJ35U0779` | `GJ35U07` (truncated) | **yes** — fuzzy, distance 2 |
-| `GJ32D0107` | `GJ32DD10` | no — distance 3, beyond the default `maxDistance=2`. D2-04's confusion-aware metric (`D→0` is a measured confusion) is what closes this |
+| `GJ32D0107` | `GJ32DD10` | **yes** — fuzzy. *Corrected by D2-04 (#18):* this row previously read "no — distance 3". `select levenshtein('GJ32D0107','GJ32DD10')` returns **2**, so the shipped matcher already recovered it. D2-04's confusion-aware metric changes not *whether* it is found but *how* it ranks — weighted distance 0.55 rather than 2.00. `docs/fuzzy-matching.md` §10 |
 | `GJ12EC7928` | `50011A` | no — shares not one character with the truth |
 | `RJ39CA5180` | not read in the live run | n/a |
 | the 5 `estate-ocr-output` strings | themselves | **yes** — exact |
 
-So: **one ground-truth registration and five measured strings produce a hit against the live
-estate**, and the ground-truth one only through fuzzy matching. Both paths are covered by tests
+So: **two ground-truth registrations and five measured strings produce a hit against the live
+estate**, and both ground-truth ones only through fuzzy matching. (Written as one when this section
+was first published; the second was miscounted through the distance-3 arithmetic corrected in the
+table above — D2-04, #18.) Both paths are covered by tests
 (`recovers the truncated read GJ35U07 → GJ35U0779 that cam07 actually produced`,
 `matches a measured ANPR output string exactly`).
 
