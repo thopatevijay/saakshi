@@ -7,6 +7,7 @@ import { writeAudit } from '../audit.js';
 import type { Db } from '../db/client.js';
 import { ErrorResponse, Paginated } from './camera-contracts.js';
 import { parseCsv } from './bulk-import.js';
+import { ConfusionPlateMatcher } from '../services/plate-search.js';
 import {
   createWatchlistRegistry,
   upsertWatchlistEntries,
@@ -99,7 +100,11 @@ function toResponse(row: Row): WatchlistEntryResponse {
 
 export function registerWatchlistRoutes(app: App, options: WatchlistRouteOptions): void {
   const { db } = options;
-  const registry = options.registry ?? createWatchlistRegistry({ db });
+  // D2-04's confusion-aware metric, registered through the seam D2-05 left for it: `PlateMatcher`
+  // in, nothing in `src/watchlist/` changed. `docs/fuzzy-matching.md` has the matrix and the
+  // measured precision/recall.
+  const registry =
+    options.registry ?? createWatchlistRegistry({ db, matcher: new ConfusionPlateMatcher(db) });
 
   // A department hands over a CSV, so `curl --data-binary @watchlist.csv -H 'content-type: text/csv'`
   // has to work. Fastify has no parser for it and answers 415 without one. Registered here rather

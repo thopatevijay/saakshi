@@ -137,9 +137,11 @@ const crossClass = (a: string, b: string): boolean => isAlpha(a) !== isAlpha(b);
  * back to `unparsed` (weight 1.0) rather than guessing, so an unparseable candidate is scored by
  * the confusion costs alone.
  */
-export function slotsFor(plate: string, validation?: PlateValidation): PlateSlotName[] {
+export type WeightedSlot = PlateSlotName | 'unparsed';
+
+export function slotsFor(plate: string, validation?: PlateValidation): WeightedSlot[] {
   const v = validation ?? validate(plate);
-  const slots: PlateSlotName[] = [];
+  const slots: WeightedSlot[] = [];
   if (v.parts !== null) {
     const ordered: [PlateSlotName, string | null][] = [
       ['state', v.parts.state],
@@ -176,7 +178,7 @@ export interface WeightedDistance {
 interface Weights {
   table: ReadonlyMap<string, number>;
   config: ConfusionConfig;
-  slots: PlateSlotName[];
+  slots: WeightedSlot[];
   /**
    * Whether the *query* carries a letter in either of the first two positions.
    *
@@ -211,48 +213,67 @@ function substitutionCost(qc: string, cc: string, ci: number, w: Weights): numbe
   return base * weight;
 }
 
-/** Standard weighted Levenshtein with full-price indels — the tail is handled by the caller. */
+/**
+ * Standard weighted Levenshtein with full-price indels — the tail is handled by the caller.
+ *
+ * One flat `Float64Array` rather than an array of arrays: plates are short, this runs once per
+ * candidate per query, and the bench measures it at demo volume.
+ */
 function innerDistance(query: string, candidate: string, w: Weights): WeightedDistance {
   const m = query.length;
   const n = candidate.length;
   const indel = w.config.costs.indel;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0));
+  const stride = n + 1;
+  const dp = new Float64Array((m + 1) * stride);
+  const at = (i: number, j: number): number => dp[i * stride + j] ?? 0;
 
-  for (let i = 1; i <= m; i += 1) dp[i][0] = i * indel;
-  for (let j = 1; j <= n; j += 1) dp[0][j] = j * indel;
+  for (let i = 1; i <= m; i += 1) dp[i * stride] = i * indel;
+  for (let j = 1; j <= n; j += 1) dp[j] = j * indel;
 
   for (let i = 1; i <= m; i += 1) {
     for (let j = 1; j <= n; j += 1) {
-      const sub = dp[i - 1][j - 1] + substitutionCost(query[i - 1], candidate[j - 1], j - 1, w);
-      dp[i][j] = Math.min(sub, dp[i - 1][j] + indel, dp[i][j - 1] + indel);
+      const sub =
+        at(i - 1, j - 1) + substitutionCost(query.charAt(i - 1), candidate.charAt(j - 1), j - 1, w);
+      dp[i * stride + j] = Math.min(sub, at(i - 1, j) + indel, at(i, j - 1) + indel);
     }
   }
-  return { distance: dp[m][n], tailChars: 0, ops: backtrack(dp, query, candidate, w) };
+  return { distance: at(m, n), tailChars: 0, ops: backtrack(at, query, candidate, w) };
 }
 
-function backtrack(dp: number[][], query: string, candidate: string, w: Weights): EditOp[] {
+function backtrack(
+  at: (i: number, j: number) => number,
+  query: string,
+  candidate: string,
+  w: Weights,
+): EditOp[] {
   const ops: EditOp[] = [];
   const indel = w.config.costs.indel;
   let i = query.length;
   let j = candidate.length;
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0) {
-      const cost = substitutionCost(query[i - 1], candidate[j - 1], j - 1, w);
-      if (dp[i][j] === dp[i - 1][j - 1] + cost) {
+      const cost = substitutionCost(query.charAt(i - 1), candidate.charAt(j - 1), j - 1, w);
+      if (at(i, j) === at(i - 1, j - 1) + cost) {
         if (cost > 0) {
-          ops.push({ kind: 'sub', index: j - 1, from: candidate[j - 1], to: query[i - 1], cost });
+          ops.push({
+            kind: 'sub',
+            index: j - 1,
+            from: candidate.charAt(j - 1),
+            to: query.charAt(i - 1),
+            cost,
+          });
         }
         i -= 1;
         j -= 1;
         continue;
       }
     }
-    if (i > 0 && dp[i][j] === dp[i - 1][j] + indel) {
-      ops.push({ kind: 'ins', index: j, from: '', to: query[i - 1], cost: indel });
+    if (i > 0 && at(i, j) === at(i - 1, j) + indel) {
+      ops.push({ kind: 'ins', index: j, from: '', to: query.charAt(i - 1), cost: indel });
       i -= 1;
       continue;
     }
-    ops.push({ kind: 'del', index: j - 1, from: candidate[j - 1], to: '', cost: indel });
+    ops.push({ kind: 'del', index: j - 1, from: candidate.charAt(j - 1), to: '', cost: indel });
     j -= 1;
   }
   return ops.reverse();
@@ -282,7 +303,7 @@ export function weightedDistance(
     table: table ?? confusionTable(config),
     config,
     slots: slotsFor(candidate),
-    queryStateAnchored: isAlpha(query[0] ?? '') || isAlpha(query[1] ?? ''),
+    queryStateAnchored: isAlpha(query.charAt(0)) || isAlpha(query.charAt(1)),
   };
   const tail = config.costs.truncationTail;
   const allowance = config.tailAllowance;
@@ -305,11 +326,11 @@ export function weightedDistance(
         const ops = [...trimmed.ops];
         for (let k = 0; k < a; k += 1) {
           const index = candidate.length - a + k;
-          ops.push({ kind: 'tail', index, from: candidate[index], to: '', cost: tail });
+          ops.push({ kind: 'tail', index, from: candidate.charAt(index), to: '', cost: tail });
         }
         for (let k = 0; k < b; k += 1) {
           const index = query.length - b + k;
-          ops.push({ kind: 'tail', index, from: '', to: query[index], cost: tail });
+          ops.push({ kind: 'tail', index, from: '', to: query.charAt(index), cost: tail });
         }
         best = { distance, tailChars: a + b, ops };
       }
@@ -357,8 +378,9 @@ function stateVariants(state: string, table: ReadonlyMap<string, number>): strin
   const out = new Set<string>([state]);
   for (let i = 0; i < state.length; i += 1) {
     for (const key of table.keys()) {
-      const [from, to] = [key[0], key[1]];
-      if (from !== state[i] || !isAlpha(from) || !isAlpha(to)) continue;
+      const from = key.charAt(0);
+      const to = key.charAt(1);
+      if (from !== state.charAt(i) || !isAlpha(from) || !isAlpha(to)) continue;
       out.add(state.slice(0, i) + to + state.slice(i + 1));
     }
   }
