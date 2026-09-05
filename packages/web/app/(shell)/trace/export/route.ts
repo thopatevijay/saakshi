@@ -8,7 +8,7 @@
  */
 import { getSession } from '@/src/lib/session';
 import { apiClient } from '@/src/lib/api/client';
-import { parseTraceQuery, toTraceApiQuery } from '@/src/lib/trace/query';
+import { parseTraceQuery, purposeIsStated, toTraceApiQuery } from '@/src/lib/trace/query';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -22,6 +22,14 @@ export async function GET(request: Request): Promise<Response> {
   const state = parseTraceQuery(url.searchParams);
   if (state.plate === '') {
     return new Response('a registration is required', {
+      status: 400,
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    });
+  }
+  // Purpose binding (D3-04). The API refuses this too and is the authoritative side; refusing here
+  // as well means the officer gets a sentence rather than a downloaded error page.
+  if (!purposeIsStated(state)) {
+    return new Response('state a purpose before exporting — it is recorded in the audit chain', {
       status: 400,
       headers: { 'content-type': 'text/plain; charset=utf-8' },
     });

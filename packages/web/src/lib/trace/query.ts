@@ -13,6 +13,17 @@
 
 export interface TraceQueryState {
   plate: string;
+  /**
+   * Why this search is being run (D3-04). Carried in the URL like everything else on this screen,
+   * because a shared trace link has to carry the reason it was run, not just the registration.
+   *
+   * The API rejects a trace with no purpose, server-side, so this being empty is a real state the
+   * screen renders rather than an error it reports: the officer states a reason, and it is written
+   * into the audit chain against their badge.
+   */
+  purpose: string;
+  /** The case or FIR this belongs to, when there is one. Mandatory only for an export. */
+  caseRef: string | null;
   from: string | null;
   to: string | null;
   /** Floor on link confidence, `[0,1]`. */
@@ -28,6 +39,8 @@ export const DEFAULT_MAX_DISTANCE = 2;
 
 export const EMPTY_TRACE_QUERY: TraceQueryState = {
   plate: '',
+  purpose: '',
+  caseRef: null,
   from: null,
   to: null,
   minConfidence: DEFAULT_MIN_CONFIDENCE,
@@ -73,6 +86,8 @@ export function parseTraceQuery(source: ParamSource): TraceQueryState {
     // Uppercased and stripped of spaces here as well as on the server: the address bar is the
     // first thing an officer edits by hand, and `gj01 ab 1234` must behave like the button did.
     plate: (read(source, 'plate') ?? '').replace(/\s+/g, '').toUpperCase().slice(0, 24),
+    purpose: (read(source, 'purpose') ?? '').trim().slice(0, 500),
+    caseRef: ((read(source, 'case_ref') ?? '').trim() || null),
     from: readInstant(source, 'from'),
     to: readInstant(source, 'to'),
     minConfidence: readNumber(source, 'min_confidence', DEFAULT_MIN_CONFIDENCE, 0, 1),
@@ -85,6 +100,8 @@ export function parseTraceQuery(source: ParamSource): TraceQueryState {
 export function toSearchParams(state: TraceQueryState): URLSearchParams {
   const params = new URLSearchParams();
   if (state.plate !== '') params.set('plate', state.plate);
+  if (state.purpose !== '') params.set('purpose', state.purpose);
+  if (state.caseRef !== null && state.caseRef !== '') params.set('case_ref', state.caseRef);
   if (state.from !== null) params.set('from', state.from);
   if (state.to !== null) params.set('to', state.to);
   if (state.minConfidence !== DEFAULT_MIN_CONFIDENCE) {
@@ -102,6 +119,11 @@ export function toSearchParams(state: TraceQueryState): URLSearchParams {
  *
  * `seq` is deliberately not carried: an alert names a vehicle and a moment, not a sighting in a
  * trace that has not been run yet.
+ *
+ * Neither is a **purpose**, and that is the point of purpose binding (D3-04): a link cannot state
+ * why a search is being run — only the officer running it can. The link lands on `/trace` with the
+ * registration and the window filled in and the purpose field empty and waiting, and nothing is
+ * searched until it is answered.
  */
 export function traceHref(input: {
   plate: string;
@@ -123,16 +145,27 @@ export function traceHref(input: {
 /** The query string the trace API takes, built from screen state. */
 export function toTraceApiQuery(state: TraceQueryState): {
   plate: string;
+  purpose: string;
   min_confidence: number;
   max_distance: number;
+  case_ref?: string;
   from?: string;
   to?: string;
 } {
   return {
     plate: state.plate,
+    purpose: state.purpose,
     min_confidence: state.minConfidence,
     max_distance: state.maxDistance,
+    ...(state.caseRef !== null && state.caseRef !== '' ? { case_ref: state.caseRef } : {}),
     ...(state.from !== null ? { from: state.from } : {}),
     ...(state.to !== null ? { to: state.to } : {}),
   };
+}
+
+/** The API refuses anything shorter, so the screen must not send it and must say why. */
+export const MIN_PURPOSE_LENGTH = 3;
+
+export function purposeIsStated(state: TraceQueryState): boolean {
+  return state.purpose.trim().length >= MIN_PURPOSE_LENGTH;
 }

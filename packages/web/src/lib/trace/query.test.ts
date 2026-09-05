@@ -12,6 +12,7 @@ import {
   EMPTY_TRACE_QUERY,
   parseTraceQuery,
   toSearchParams,
+  purposeIsStated,
   toTraceApiQuery,
   traceHref,
   type TraceQueryState,
@@ -28,6 +29,8 @@ describe('parse ∘ serialise is the identity', () => {
     ['a bare plate', state()],
     ['a window', state({ from: '2026-05-10T09:00:00.000Z', to: '2026-05-10T10:00:00.000Z' })],
     ['a confidence floor', state({ minConfidence: 0.45 })],
+    ['a stated purpose', state({ purpose: 'FIR follow-up: vehicle movement' })],
+    ['a purpose and a case reference', state({ purpose: 'theft enquiry', caseRef: 'FIR/2026/00123' })],
     ['a widened matcher', state({ maxDistance: 3 })],
     ['a selected sighting', state({ seq: 4 })],
     [
@@ -75,6 +78,23 @@ describe('a URL is user input', () => {
   });
 });
 
+describe('purpose binding — a link cannot state a reason (D3-04)', () => {
+  it('a purpose shorter than the API accepts is not a stated purpose', () => {
+    expect(purposeIsStated(state({ purpose: '' }))).toBe(false);
+    expect(purposeIsStated(state({ purpose: '  ' }))).toBe(false);
+    expect(purposeIsStated(state({ purpose: 'ab' }))).toBe(false);
+    expect(purposeIsStated(state({ purpose: 'FIR follow-up' }))).toBe(true);
+  });
+
+  it("an alert's trace link carries no purpose, so the screen has to ask for one", () => {
+    const href = traceHref({ plate: 'GJ01AB1234', from: '2026-05-10T09:00:00.000Z' });
+    expect(href).not.toContain('purpose');
+    expect(purposeIsStated(parseTraceQuery(new URLSearchParams(href.split('?')[1] ?? '')))).toBe(
+      false,
+    );
+  });
+});
+
 describe('traceHref — what an alert row links to', () => {
   it('carries the plate and the time window, and no pre-selected sighting', () => {
     const href = traceHref({
@@ -98,9 +118,22 @@ describe('toTraceApiQuery', () => {
   it('omits an absent window rather than sending null, which the API would reject', () => {
     expect(toTraceApiQuery(state())).toEqual({
       plate: 'GJ01AB1234',
+      // Always sent, even empty: the API is the side that rejects a search with no stated purpose
+      // (D3-04), and a client that quietly omitted the field would be deciding that for it.
+      purpose: '',
       min_confidence: 0,
       max_distance: 2,
     });
+  });
+
+  it('carries the stated purpose and the case reference when there is one', () => {
+    expect(
+      toTraceApiQuery(state({ purpose: 'FIR follow-up', caseRef: 'FIR/2026/00123' })),
+    ).toMatchObject({ purpose: 'FIR follow-up', case_ref: 'FIR/2026/00123' });
+  });
+
+  it('omits an absent case reference rather than sending null', () => {
+    expect(toTraceApiQuery(state({ purpose: 'x' }))).not.toHaveProperty('case_ref');
   });
 
   it('passes the window through when it is set', () => {
