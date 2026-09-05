@@ -9,6 +9,7 @@
  * front matter, because it is pasted into another document rather than rendered on its own.
  */
 import {
+  type ConstantKey,
   EVENT_RATE_ANCHORS,
   PROJECT_MD_SECTION_9,
   type SizingOverrides,
@@ -16,6 +17,7 @@ import {
   constantValue,
   deriveExtrapolatedStreams,
   extrapolatedStreamFps,
+  resolvedConstant,
   venueBStreamFps,
 } from './constants.js';
 import { type Band, type SizingResult, computeSizing } from './model.js';
@@ -160,6 +162,15 @@ function storageSection(r: SizingResult): string {
     `| Warm (object store) | ${int(t.hotDays)}–${int(t.hotDays + t.warmDays)} days | ${tbBand(t.warmTB)} |`,
     `| Cold (archive) | beyond ${int(t.hotDays + t.warmDays)} days | ${tbBand(t.coldTB)} |`,
     '',
+    '**Read the crop line with the assumption that drives it.** Crops follow vehicle passages, not',
+    'metadata rows, so summarising the rows does not reduce them — the same vehicles still drove past.',
+    `This scenario carries ${int(s.sightingsPerDay / r.inputs.cameras)} passages per camera per day, which is D1-09's measured`,
+    '8-camera rate extrapolated across a full 24 hours. **That extrapolation is the single largest',
+    'lever on every figure in this section**, and it overstates the overnight hours on every one of',
+    'those cameras. It is stated rather than silently corrected, because a correction factor would be',
+    'an unmeasured number wearing a measured number\'s clothes. Halve the event rate and halve this',
+    'table; the calculator exists so a reader can do exactly that and watch it move.',
+    '',
     '**Why crops are a range and metadata is not.** The metadata figure rests on a storage-layout',
     'measurement that does not vary — 100,000 rows into a `like sightings including indexes` probe',
     'table gave 195.1 B of heap and 327.4 B including indexes. The crop figure rests on a measurement',
@@ -270,12 +281,38 @@ function section9Section(overrides: SizingOverrides): string {
   ].join('\n');
 }
 
-function provenanceSection(r: SizingResult): string {
-  const rows = r.constantsUsed.map(
+/**
+ * Constants the document *cites in prose* without `computeSizing` reading them arithmetically —
+ * the throughput measurements the compute section argues from. They belong in the provenance table
+ * for the same reason as the rest: a number a reader meets in this document must be traceable from
+ * this document.
+ */
+const DOCUMENT_CITED_CONSTANTS: readonly ConstantKey[] = [
+  'measuredStreamsPerNode',
+  'upstreamBoundShare',
+  'cameraEffectiveFps',
+  'venueBUtilisation',
+  'inferenceP50Ms',
+  'plateDetectP50Ms',
+  'ocrP50Ms',
+  'motionGateSkipRatio',
+  'sightingsPerTrack',
+  'cameraYieldSpread',
+  'cropBytesPer1000Sightings',
+  'gatewayThrottleSlowS',
+];
+
+function provenanceSection(r: SizingResult, overrides: SizingOverrides): string {
+  const seen = new Set(r.constantsUsed.map((c) => c.key));
+  const cited = DOCUMENT_CITED_CONSTANTS.filter((k) => !seen.has(k)).map((k) =>
+    resolvedConstant(k, overrides),
+  );
+  const all = [...cited, ...r.constantsUsed];
+  const rows = all.map(
     (c) =>
       `| \`${c.key}\` | ${c.label} | ${num(c.value, c.value >= 1000 ? 0 : 2)} ${c.unit} | ${PROVENANCE_LABEL[c.provenance]} | ${c.source} |`,
   );
-  const counts = r.constantsUsed.reduce<Record<string, number>>((acc, c) => {
+  const counts = all.reduce<Record<string, number>>((acc, c) => {
     acc[c.provenance] = (acc[c.provenance] ?? 0) + 1;
     return acc;
   }, {});
@@ -283,7 +320,7 @@ function provenanceSection(r: SizingResult): string {
   return [
     '## 6 · Every constant, and where it came from',
     '',
-    `${r.constantsUsed.length} constants: **${counts['measured'] ?? 0} measured** on this stack,`,
+    `${all.length} constants: **${counts['measured'] ?? 0} measured** on this stack,`,
     `${counts['listed'] ?? 0} vendor-listed, ${counts['assumed'] ?? 0} assumed. There is no`,
     'unattributed number in this model — a test fails the build if any constant lacks a provenance tag',
     'or a source.',
@@ -294,7 +331,7 @@ function provenanceSection(r: SizingResult): string {
     '',
     '### Notes that change how a number should be read',
     '',
-    ...r.constantsUsed
+    ...all
       .filter((c) => c.provenance === 'measured')
       .map((c) => `- **${c.label}** — ${c.note}`),
     '',
@@ -341,7 +378,7 @@ export function renderScenarioMarkdown(options: ScenarioMarkdownOptions): string
   ];
 
   if (options.includeSection9 !== false) parts.push(section9Section(overrides));
-  if (options.includeProvenance !== false) parts.push(provenanceSection(r));
+  if (options.includeProvenance !== false) parts.push(provenanceSection(r, overrides));
 
   parts.push(
     [
