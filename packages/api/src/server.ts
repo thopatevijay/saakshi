@@ -26,6 +26,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerWatchlistRoutes } from './routes/watchlist.js';
 import { registerPlateRoutes } from './routes/plates.js';
 import { registerTraceRoutes } from './routes/trace.js';
+import type { CropPresigner } from './services/trace.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -54,6 +55,11 @@ export interface ServerOptions {
   /** Omitted for a bare health-only server; the registry routes need a connection. */
   db?: Db;
   fetchCatalogue?: (url: string, cookie: string) => Promise<unknown>;
+  /**
+   * Mints short-lived URLs for stored evidence crops (D2-08). Built at the composition root so no
+   * route module reads object-store credentials at import time — `services/crop-url.ts` says why.
+   */
+  cropPresigner?: CropPresigner;
 }
 
 export async function buildServer(options: ServerOptions): Promise<App> {
@@ -178,7 +184,10 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerAuthRoutes(app, { db });
     registerWatchlistRoutes(app, { db });
     registerPlateRoutes(app, { db });
-    registerTraceRoutes(app, { db });
+    registerTraceRoutes(app, {
+      db,
+      ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
+    });
   }
 
   return app;

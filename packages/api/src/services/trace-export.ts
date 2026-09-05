@@ -11,14 +11,7 @@
  * `plate, camera_id, camera_name, lat, lon, timestamp, confidence, link_method`. Anything else is
  * appended after them, so a consumer that reads the first eight positionally keeps working.
  */
-import {
-  A4_LANDSCAPE,
-  PdfPage,
-  ellipsise,
-  renderPdf,
-  textWidth,
-  type PdfFont,
-} from './pdf.js';
+import { A4_LANDSCAPE, PdfPage, ellipsise, renderPdf, textWidth } from './pdf.js';
 import type { TraceResult, TraceSighting } from './trace.js';
 
 /* ── CSV ─────────────────────────────────────────────────────────────────────────────────────── */
@@ -56,11 +49,13 @@ export const TRACE_CSV_COLUMNS = [
   'explanation',
 ] as const;
 
+/** Everything a trace cell can hold. Narrow on purpose: `unknown` would stringify an object. */
+type CsvValue = string | number | boolean | null | undefined;
+
 export function traceCsv(result: TraceResult): string {
   const rows = [TRACE_CSV_COLUMNS.join(',')];
   for (const s of result.sightings) {
-    rows.push(
-      [
+    const cells: CsvValue[] = [
         s.plateNormalized,
         s.cameraId,
         s.cameraName,
@@ -90,17 +85,15 @@ export function traceCsv(result: TraceResult): string {
         s.basis,
         s.cropUri,
         s.explanation,
-      ]
-        .map(csvCell)
-        .join(','),
-    );
+    ];
+    rows.push(cells.map(csvCell).join(','));
   }
   return `${rows.join('\n')}\n`;
 }
 
-function csvCell(value: unknown): string {
+function csvCell(value: CsvValue): string {
   if (value === null || value === undefined) return '';
-  const text = String(value);
+  const text = typeof value === 'string' ? value : String(value);
   // A leading =, +, - or @ makes a spreadsheet evaluate the cell. Camera names come from an
   // external catalogue, so the guard belongs here rather than in a code review.
   const risky = /^[=+\-@\t\r]/.test(text);
@@ -300,7 +293,7 @@ function tableHeader(page: PdfPage, top: number, right: number): number {
     const text = ellipsise(column.label, column.width - 6, HEADER_SIZE, 'Helvetica-Bold');
     const offset =
       column.align === 'right'
-        ? column.width - 6 - textWidth(text, HEADER_SIZE, 'Helvetica-Bold' as PdfFont)
+        ? column.width - 6 - textWidth(text, HEADER_SIZE, 'Helvetica-Bold')
         : 0;
     page.text(text, x + offset, top, { size: HEADER_SIZE, font: 'Helvetica-Bold' });
     x += column.width;

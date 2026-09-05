@@ -1,0 +1,108 @@
+/**
+ * D2-08 — the trace screen's URL contract.
+ *
+ * The URL is the deep link an alert row uses and the thing an officer pastes into a case note, so
+ * round-tripping is the property that matters: whatever the screen puts in the address bar must
+ * come back as the same screen.
+ */
+import { describe, expect, it } from 'vitest';
+import {
+  DEFAULT_MAX_DISTANCE,
+  DEFAULT_MIN_CONFIDENCE,
+  EMPTY_TRACE_QUERY,
+  parseTraceQuery,
+  toSearchParams,
+  toTraceApiQuery,
+  traceHref,
+  type TraceQueryState,
+} from './query';
+
+const state = (over: Partial<TraceQueryState> = {}): TraceQueryState => ({
+  ...EMPTY_TRACE_QUERY,
+  plate: 'GJ01AB1234',
+  ...over,
+});
+
+describe('parse ∘ serialise is the identity', () => {
+  for (const [name, value] of [
+    ['a bare plate', state()],
+    ['a window', state({ from: '2026-05-10T09:00:00.000Z', to: '2026-05-10T10:00:00.000Z' })],
+    ['a confidence floor', state({ minConfidence: 0.45 })],
+    ['a widened matcher', state({ maxDistance: 3 })],
+    ['a selected sighting', state({ seq: 4 })],
+    ['everything at once', state({ from: '2026-05-10T09:00:00.000Z', minConfidence: 0.6, maxDistance: 1, seq: 2 })],
+    ['an empty screen', EMPTY_TRACE_QUERY],
+  ] as [string, TraceQueryState][]) {
+    it(name, () => {
+      expect(parseTraceQuery(toSearchParams(value))).toEqual(value);
+    });
+  }
+});
+
+describe('defaults stay out of the URL', () => {
+  it('a plain trace link is just the plate', () => {
+    expect(toSearchParams(state()).toString()).toBe('plate=GJ01AB1234');
+  });
+
+  it('the defaults are the API defaults, so an absent parameter never changes the answer', () => {
+    expect(DEFAULT_MIN_CONFIDENCE).toBe(0);
+    expect(DEFAULT_MAX_DISTANCE).toBe(2);
+  });
+});
+
+describe('a URL is user input', () => {
+  it('a hand-typed plate is normalised the way the button would have', () => {
+    expect(parseTraceQuery({ plate: 'gj01 ab 1234' }).plate).toBe('GJ01AB1234');
+  });
+
+  it('a malformed date is dropped rather than thrown', () => {
+    expect(parseTraceQuery({ from: 'yesterday' }).from).toBeNull();
+  });
+
+  it('an out-of-range confidence is clamped, not rejected', () => {
+    expect(parseTraceQuery({ min_confidence: '9' }).minConfidence).toBe(1);
+    expect(parseTraceQuery({ min_confidence: '-3' }).minConfidence).toBe(0);
+    expect(parseTraceQuery({ min_confidence: 'x' }).minConfidence).toBe(0);
+  });
+
+  it('a non-positive or fractional seq is no selection at all', () => {
+    expect(parseTraceQuery({ seq: '0' }).seq).toBeNull();
+    expect(parseTraceQuery({ seq: '1.5' }).seq).toBeNull();
+    expect(parseTraceQuery({ seq: '3' }).seq).toBe(3);
+  });
+});
+
+describe('traceHref — what an alert row links to', () => {
+  it('carries the plate and the time window, and no pre-selected sighting', () => {
+    const href = traceHref({
+      plate: 'gj 01 ab 1234',
+      from: '2026-05-10T09:00:00.000Z',
+      to: '2026-05-10T10:00:00.000Z',
+    });
+    const parsed = parseTraceQuery(new URLSearchParams(href.split('?')[1] ?? ''));
+    expect(parsed.plate).toBe('GJ01AB1234');
+    expect(parsed.from).toBe('2026-05-10T09:00:00.000Z');
+    expect(parsed.to).toBe('2026-05-10T10:00:00.000Z');
+    expect(parsed.seq).toBeNull();
+  });
+
+  it('degrades to a bare /trace with nothing to carry', () => {
+    expect(traceHref({ plate: '' })).toBe('/trace');
+  });
+});
+
+describe('toTraceApiQuery', () => {
+  it('omits an absent window rather than sending null, which the API would reject', () => {
+    expect(toTraceApiQuery(state())).toEqual({
+      plate: 'GJ01AB1234',
+      min_confidence: 0,
+      max_distance: 2,
+    });
+  });
+
+  it('passes the window through when it is set', () => {
+    expect(toTraceApiQuery(state({ from: '2026-05-10T09:00:00.000Z' }))).toMatchObject({
+      from: '2026-05-10T09:00:00.000Z',
+    });
+  });
+});

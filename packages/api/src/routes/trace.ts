@@ -30,7 +30,6 @@ import {
   type TraceResult,
 } from '../services/trace.js';
 import { traceCsv, tracePdf } from '../services/trace-export.js';
-import { evidenceStoreFromEnv } from '../services/evidence.js';
 
 /** Derived from the shared RBAC table, so the API can never disagree with the navigation. */
 export const TRACE_ROLES = userRoles.filter((role) => can(role, 'trace:run'));
@@ -186,32 +185,19 @@ export type TraceResponse = z.infer<typeof TraceResponse>;
 export interface TraceRouteOptions {
   db: Db;
   service?: TraceService;
-  /** Injected in tests; production reads the object-store credentials from the environment. */
+  /**
+   * Mints a browser-usable URL for a stored `s3://` crop.
+   *
+   * Injected rather than constructed here: an object-store client reads credentials from the
+   * environment and uploads `Buffer`s, and `packages/web` typechecks whatever the route graph
+   * imports under `lib: DOM`, where `Buffer` is not a `BodyInit`. `services/crop-url.ts` explains
+   * it in full. Absent, every `cropUrl` is `null` — which is the truth on a machine with no MinIO.
+   */
   presign?: CropPresigner;
 }
 
-/**
- * Mint a short-lived URL for an `s3://bucket/key` crop.
- *
- * `crop_uri` stores the s3 form on purpose (D2-02): a signed URL is a credential with an expiry,
- * and persisting one puts a value in the database that stops working. So it is minted per response
- * here, and is `null` when no object store is configured — which is the honest answer on a machine
- * with no MinIO, and the reason the evidence strip has a "no crop stored" state at all.
- */
-export function presignerFromEnv(env: NodeJS.ProcessEnv = process.env): CropPresigner {
-  const store = evidenceStoreFromEnv(env);
-  if (store === null) return () => null;
-  const prefix = `s3://${store.bucket}/`;
-  return (cropUri: string): string | null => {
-    if (!cropUri.startsWith(prefix)) return null;
-    return store.presignGet(cropUri.slice(prefix.length));
-  };
-}
-
 export function registerTraceRoutes(app: App, options: TraceRouteOptions): void {
-  const service =
-    options.service ??
-    new TraceService(options.db, undefined, options.presign ?? presignerFromEnv());
+  const service = options.service ?? new TraceService(options.db, undefined, options.presign);
 
   const run = async (query: z.infer<typeof TraceQuery>): Promise<TraceResult> =>
     service.trace(query.plate, {
