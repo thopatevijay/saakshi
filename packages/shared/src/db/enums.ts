@@ -73,6 +73,20 @@ export const linkMethodEnum = pgEnum('link_method', ['plate_exact', 'plate_fuzzy
 
 export const routeAnomalyEnum = pgEnum('route_anomaly', ['none', 'impossible_transition']);
 
+/**
+ * Lifecycle of a preservation request (D3-05, migration 0020).
+ *
+ * Every value past `open` records something the **owning department** did, relayed into SAAKSHI by
+ * a person. Nothing here is set by observing a recorder, because there is nothing to observe: we
+ * hold no connection to any department's storage.
+ */
+export const preservationStatusEnum = pgEnum('preservation_status', [
+  'open',
+  'acknowledged',
+  'preserved',
+  'declined',
+]);
+
 export const vehicleClassEnum = pgEnum('vehicle_class', [
   'car',
   'motorcycle',
