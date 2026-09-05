@@ -12275,6 +12275,1278 @@
         }
       }
     },
+    "/api/v1/query/compile": {
+      "post": {
+        "summary": "Compile a plain-English question into an editable filter. Runs nothing.",
+        "tags": [
+          "query"
+        ],
+        "description": "The model emits a constrained filter, never prose and never data. The filter is returned for the officer to review and edit; `POST /api/v1/query/run` is what executes it. A compiler that is unconfigured or failing returns `ok: false` with a message and `degradeTo: \"manual_filter\"` — never an error, never a silent empty result.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 1000
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  },
+                  "case_ref": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z0-9/\\-_.]+$"
+                  }
+                },
+                "required": [
+                  "text",
+                  "purpose"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "openai",
+                        "anthropic",
+                        "ollama",
+                        "none"
+                      ]
+                    },
+                    "model": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "dsl": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "version": {
+                          "type": "number",
+                          "enum": [
+                            1
+                          ]
+                        },
+                        "entity": {
+                          "type": "string",
+                          "enum": [
+                            "sightings",
+                            "cameras"
+                          ]
+                        },
+                        "filters": {
+                          "type": "object",
+                          "properties": {
+                            "plate": {
+                              "nullable": true,
+                              "type": "object",
+                              "properties": {
+                                "pattern": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 12,
+                                  "pattern": "^[A-Z0-9?*]+$"
+                                },
+                                "mode": {
+                                  "type": "string",
+                                  "enum": [
+                                    "exact",
+                                    "fuzzy",
+                                    "prefix"
+                                  ]
+                                },
+                                "maxDistance": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 2
+                                }
+                              },
+                              "required": [
+                                "pattern",
+                                "mode",
+                                "maxDistance"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "classes": {
+                              "maxItems": 8,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "car",
+                                  "motorcycle",
+                                  "bus",
+                                  "truck",
+                                  "auto_rickshaw",
+                                  "bicycle",
+                                  "person",
+                                  "unknown"
+                                ]
+                              }
+                            },
+                            "colours": {
+                              "maxItems": 11,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "white",
+                                  "black",
+                                  "silver",
+                                  "grey",
+                                  "red",
+                                  "blue",
+                                  "green",
+                                  "yellow",
+                                  "orange",
+                                  "brown",
+                                  "unknown"
+                                ]
+                              }
+                            },
+                            "place": {
+                              "type": "object",
+                              "properties": {
+                                "cameraExternalIds": {
+                                  "maxItems": 50,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "districts": {
+                                  "maxItems": 20,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "nearName": {
+                                  "nullable": true,
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "radius": {
+                                  "nullable": true,
+                                  "type": "object",
+                                  "properties": {
+                                    "lat": {
+                                      "type": "number",
+                                      "minimum": -90,
+                                      "maximum": 90
+                                    },
+                                    "lon": {
+                                      "type": "number",
+                                      "minimum": -180,
+                                      "maximum": 180
+                                    },
+                                    "metres": {
+                                      "type": "integer",
+                                      "minimum": 10,
+                                      "maximum": 50000
+                                    }
+                                  },
+                                  "required": [
+                                    "lat",
+                                    "lon",
+                                    "metres"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "cameraExternalIds",
+                                "districts",
+                                "nearName",
+                                "radius"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "time": {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "nullable": true,
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                "to": {
+                                  "nullable": true,
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                }
+                              },
+                              "required": [
+                                "from",
+                                "to"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "minConfidence": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "bestShotOnly": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "plate",
+                            "classes",
+                            "colours",
+                            "place",
+                            "time",
+                            "minConfidence",
+                            "bestShotOnly"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "sequence": {
+                          "nullable": true,
+                          "type": "object",
+                          "properties": {
+                            "place": {
+                              "type": "object",
+                              "properties": {
+                                "cameraExternalIds": {
+                                  "maxItems": 50,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "districts": {
+                                  "maxItems": 20,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64
+                                  }
+                                },
+                                "nearName": {
+                                  "nullable": true,
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                "radius": {
+                                  "nullable": true,
+                                  "type": "object",
+                                  "properties": {
+                                    "lat": {
+                                      "type": "number",
+                                      "minimum": -90,
+                                      "maximum": 90
+                                    },
+                                    "lon": {
+                                      "type": "number",
+                                      "minimum": -180,
+                                      "maximum": 180
+                                    },
+                                    "metres": {
+                                      "type": "integer",
+                                      "minimum": 10,
+                                      "maximum": 50000
+                                    }
+                                  },
+                                  "required": [
+                                    "lat",
+                                    "lon",
+                                    "metres"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "cameraExternalIds",
+                                "districts",
+                                "nearName",
+                                "radius"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "withinMinutes": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1440
+                            }
+                          },
+                          "required": [
+                            "place",
+                            "withinMinutes"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 500
+                        }
+                      },
+                      "required": [
+                        "version",
+                        "entity",
+                        "filters",
+                        "sequence",
+                        "limit"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "summary": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "unconstrained": {
+                      "type": "boolean"
+                    },
+                    "reason": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "not_configured",
+                        "provider_error",
+                        "schema_rejected",
+                        "not_understood"
+                      ]
+                    },
+                    "message": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "issues": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "degradeTo": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "manual_filter"
+                      ]
+                    },
+                    "tookMs": {
+                      "type": "number"
+                    },
+                    "disclaimer": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "provider",
+                    "model",
+                    "dsl",
+                    "summary",
+                    "unconstrained",
+                    "reason",
+                    "message",
+                    "issues",
+                    "degradeTo",
+                    "tookMs",
+                    "disclaimer"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/query/run": {
+      "post": {
+        "summary": "Run a filter. Takes a filter only — there is no natural-language input here.",
+        "tags": [
+          "query"
+        ],
+        "description": "The filter is held to the same schema whether a model wrote it or an officer edited it. It executes inside a read-only transaction against a fully parameterised query; no model output is ever interpolated into SQL. An empty result is a 200 with an `emptyReason`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dsl": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "number",
+                        "enum": [
+                          1
+                        ]
+                      },
+                      "entity": {
+                        "type": "string",
+                        "enum": [
+                          "sightings",
+                          "cameras"
+                        ]
+                      },
+                      "filters": {
+                        "type": "object",
+                        "properties": {
+                          "plate": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "pattern": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 12,
+                                "pattern": "^[A-Z0-9?*]+$"
+                              },
+                              "mode": {
+                                "type": "string",
+                                "enum": [
+                                  "exact",
+                                  "fuzzy",
+                                  "prefix"
+                                ]
+                              },
+                              "maxDistance": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 2
+                              }
+                            },
+                            "required": [
+                              "pattern",
+                              "mode",
+                              "maxDistance"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "classes": {
+                            "maxItems": 8,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "car",
+                                "motorcycle",
+                                "bus",
+                                "truck",
+                                "auto_rickshaw",
+                                "bicycle",
+                                "person",
+                                "unknown"
+                              ]
+                            }
+                          },
+                          "colours": {
+                            "maxItems": 11,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "white",
+                                "black",
+                                "silver",
+                                "grey",
+                                "red",
+                                "blue",
+                                "green",
+                                "yellow",
+                                "orange",
+                                "brown",
+                                "unknown"
+                              ]
+                            }
+                          },
+                          "place": {
+                            "type": "object",
+                            "properties": {
+                              "cameraExternalIds": {
+                                "maxItems": 50,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64
+                                }
+                              },
+                              "districts": {
+                                "maxItems": 20,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64
+                                }
+                              },
+                              "nearName": {
+                                "nullable": true,
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "radius": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "lat": {
+                                    "type": "number",
+                                    "minimum": -90,
+                                    "maximum": 90
+                                  },
+                                  "lon": {
+                                    "type": "number",
+                                    "minimum": -180,
+                                    "maximum": 180
+                                  },
+                                  "metres": {
+                                    "type": "integer",
+                                    "minimum": 10,
+                                    "maximum": 50000
+                                  }
+                                },
+                                "required": [
+                                  "lat",
+                                  "lon",
+                                  "metres"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "cameraExternalIds",
+                              "districts",
+                              "nearName",
+                              "radius"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "time": {
+                            "type": "object",
+                            "properties": {
+                              "from": {
+                                "nullable": true,
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              "to": {
+                                "nullable": true,
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              }
+                            },
+                            "required": [
+                              "from",
+                              "to"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "minConfidence": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                          },
+                          "bestShotOnly": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "plate",
+                          "classes",
+                          "colours",
+                          "place",
+                          "time",
+                          "minConfidence",
+                          "bestShotOnly"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "sequence": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                          "place": {
+                            "type": "object",
+                            "properties": {
+                              "cameraExternalIds": {
+                                "maxItems": 50,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64
+                                }
+                              },
+                              "districts": {
+                                "maxItems": 20,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64
+                                }
+                              },
+                              "nearName": {
+                                "nullable": true,
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              "radius": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "lat": {
+                                    "type": "number",
+                                    "minimum": -90,
+                                    "maximum": 90
+                                  },
+                                  "lon": {
+                                    "type": "number",
+                                    "minimum": -180,
+                                    "maximum": 180
+                                  },
+                                  "metres": {
+                                    "type": "integer",
+                                    "minimum": 10,
+                                    "maximum": 50000
+                                  }
+                                },
+                                "required": [
+                                  "lat",
+                                  "lon",
+                                  "metres"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "cameraExternalIds",
+                              "districts",
+                              "nearName",
+                              "radius"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "withinMinutes": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1440
+                          }
+                        },
+                        "required": [
+                          "place",
+                          "withinMinutes"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 500
+                      }
+                    },
+                    "required": [
+                      "version",
+                      "entity",
+                      "filters",
+                      "sequence",
+                      "limit"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  },
+                  "case_ref": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z0-9/\\-_.]+$"
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "dsl",
+                  "purpose"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entity": {
+                      "type": "string",
+                      "enum": [
+                        "sightings",
+                        "cameras"
+                      ]
+                    },
+                    "sightings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sightingId": {
+                            "type": "string"
+                          },
+                          "ts": {
+                            "type": "string"
+                          },
+                          "framePtsMs": {
+                            "type": "number"
+                          },
+                          "trackId": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "cameraId": {
+                            "type": "string"
+                          },
+                          "cameraExternalId": {
+                            "type": "string"
+                          },
+                          "cameraName": {
+                            "type": "string"
+                          },
+                          "district": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "lat": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "lon": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "class": {
+                            "type": "string"
+                          },
+                          "detConfidence": {
+                            "type": "number"
+                          },
+                          "vehicleColor": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "isBestShot": {
+                            "type": "boolean"
+                          },
+                          "cropUri": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "plateNormalized": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "plateRawText": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "ocrConfidence": {
+                            "nullable": true,
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "sightingId",
+                          "ts",
+                          "framePtsMs",
+                          "trackId",
+                          "cameraId",
+                          "cameraExternalId",
+                          "cameraName",
+                          "district",
+                          "lat",
+                          "lon",
+                          "class",
+                          "detConfidence",
+                          "vehicleColor",
+                          "isBestShot",
+                          "cropUri",
+                          "plateNormalized",
+                          "plateRawText",
+                          "ocrConfidence"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "cameras": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "cameraId": {
+                            "type": "string"
+                          },
+                          "cameraExternalId": {
+                            "type": "string"
+                          },
+                          "cameraName": {
+                            "type": "string"
+                          },
+                          "district": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "lat": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "lon": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "sightingCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "firstSeen": {
+                            "type": "string"
+                          },
+                          "lastSeen": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "cameraId",
+                          "cameraExternalId",
+                          "cameraName",
+                          "district",
+                          "lat",
+                          "lon",
+                          "sightingCount",
+                          "firstSeen",
+                          "lastSeen"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "resolvedPlates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "plate": {
+                            "type": "string"
+                          },
+                          "distance": {
+                            "type": "number"
+                          },
+                          "matchType": {
+                            "type": "string",
+                            "enum": [
+                              "exact",
+                              "fuzzy"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "plate",
+                          "distance",
+                          "matchType"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "unknownCameras": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "unknownDistricts": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "rowCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "emptyReason": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "plate_not_searchable",
+                        "no_matching_plate",
+                        "unknown_camera",
+                        "no_rows"
+                      ]
+                    },
+                    "sqlPreview": {
+                      "type": "string"
+                    },
+                    "tookMs": {
+                      "type": "number"
+                    },
+                    "disclaimer": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "entity",
+                    "sightings",
+                    "cameras",
+                    "resolvedPlates",
+                    "unknownCameras",
+                    "unknownDistricts",
+                    "rowCount",
+                    "emptyReason",
+                    "sqlPreview",
+                    "tookMs",
+                    "disclaimer"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/streams/{id}/manifest": {
       "get": {
         "summary": "What a tile needs before it opens a connection: identity, trust, and playability",
@@ -16534,6 +17806,10 @@
     {
       "name": "watchlist",
       "description": "Watchlist CRUD, CSV import, and lookup across the specified connectors. All providers are mocks — there is no live VAHAN / SARTHI / eGujCop / AFIS / NAFIS connectivity, and no biometric data is processed anywhere in SAAKSHI."
+    },
+    {
+      "name": "query",
+      "description": "Natural-language query. The model emits a constrained filter, never prose and never data; the officer reviews and edits it; the database answers. The model never sees a result row. Swappable across openai / anthropic / ollama / none by one config value."
     },
     {
       "name": "plates",

@@ -29,6 +29,8 @@ import { registerTraceRoutes } from './routes/trace.js';
 import { HttpOsrmClient } from './services/osrm.js';
 import type { CropPresigner } from './services/trace.js';
 import { registerAlertRoutes } from './routes/alerts.js';
+import { registerQueryRoutes } from './routes/query.js';
+import { createQueryCompiler, type QueryCompiler } from './query/index.js';
 import { registerStreamRoutes } from './routes/streams.js';
 import type { StreamRelay } from './services/stream-relay.js';
 import { registerAuditRoutes } from './routes/audit.js';
@@ -78,6 +80,11 @@ export interface ServerOptions {
   cropPresigner?: CropPresigner;
   /** Where `POST /api/v1/audit/export` writes bundles (D3-04). Defaults to `exports/`. */
   exportDir?: string;
+  /**
+   * D3-09's natural-language query compiler. Built from `QUERY_COMPILER` if omitted; injected in
+   * tests so a provider can be exercised without a credential or a network.
+   */
+  queryCompiler?: QueryCompiler;
   /**
    * Read-only Valkey introspection for the bus-lag gauges on `/metrics` (D3-10). Omitted in tests
    * and on a machine with no bus — the endpoint then reports the bus as unreachable rather than
@@ -161,6 +168,13 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'Watchlist CRUD, CSV import, and lookup across the specified connectors. All ' +
             'providers are mocks — there is no live VAHAN / SARTHI / eGujCop / AFIS / NAFIS ' +
             'connectivity, and no biometric data is processed anywhere in SAAKSHI.',
+        },
+        {
+          name: 'query',
+          description:
+            'Natural-language query. The model emits a constrained filter, never prose and never ' +
+            'data; the officer reviews and edits it; the database answers. The model never sees a ' +
+            'result row. Swappable across openai / anthropic / ollama / none by one config value.',
         },
         {
           name: 'plates',
@@ -252,6 +266,10 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
+    });
+    registerQueryRoutes(app, {
+      db,
+      compiler: options.queryCompiler ?? createQueryCompiler(env.QUERY_COMPILER),
     });
     relay = registerStreamRoutes(app, { db, env });
     registerRetentionRoutes(app, { db, env });

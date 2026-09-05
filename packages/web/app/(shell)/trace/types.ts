@@ -16,3 +16,20 @@ export interface TraceState {
   error: string | null;
   elapsedMs: number;
 }
+
+/** D3-09's natural-language query console, which shares this screen. */
+export type QueryCompilePayload =
+  ApiPaths['/api/v1/query/compile']['post']['responses'][200]['content']['application/json'];
+
+export type QueryRunPayload =
+  ApiPaths['/api/v1/query/run']['post']['responses'][200]['content']['application/json'];
+
+export interface QueryCompileState {
+  outcome: QueryCompilePayload | null;
+  error: string | null;
+}
+
+export interface QueryRunState {
+  result: QueryRunPayload | null;
+  error: string | null;
+}

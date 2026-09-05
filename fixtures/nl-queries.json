@@ -1,0 +1,550 @@
+{
+  "$comment": "D3-09 · natural-language query fixtures. `now` anchors every relative expression so a run is reproducible. `expected` is the filter a correct compile produces; docs/nl-query.md carries the measured per-provider match rate, including where it fails.",
+  "now": "2026-09-05T09:00:00.000Z",
+  "vocabulary": {
+    "cameraExternalIds": ["cam01", "cam02", "cam03", "cam04", "cam05"],
+    "districts": ["Ahmedabad", "Gandhinagar"]
+  },
+  "fixtures": [
+    {
+      "id": "plate-exact",
+      "question": "Show me every sighting of GJ01AB1234.",
+      "tests": "a complete registration compiles to an exact match, not a fuzzy one",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": {
+            "pattern": "GJ01AB1234",
+            "mode": "exact",
+            "maxDistance": 0
+          },
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "plate-partial",
+      "question": "I only caught the start of the plate, GJ01AB. Find it.",
+      "tests": "a partial registration compiles to prefix, because truncation is this estate’s dominant OCR failure",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": {
+            "pattern": "GJ01AB",
+            "mode": "prefix",
+            "maxDistance": 0
+          },
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "plate-unclear",
+      "question": "The plate read was unclear, something like GJ32DD10. Find close matches.",
+      "tests": "an unclear read compiles to fuzzy at the measured knee of 2, never higher",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": {
+            "pattern": "GJ32DD10",
+            "mode": "fuzzy",
+            "maxDistance": 2
+          },
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "colour-class",
+      "question": "White cars, anywhere.",
+      "tests": "colour and class together, with no invented time or place constraint",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": ["car"],
+          "colours": ["white"],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "body-type-is-car",
+      "question": "Show me white hatchbacks.",
+      "tests": "a body description that is not in the class enum maps to car rather than being invented",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": ["car"],
+          "colours": ["white"],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "two-wheelers",
+      "question": "Any motorcycles at cam05 last night.",
+      "tests": "class plus a camera plus a relative time window resolved against \"now\"",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": ["motorcycle"],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": ["cam05"],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": "2026-09-04T18:00:00.000Z",
+            "to": "2026-09-05T06:00:00.000Z"
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "time-window",
+      "question": "Everything between 02:00 and 04:00 this morning.",
+      "tests": "an explicit clock window becomes absolute ISO instants",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": "2026-09-05T02:00:00.000Z",
+            "to": "2026-09-05T04:00:00.000Z"
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "camera-named",
+      "question": "What went past cam01 and cam05?",
+      "tests": "two camera ids from the vocabulary, both kept",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": ["cam01", "cam05"],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "district",
+      "question": "All trucks in Gandhinagar.",
+      "tests": "a district from the vocabulary",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": ["truck"],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": ["Gandhinagar"],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "landmark-not-in-catalogue",
+      "question": "Anything near the Adalaj stepwell.",
+      "tests": "a landmark the catalogue does not know goes to nearName, never to an invented camera id",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": "Adalaj",
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "radius",
+      "question": "Everything within 500 metres of 23.0225, 72.5714.",
+      "tests": "an explicit coordinate radius, resolved by PostGIS in metres",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": {
+              "lat": 23.0225,
+              "lon": 72.5714,
+              "metres": 500
+            }
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "sequence",
+      "question": "White cars that passed cam01 and later appeared near Adalaj within two hours.",
+      "tests": "the second leg becomes `sequence`, not a second place filter on the first leg",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": ["car"],
+          "colours": ["white"],
+          "place": {
+            "cameraExternalIds": ["cam01"],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": {
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": "Adalaj",
+            "radius": null
+          },
+          "withinMinutes": 120
+        },
+        "limit": 100
+      }
+    },
+    {
+      "id": "sequence-camera",
+      "question": "Vehicles seen at cam01 and then at cam05 within 30 minutes.",
+      "tests": "a camera-to-camera sequence with an explicit gap",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": ["cam01"],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": {
+          "place": {
+            "cameraExternalIds": ["cam05"],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "withinMinutes": 30
+        },
+        "limit": 100
+      }
+    },
+    {
+      "id": "entity-cameras",
+      "question": "Which cameras has GJ01AB1234 been seen on?",
+      "tests": "\"which cameras\" selects the camera rollup rather than the sighting list",
+      "expected": {
+        "version": 1,
+        "entity": "cameras",
+        "filters": {
+          "plate": {
+            "pattern": "GJ01AB1234",
+            "mode": "exact",
+            "maxDistance": 0
+          },
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "confidence-floor",
+      "question": "Only high-confidence detections, above 0.8.",
+      "tests": "an explicitly stated confidence floor is honoured",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0.8,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "best-shot",
+      "question": "Just the best frame of each vehicle at cam05.",
+      "tests": "the best-shot flag, which is one row per track session",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": ["cam05"],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": true
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "no-invented-constraints",
+      "question": "Show me everything.",
+      "tests": "an unconstrained question compiles to an unconstrained filter, not to a guessed window",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    },
+    {
+      "id": "unanswerable",
+      "question": "Who was driving the car and what were they wearing?",
+      "tests": "a question this system deliberately cannot answer — no face recognition, no biometrics — compiles to an empty filter rather than to an invented one",
+      "expected": {
+        "version": 1,
+        "entity": "sightings",
+        "filters": {
+          "plate": null,
+          "classes": [],
+          "colours": [],
+          "place": {
+            "cameraExternalIds": [],
+            "districts": [],
+            "nearName": null,
+            "radius": null
+          },
+          "time": {
+            "from": null,
+            "to": null
+          },
+          "minConfidence": 0,
+          "bestShotOnly": false
+        },
+        "sequence": null,
+        "limit": 100
+      }
+    }
+  ]
+}
