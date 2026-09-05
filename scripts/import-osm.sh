@@ -58,8 +58,12 @@ DATABASE_URL="${DATABASE_URL:-postgres://saakshi:saakshi@localhost:5432/saakshi}
 # highway and a route that skipped them would place a segment on the wrong carriageway.
 HIGHWAY_CLASSES="${HIGHWAY_CLASSES:-motorway,motorway_link,trunk,trunk_link,primary,primary_link,secondary,secondary_link,tertiary,tertiary_link,unclassified,residential,living_street,road}"
 
-OSMIUM_IMAGE="${OSMIUM_IMAGE:-ghcr.io/osmcode/osmium-tool:latest}"
 OSRM_IMAGE="${OSRM_IMAGE:-osrm/osrm-backend:latest}"
+# osmium-tool has **no public container image**: `ghcr.io/osmcode/osmium-tool` and the community
+# mirrors all answer `denied` to an unauthenticated pull (checked 2026-09-05). So it is a native
+# dependency — `brew install osmium-tool` / `apt-get install osmium-tool` — and this script says so
+# rather than failing four stages later with a missing binary.
+OSMIUM_BIN="${OSMIUM_BIN:-osmium}"
 
 SRC="$DATA/${REGION}-latest.osm.pbf"
 CLIPPED="$DATA/gujarat-latest.osm.pbf"
@@ -80,14 +84,21 @@ need curl
 need docker
 need jq
 need psql
+command -v "$OSMIUM_BIN" >/dev/null 2>&1 || {
+  echo "missing osmium-tool. macOS: brew install osmium-tool · Debian: apt-get install osmium-tool" >&2
+  exit 1
+}
 
 mkdir -p "$DATA"
 
-# `osmium` and `osrm-*` run in containers so a fresh machine needs nothing but Docker. Both mount
-# `data/` at `/data`, which is also how the compose `osrm` service mounts it — so every path below
-# is the path the running server will see.
-osmium() { docker run --rm -t -v "$DATA:/data" "$OSMIUM_IMAGE" "$@"; }
-osrm()   { docker run --rm -t -v "$DATA:/data" "$OSRM_IMAGE" "$@"; }
+# `osrm-*` runs in a container, mounting `data/` at `/data` — the same mount the compose `osrm`
+# service uses, so every path handed to it below is the path the running server will see. `osmium`
+# is native and takes host paths, so it is called through `$OSMIUM_BIN` directly.
+#
+# There is deliberately **no** `osmium()` wrapper function here. One was written, and a shell
+# function named `osmium` whose body calls `osmium` resolves to itself: unbounded recursion, stack
+# overflow, exit 139, and no message at all. It looks exactly like a segfault in libosmium.
+osrm() { docker run --rm -t -v "$DATA:/data" "$OSRM_IMAGE" "$@"; }
 
 newer_than() { [ -z "$FORCE" ] && [ -f "$1" ] && [ "$1" -nt "$2" ]; }
 
@@ -109,8 +120,11 @@ if newer_than "$CLIPPED" "$SRC"; then
   say "clipped extract is up to date: $(basename "$CLIPPED") ($(du -h "$CLIPPED" | cut -f1))"
 else
   say "clipping to the Gujarat bbox $BBOX"
-  osmium extract --overwrite --bbox "$BBOX" --strategy=complete_ways \
-    -o "/data/$(basename "$CLIPPED")" "/data/$(basename "$SRC")"
+  # `complete_ways` keeps every way that touches the box whole, including the nodes that fall
+  # outside it. Without that, a highway crossing the state boundary is truncated mid-way and OSRM
+  # cannot route along it — the routes that break are exactly the long-distance ones an
+  # interstate-movement question depends on.
+  "$OSMIUM_BIN" extract --overwrite --bbox "$BBOX" --strategy=complete_ways -o "$CLIPPED" "$SRC"
 fi
 
 # -- 3 - the OSRM routing graph -----------------------------------------------------------------
@@ -133,13 +147,11 @@ if newer_than "$GEOJSON" "$CLIPPED"; then
   say "highway GeoJSON is up to date: $(basename "$GEOJSON")"
 else
   say "filtering to the driveable road classes"
-  osmium tags-filter --overwrite -o "/data/$(basename "$HIGHWAYS")" \
-    "/data/$(basename "$CLIPPED")" "w/highway=$HIGHWAY_CLASSES"
+  "$OSMIUM_BIN" tags-filter --overwrite -o "$HIGHWAYS" "$CLIPPED" "w/highway=$HIGHWAY_CLASSES"
   say "exporting way geometry"
   # `--add-unique-id=type_id` puts `w<id>` in the feature id, which is where `road_network.id`
   # comes from: a stable OSM way id rather than a row counter.
-  osmium export --overwrite -f geojsonseq --add-unique-id=type_id \
-    -o "/data/$(basename "$GEOJSON")" "/data/$(basename "$HIGHWAYS")"
+  "$OSMIUM_BIN" export --overwrite -f geojsonseq --add-unique-id=type_id -o "$GEOJSON" "$HIGHWAYS"
 fi
 
 say "flattening to TSV for COPY"
@@ -147,7 +159,10 @@ say "flattening to TSV for COPY"
 # so a road called `Ring Road \ Bypass` survives the round trip. Missing names and classes come out
 # as the empty string and become NULL in the INSERT - cheaper than teaching jq to emit a literal
 # NULL marker that `@tsv` would then escape back into harmlessness.
-jq -c -r '
+# `tr -d '\036'` strips the RFC 7464 record separator that `geojsonseq` prefixes every line with.
+# Without it jq stops on the first byte: `parse error: Invalid numeric literal at line 1, column 2`.
+# jq's own `--seq` reads it, but also *emits* RS on output, which would corrupt the TSV.
+tr -d '\036' < "$GEOJSON" | jq -c -r '
   select(.geometry.type == "LineString")
   | select((.geometry.coordinates | length) >= 2)
   | (.id // "" | tostring) as $rid
@@ -157,7 +172,7 @@ jq -c -r '
       (.properties.highway // ""),
       "SRID=4326;LINESTRING(" +
         ([.geometry.coordinates[] | "\(.[0]) \(.[1])"] | join(",")) + ")" ]
-  | @tsv' "$GEOJSON" > "$TSV"
+  | @tsv' > "$TSV"
 say "importing $(wc -l < "$TSV" | tr -d ' ') ways into road_network"
 
 # Loaded through a staging table and swapped inside one transaction, so a half-finished COPY can
@@ -197,21 +212,40 @@ fi
 # from a git worktree. The bind mount is `./data` relative to the compose file, which is what makes
 # the graph this script just built the graph the server loads.
 export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-saakshi}"
-say "starting the osrm service"
+export OSRM_HOST_PORT="${OSRM_HOST_PORT:-5000}"
+
+# **macOS publishes :5000 to the AirPlay Receiver.** `ControlCenter` binds `*:5000` on both stacks,
+# so Docker cannot take the port and `docker compose up` fails with `address already in use` after
+# everything else has succeeded. Say so here, by name, instead of leaving it to be rediscovered.
+if [ "$OSRM_HOST_PORT" = "5000" ] && command -v lsof >/dev/null 2>&1; then
+  holder="$(lsof -nP -iTCP:5000 -sTCP:LISTEN -Fc 2>/dev/null | sed -n 's/^c//p' | head -1 || true)"
+  if [ -n "$holder" ]; then
+    echo ""
+    echo "!! port 5000 is already held by '$holder'." >&2
+    if [ "$holder" = "ControlCe" ]; then
+      echo "   That is the macOS AirPlay Receiver. Either turn it off in" >&2
+      echo "   System Settings > General > AirDrop & Handoff > AirPlay Receiver," >&2
+      echo "   or re-run with a different host port, e.g. OSRM_HOST_PORT=5050." >&2
+    fi
+    echo "   The routing graph and road_network are already built; only serving is blocked." >&2
+    exit 1
+  fi
+fi
+
+say "starting the osrm service on host port $OSRM_HOST_PORT"
 docker compose -f "$ROOT/docker-compose.yml" --profile routing up -d osrm
 
+PROBE="http://localhost:$OSRM_HOST_PORT/route/v1/driving/72.6,23.2;72.65,23.25?overview=false"
 printf '   waiting for OSRM'
 for _ in $(seq 1 60); do
-  if curl -fsS -m 2 "http://localhost:5000/route/v1/driving/72.6,23.2;72.65,23.25?overview=false" \
-       >/dev/null 2>&1; then
+  if curl -fsS -m 2 "$PROBE" >/dev/null 2>&1; then
     printf ' ok\n'
-    curl -fsS "http://localhost:5000/route/v1/driving/72.6,23.2;72.65,23.25?overview=false" \
-      | jq '{code, duration: .routes[0].duration, distance: .routes[0].distance}'
+    curl -fsS "$PROBE" | jq '{code, duration: .routes[0].duration, distance: .routes[0].distance}'
     exit 0
   fi
   printf '.'
   sleep 2
 done
 printf '\n'
-echo "OSRM did not answer on :5000 within 120 s - 'docker compose --profile routing logs osrm'" >&2
+echo "OSRM did not answer within 120 s - 'docker compose --profile routing logs osrm'" >&2
 exit 1
