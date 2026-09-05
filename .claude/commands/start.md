@@ -24,6 +24,9 @@ Repo: `thopatevijay/saakshi`
 3. **Every command in the ticket's Validation Gate must be run verbatim and must pass.** If a
    command cannot run, that is a blocker, not a formality to skip.
 4. **Never fake a pass.** If an AC cannot be met, go to Phase 8-BLOCKED.
+   **An amended or waived AC must name the test that still protects the capability; if none exists,
+   the test comes first.** D1-GATE amended three ACs for a real data gap and left four map checks
+   failing on every run — a signal nobody could read (D2-09).
 5. Anything you discover that is out of this ticket's scope goes to the **backlog issue** (`BL-01`).
    Do not fix it here.
 6. Commits: conventional messages, **no Claude co-author trailer, no "generated with" line**.

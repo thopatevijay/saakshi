@@ -132,14 +132,25 @@ curl -s -X POST http://localhost:4000/api/v1/auth/login \
   -d '{"badgeNo":"GP-ADM-0001","password":"saakshi-dev"}' \
   | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).token))" > /tmp/token
 
+# verify-map and verify-drawer take the API URL as a third argument, and it has to be passed:
+# they default it to 4100 while the API above listens on 4000, so omitting it fails with
+# ECONNREFUSED 127.0.0.1:4100. The others only ever talk to the web app.
 cd packages/web
-node scripts/verify-basemap.mjs   /tmp/token          # zero external requests
-node scripts/verify-onboarding.mjs /tmp/token         # bulk import + row-level errors
-DATABASE_URL=… node scripts/verify-map.mjs        /tmp/token   # coordinates vs PostGIS, filters, colours, pan
-DATABASE_URL=… node scripts/verify-roundtrip.mjs  /tmp/token   # export → re-import
-node scripts/verify-drawer.mjs    /tmp/token          # the full trust breakdown
-DATABASE_URL=… node scripts/bench-dashboard.mjs   /tmp/token   # seeds 100k, measures, cleans up
+node scripts/verify-basemap.mjs    /tmp/token   # zero external requests
+node scripts/verify-onboarding.mjs /tmp/token   # bulk import + row-level errors
+DATABASE_URL=… node scripts/verify-roundtrip.mjs /tmp/token   # export → re-import
+DATABASE_URL=… node scripts/bench-dashboard.mjs  /tmp/token   # seeds 100k, measures, cleans up
+DATABASE_URL=… node scripts/verify-map.mjs    /tmp/token http://localhost:3100 http://localhost:4000  # coordinates vs PostGIS, filters, colours, pan
+node scripts/verify-drawer.mjs                /tmp/token http://localhost:3100 http://localhost:4000  # the full trust breakdown
 ```
+
+`verify-map.mjs` **seeds its own placed cameras** (D2-09). The Sentinel catalogue publishes no
+coordinates, so without them four of its checks — clustering, street-zoom pins, the filter, and
+filter restoration from the URL — have nothing to assert against and fail on every run. It inserts
+sixteen fixtures under the reserved `MAPFIX-` prefix, asserts the render against known numbers, and
+deletes them again, including when it fails part way. `VERIFY_MAP_CRASH=1` proves that last part.
+The camera row count and the "without coordinates" count are asserted identical before and after; no
+real camera is ever given a coordinate.
 
 ## Measured numbers
 

@@ -34,6 +34,9 @@ waved through converts a 4-day plan into a broken demo on day 4, and there is no
 
 4. Walk every Acceptance Criterion and record `PASS — <evidence>` or `FAIL — <why>`.
    Evidence is command output, a test name, a committed screenshot, or a queried row count.
+   **An amended or waived AC must name the test that still protects the capability; if none exists,
+   the test comes first.** D1-GATE amended three ACs for a real data gap and left four map checks
+   failing on every run — a signal nobody could read (D2-09).
 
 5. Capture whatever the gate requires: screenshots to `docs/screenshots/`, measured numbers, counts.
 
