@@ -1,0 +1,3516 @@
+{
+  "fixtures": "fixtures/reid-eval",
+  "embedder": "colour-constant",
+  "pairs": {
+    "positive": 59,
+    "negative": 51,
+    "excluded_unusable": 7,
+    "cross_camera_diagnostic": 300
+  },
+  "shipped": {
+    "threshold": 0.933,
+    "fitted_on": "the whole labelled set",
+    "tp": 38,
+    "fp": 4,
+    "fn": 21,
+    "tn": 47,
+    "precision": 0.9048,
+    "recall": 0.6441,
+    "f1": 0.7525
+  },
+  "held_out": {
+    "method": "leave-one-camera-out, pooled",
+    "tp": 35,
+    "fp": 11,
+    "fn": 24,
+    "tn": 40,
+    "precision": 0.7609,
+    "recall": 0.5932,
+    "f1": 0.6667,
+    "folds": [
+      {
+        "held_out_camera": "cam04",
+        "threshold": 0.9385,
+        "fit_precision": 0.9143,
+        "pairs": 19,
+        "tp": 4,
+        "fp": 0,
+        "fn": 3,
+        "tn": 12,
+        "precision": 1.0,
+        "recall": 0.5714,
+        "f1": 0.7273
+      },
+      {
+        "held_out_camera": "cam06",
+        "threshold": 0.9385,
+        "fit_precision": 0.9167,
+        "pairs": 3,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "held_out_camera": "cam07",
+        "threshold": 0.9385,
+        "fit_precision": 0.9167,
+        "pairs": 9,
+        "tp": 3,
+        "fp": 0,
+        "fn": 3,
+        "tn": 3,
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1": 0.6667
+      },
+      {
+        "held_out_camera": "cam10",
+        "threshold": 0.931,
+        "fit_precision": 0.9211,
+        "pairs": 15,
+        "tp": 3,
+        "fp": 2,
+        "fn": 6,
+        "tn": 4,
+        "precision": 0.6,
+        "recall": 0.3333,
+        "f1": 0.4286
+      },
+      {
+        "held_out_camera": "cam21",
+        "threshold": 0.8935,
+        "fit_precision": 0.9091,
+        "pairs": 20,
+        "tp": 6,
+        "fp": 9,
+        "fn": 3,
+        "tn": 2,
+        "precision": 0.4,
+        "recall": 0.6667,
+        "f1": 0.5
+      },
+      {
+        "held_out_camera": "cam30",
+        "threshold": 0.963,
+        "fit_precision": 1.0,
+        "pairs": 44,
+        "tp": 16,
+        "fp": 0,
+        "fn": 9,
+        "tn": 19,
+        "precision": 1.0,
+        "recall": 0.64,
+        "f1": 0.7805
+      }
+    ]
+  },
+  "slices": {
+    "camera:cam04": {
+      "tp": 6,
+      "fp": 0,
+      "fn": 1,
+      "tn": 12,
+      "precision": 1.0,
+      "recall": 0.8571,
+      "f1": 0.9231
+    },
+    "camera:cam06": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "tn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "camera:cam07": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 3,
+      "tn": 3,
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6667
+    },
+    "camera:cam10": {
+      "tp": 3,
+      "fp": 2,
+      "fn": 6,
+      "tn": 4,
+      "precision": 0.6,
+      "recall": 0.3333,
+      "f1": 0.4286
+    },
+    "camera:cam21": {
+      "tp": 3,
+      "fp": 2,
+      "fn": 6,
+      "tn": 9,
+      "precision": 0.6,
+      "recall": 0.3333,
+      "f1": 0.4286
+    },
+    "camera:cam30": {
+      "tp": 20,
+      "fp": 0,
+      "fn": 5,
+      "tn": 19,
+      "precision": 1.0,
+      "recall": 0.8,
+      "f1": 0.8889
+    },
+    "combined": {
+      "tp": 38,
+      "fp": 4,
+      "fn": 21,
+      "tn": 47,
+      "precision": 0.9048,
+      "recall": 0.6441,
+      "f1": 0.7525
+    },
+    "condition:day": {
+      "tp": 18,
+      "fp": 4,
+      "fn": 18,
+      "tn": 37,
+      "precision": 0.8182,
+      "recall": 0.5,
+      "f1": 0.6207
+    },
+    "condition:night": {
+      "tp": 20,
+      "fp": 0,
+      "fn": 3,
+      "tn": 10,
+      "precision": 1.0,
+      "recall": 0.8696,
+      "f1": 0.9302
+    },
+    "stratum:same_camera_pass": {
+      "tp": 38,
+      "fp": 0,
+      "fn": 21,
+      "tn": 0,
+      "precision": 1.0,
+      "recall": 0.6441,
+      "f1": 0.7835
+    },
+    "stratum:same_camera_simultaneous": {
+      "tp": 0,
+      "fp": 4,
+      "fn": 0,
+      "tn": 38,
+      "precision": 0.0,
+      "recall": null,
+      "f1": null
+    },
+    "stratum:tracker_id_switch": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 9,
+      "precision": null,
+      "recall": null,
+      "f1": null
+    }
+  },
+  "similarity": {
+    "positive_mean": 0.9424,
+    "positive_min": 0.782,
+    "negative_mean": 0.8312,
+    "negative_max": 0.9627,
+    "cross_camera_mean": 0.6785,
+    "cross_camera_max": 0.9016
+  },
+  "cross_camera_false_links": 0,
+  "target": 0.9,
+  "meets_target": false,
+  "default_threshold_in_code": 0.933,
+  "took_ms": 194.9,
+  "outcomes": [
+    {
+      "pair_id": "pos_day_cam07_114_05",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam07",
+      "condition": "day",
+      "similarity": 0.901039
+    },
+    {
+      "pair_id": "pos_day_cam30_036_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.903602
+    },
+    {
+      "pair_id": "pos_day_cam30_042_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.966929
+    },
+    {
+      "pair_id": "pos_day_cam30_049_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_day_cam30_039_04",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.82599
+    },
+    {
+      "pair_id": "pos_day_cam30_055_04",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.883284
+    },
+    {
+      "pair_id": "pos_day_cam30_014_04",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.95469
+    },
+    {
+      "pair_id": "pos_day_cam30_015_03",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_day_cam30_043_09",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.893451
+    },
+    {
+      "pair_id": "pos_day_cam30_046_09",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_day_cam30_053_09",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_day_cam21_043_01",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.765729
+    },
+    {
+      "pair_id": "pos_day_cam07_050_09",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam07",
+      "condition": "day",
+      "similarity": 0.853087
+    },
+    {
+      "pair_id": "pos_day_cam21_039_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.830679
+    },
+    {
+      "pair_id": "pos_day_cam30_063_10",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.843436
+    },
+    {
+      "pair_id": "pos_day_cam07_173_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam07",
+      "condition": "day",
+      "similarity": 0.859677
+    },
+    {
+      "pair_id": "pos_day_cam30_134_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.853626
+    },
+    {
+      "pair_id": "pos_day_cam21_057_00",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.874992
+    },
+    {
+      "pair_id": "pos_day_cam21_056_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.905462
+    },
+    {
+      "pair_id": "pos_day_cam21_070_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.916898
+    },
+    {
+      "pair_id": "pos_day_cam10_008_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.834148
+    },
+    {
+      "pair_id": "pos_day_cam21_157_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.879001
+    },
+    {
+      "pair_id": "pos_day_cam10_012_05",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.862333
+    },
+    {
+      "pair_id": "pos_day_cam10_034_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.858101
+    },
+    {
+      "pair_id": "pos_day_cam21_046_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.873198
+    },
+    {
+      "pair_id": "pos_day_cam21_064_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.916756
+    },
+    {
+      "pair_id": "pos_day_cam10_077_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.949862
+    },
+    {
+      "pair_id": "pos_day_cam04_122_02",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.794359
+    },
+    {
+      "pair_id": "pos_day_cam10_007_01",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.888914
+    },
+    {
+      "pair_id": "pos_day_cam21_060_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.983756
+    },
+    {
+      "pair_id": "pos_day_cam30_079_12",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.973108
+    },
+    {
+      "pair_id": "pos_day_cam30_001_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_day_cam21_054_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.963634
+    },
+    {
+      "pair_id": "pos_day_cam21_174_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.991387
+    },
+    {
+      "pair_id": "pos_day_cam04_039_02",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.851201
+    },
+    {
+      "pair_id": "pos_day_cam10_086_21",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.782006
+    },
+    {
+      "pair_id": "pos_day_cam07_179_03",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam07",
+      "condition": "day",
+      "similarity": 0.999046
+    },
+    {
+      "pair_id": "pos_day_cam10_154_09",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.917655
+    },
+    {
+      "pair_id": "pos_day_cam04_001_23",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.974774
+    },
+    {
+      "pair_id": "pos_day_cam04_001_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.98679
+    },
+    {
+      "pair_id": "pos_day_cam10_076_11",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.947842
+    },
+    {
+      "pair_id": "pos_day_cam30_117_07",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_day_cam30_036_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.952175
+    },
+    {
+      "pair_id": "pos_night_cam06_019_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam06",
+      "condition": "night",
+      "similarity": 0.994043
+    },
+    {
+      "pair_id": "pos_night_cam30_024_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_night_cam30_031_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_night_cam30_038_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_night_cam04_120_02",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.81648
+    },
+    {
+      "pair_id": "pos_night_cam04_068_13",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.933351
+    },
+    {
+      "pair_id": "pos_night_cam04_047_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.901216
+    },
+    {
+      "pair_id": "pos_night_cam30_024_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_night_cam30_031_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_night_cam30_038_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_night_cam06_013_03",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam06",
+      "condition": "night",
+      "similarity": 0.974401
+    },
+    {
+      "pair_id": "pos_night_cam07_007_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam07",
+      "condition": "night",
+      "similarity": 0.917639
+    },
+    {
+      "pair_id": "pos_night_cam07_103_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam07",
+      "condition": "night",
+      "similarity": 0.991911
+    },
+    {
+      "pair_id": "pos_night_cam10_022_05",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "night",
+      "similarity": 0.881233
+    },
+    {
+      "pair_id": "pos_night_cam04_059_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.936139
+    },
+    {
+      "pair_id": "pos_night_cam07_023_02",
+      "label": "different",
+      "stratum": "tracker_id_switch",
+      "camera": "cam07",
+      "condition": "night",
+      "similarity": 0.916963
+    },
+    {
+      "pair_id": "pos_night_cam07_125_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam07",
+      "condition": "night",
+      "similarity": 0.991686
+    },
+    {
+      "pair_id": "pos_night_cam30_055_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 0.944202
+    },
+    {
+      "pair_id": "pos_night_cam06_135_01",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam06",
+      "condition": "night",
+      "similarity": 0.988035
+    },
+    {
+      "pair_id": "pos_night_cam04_015_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.981363
+    },
+    {
+      "pair_id": "pos_night_cam10_005_09",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam10",
+      "condition": "night",
+      "similarity": 0.952328
+    },
+    {
+      "pair_id": "pos_night_cam04_022_07",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.973397
+    },
+    {
+      "pair_id": "pos_night_cam30_117_00",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "pos_night_cam30_076_04",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 0.951296
+    },
+    {
+      "pair_id": "pos_night_cam30_108_02",
+      "label": "same",
+      "stratum": "same_camera_pass",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 1.0
+    },
+    {
+      "pair_id": "neg_day_cam04_001_01__day_cam04_001_23",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.80055
+    },
+    {
+      "pair_id": "neg_day_cam04_122_02__day_cam04_123_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.876534
+    },
+    {
+      "pair_id": "neg_day_cam04_122_02__day_cam04_124_00",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.790413
+    },
+    {
+      "pair_id": "neg_day_cam04_122_02__day_cam04_124_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.85222
+    },
+    {
+      "pair_id": "neg_day_cam04_124_00__day_cam04_124_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "day",
+      "similarity": 0.76114
+    },
+    {
+      "pair_id": "neg_day_cam07_114_05__day_cam07_115_05",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam07",
+      "condition": "day",
+      "similarity": 0.828893
+    },
+    {
+      "pair_id": "neg_day_cam10_007_01__day_cam10_008_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.96255
+    },
+    {
+      "pair_id": "neg_day_cam10_008_01__day_cam10_012_05",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.962701
+    },
+    {
+      "pair_id": "neg_day_cam10_076_11__day_cam10_077_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.820713
+    },
+    {
+      "pair_id": "neg_day_cam10_086_21__day_cam10_087_15",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam10",
+      "condition": "day",
+      "similarity": 0.812167
+    },
+    {
+      "pair_id": "neg_day_cam21_043_00__day_cam21_043_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.92718
+    },
+    {
+      "pair_id": "neg_day_cam21_043_00__day_cam21_046_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.939574
+    },
+    {
+      "pair_id": "neg_day_cam21_043_01__day_cam21_044_00",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.932558
+    },
+    {
+      "pair_id": "neg_day_cam21_043_01__day_cam21_046_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.91014
+    },
+    {
+      "pair_id": "neg_day_cam21_044_00__day_cam21_046_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.938459
+    },
+    {
+      "pair_id": "neg_day_cam21_054_01__day_cam21_057_00",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.919354
+    },
+    {
+      "pair_id": "neg_day_cam21_056_00__day_cam21_057_00",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.910201
+    },
+    {
+      "pair_id": "neg_day_cam21_056_00__day_cam21_060_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.907734
+    },
+    {
+      "pair_id": "neg_day_cam21_057_00__day_cam21_060_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam21",
+      "condition": "day",
+      "similarity": 0.896351
+    },
+    {
+      "pair_id": "neg_day_cam30_036_00__day_cam30_036_02",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.72062
+    },
+    {
+      "pair_id": "neg_day_cam30_036_00__day_cam30_039_04",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.866946
+    },
+    {
+      "pair_id": "neg_day_cam30_036_00__day_cam30_039_08",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.656572
+    },
+    {
+      "pair_id": "neg_day_cam30_036_00__day_cam30_043_09",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.849612
+    },
+    {
+      "pair_id": "neg_day_cam30_036_02__day_cam30_039_04",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.786154
+    },
+    {
+      "pair_id": "neg_day_cam30_036_02__day_cam30_039_08",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.844814
+    },
+    {
+      "pair_id": "neg_day_cam30_036_02__day_cam30_043_09",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.764457
+    },
+    {
+      "pair_id": "neg_day_cam30_039_04__day_cam30_039_08",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.716406
+    },
+    {
+      "pair_id": "neg_day_cam30_039_04__day_cam30_042_00",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.848287
+    },
+    {
+      "pair_id": "neg_day_cam30_039_04__day_cam30_043_09",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.930922
+    },
+    {
+      "pair_id": "neg_day_cam30_039_08__day_cam30_043_09",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.668686
+    },
+    {
+      "pair_id": "neg_day_cam30_042_00__day_cam30_043_09",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.855615
+    },
+    {
+      "pair_id": "neg_day_cam30_042_00__day_cam30_046_09",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.855615
+    },
+    {
+      "pair_id": "neg_day_cam30_046_09__day_cam30_049_02",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.862943
+    },
+    {
+      "pair_id": "neg_day_cam30_049_02__day_cam30_053_09",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "day",
+      "similarity": 0.862943
+    },
+    {
+      "pair_id": "neg_night_cam04_022_07__night_cam04_025_00",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.766292
+    },
+    {
+      "pair_id": "neg_night_cam04_047_00__night_cam04_047_02",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.818043
+    },
+    {
+      "pair_id": "neg_night_cam04_115_00__night_cam04_120_02",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.811922
+    },
+    {
+      "pair_id": "neg_night_cam04_120_02__night_cam04_124_01",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam04",
+      "condition": "night",
+      "similarity": 0.774275
+    },
+    {
+      "pair_id": "neg_night_cam10_005_09__night_cam10_006_07",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam10",
+      "condition": "night",
+      "similarity": 0.723954
+    },
+    {
+      "pair_id": "neg_night_cam30_024_00__night_cam30_024_02",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 0.666534
+    },
+    {
+      "pair_id": "neg_night_cam30_031_00__night_cam30_031_02",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 0.666534
+    },
+    {
+      "pair_id": "neg_night_cam30_038_00__night_cam30_038_02",
+      "label": "different",
+      "stratum": "same_camera_simultaneous",
+      "camera": "cam30",
+      "condition": "night",
+      "similarity": 0.666534
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam30_031_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.5747
+    },
+    {
+      "pair_id": "xcam_day_cam30_117_07__night_cam07_046_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.610127
+    },
+    {
+      "pair_id": "xcam_day_cam30_036_02__night_cam04_025_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.823287
+    },
+    {
+      "pair_id": "xcam_day_cam30_117_07__night_cam07_125_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.621548
+    },
+    {
+      "pair_id": "xcam_day_cam04_123_01__day_cam10_077_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam10",
+      "condition": "day/day",
+      "similarity": 0.713437
+    },
+    {
+      "pair_id": "xcam_day_cam21_054_01__night_cam30_031_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.861132
+    },
+    {
+      "pair_id": "xcam_day_cam21_057_00__day_cam30_109_14",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.744489
+    },
+    {
+      "pair_id": "xcam_night_cam04_022_07__night_cam07_113_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "night/night",
+      "similarity": 0.45354
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam30_134_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/day",
+      "similarity": 0.672576
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam07_059_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/day",
+      "similarity": 0.849939
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__night_cam30_024_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.837706
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__night_cam30_031_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.843302
+    },
+    {
+      "pair_id": "xcam_night_cam07_125_01__night_cam30_031_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.548714
+    },
+    {
+      "pair_id": "xcam_day_cam04_067_11__day_cam21_157_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam21",
+      "condition": "day/day",
+      "similarity": 0.512106
+    },
+    {
+      "pair_id": "xcam_night_cam04_096_00__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "night/night",
+      "similarity": 0.675289
+    },
+    {
+      "pair_id": "xcam_day_cam10_077_01__day_cam21_157_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.805572
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__day_cam30_043_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.6037
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__night_cam07_103_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam07",
+      "condition": "day/night",
+      "similarity": 0.594508
+    },
+    {
+      "pair_id": "xcam_night_cam07_125_01__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "night/night",
+      "similarity": 0.422329
+    },
+    {
+      "pair_id": "xcam_day_cam21_028_00__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.665344
+    },
+    {
+      "pair_id": "xcam_day_cam21_090_00__day_cam30_049_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.574949
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__day_cam30_039_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.632861
+    },
+    {
+      "pair_id": "xcam_night_cam04_025_00__night_cam07_111_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "night/night",
+      "similarity": 0.583626
+    },
+    {
+      "pair_id": "xcam_night_cam04_115_00__night_cam07_048_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "night/night",
+      "similarity": 0.527943
+    },
+    {
+      "pair_id": "xcam_night_cam07_048_00__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.542527
+    },
+    {
+      "pair_id": "xcam_day_cam21_149_00__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.534238
+    },
+    {
+      "pair_id": "xcam_night_cam04_137_00__night_cam30_024_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "night/night",
+      "similarity": 0.797578
+    },
+    {
+      "pair_id": "xcam_day_cam21_107_00__night_cam04_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.748968
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam21_080_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.82416
+    },
+    {
+      "pair_id": "xcam_day_cam21_046_01__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.690796
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam30_042_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.715811
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__day_cam30_079_12",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.712399
+    },
+    {
+      "pair_id": "xcam_day_cam21_054_01__day_cam30_049_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.598818
+    },
+    {
+      "pair_id": "xcam_night_cam04_059_00__night_cam06_135_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam06",
+      "condition": "night/night",
+      "similarity": 0.377214
+    },
+    {
+      "pair_id": "xcam_day_cam21_046_01__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.568698
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__day_cam30_109_14",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.659516
+    },
+    {
+      "pair_id": "xcam_night_cam07_111_02__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.610022
+    },
+    {
+      "pair_id": "xcam_day_cam21_046_01__night_cam30_031_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.554294
+    },
+    {
+      "pair_id": "xcam_day_cam10_034_00__night_cam07_103_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam07",
+      "condition": "day/night",
+      "similarity": 0.560292
+    },
+    {
+      "pair_id": "xcam_day_cam30_001_00__night_cam07_125_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.669664
+    },
+    {
+      "pair_id": "xcam_night_cam10_022_05__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "night/night",
+      "similarity": 0.704977
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam07",
+      "condition": "day/night",
+      "similarity": 0.604732
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__night_cam07_102_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.634663
+    },
+    {
+      "pair_id": "xcam_day_cam30_039_04__night_cam04_025_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.753313
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.579625
+    },
+    {
+      "pair_id": "xcam_day_cam21_088_00__day_cam30_015_03",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.756776
+    },
+    {
+      "pair_id": "xcam_day_cam04_124_00__day_cam10_076_11",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam10",
+      "condition": "day/day",
+      "similarity": 0.901649
+    },
+    {
+      "pair_id": "xcam_day_cam30_063_10__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam10",
+      "condition": "day/night",
+      "similarity": 0.59472
+    },
+    {
+      "pair_id": "xcam_day_cam21_150_00__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.761941
+    },
+    {
+      "pair_id": "xcam_day_cam21_044_00__night_cam30_117_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.771115
+    },
+    {
+      "pair_id": "xcam_day_cam04_115_00__day_cam07_073_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/day",
+      "similarity": 0.833744
+    },
+    {
+      "pair_id": "xcam_night_cam04_025_00__night_cam10_006_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam10",
+      "condition": "night/night",
+      "similarity": 0.668765
+    },
+    {
+      "pair_id": "xcam_day_cam21_088_00__night_cam04_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.682486
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam30_053_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/day",
+      "similarity": 0.664762
+    },
+    {
+      "pair_id": "xcam_day_cam21_060_01__night_cam07_007_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.532649
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.803967
+    },
+    {
+      "pair_id": "xcam_day_cam10_076_11__night_cam06_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam06",
+      "condition": "day/night",
+      "similarity": 0.650635
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam30_063_10",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.606875
+    },
+    {
+      "pair_id": "xcam_night_cam07_103_02__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.548104
+    },
+    {
+      "pair_id": "xcam_day_cam30_001_00__night_cam04_025_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.782737
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam30_031_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.872682
+    },
+    {
+      "pair_id": "xcam_day_cam21_149_00__night_cam07_102_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.581677
+    },
+    {
+      "pair_id": "xcam_night_cam10_022_05__night_cam30_024_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "night/night",
+      "similarity": 0.738844
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__night_cam04_096_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.729103
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__day_cam30_049_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.570578
+    },
+    {
+      "pair_id": "xcam_day_cam21_044_00__day_cam30_042_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.600755
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam21_174_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.812948
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__day_cam30_015_03",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.782309
+    },
+    {
+      "pair_id": "xcam_day_cam30_049_02__night_cam04_015_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.810396
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__day_cam21_057_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.881
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__night_cam04_022_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.515092
+    },
+    {
+      "pair_id": "xcam_day_cam04_122_02__day_cam07_173_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/day",
+      "similarity": 0.74023
+    },
+    {
+      "pair_id": "xcam_day_cam21_104_01__night_cam07_103_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.602303
+    },
+    {
+      "pair_id": "xcam_night_cam04_124_01__night_cam30_031_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "night/night",
+      "similarity": 0.736557
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam30_024_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.5747
+    },
+    {
+      "pair_id": "xcam_day_cam07_115_05__day_cam10_086_21",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "day/day",
+      "similarity": 0.790394
+    },
+    {
+      "pair_id": "xcam_day_cam10_120_08__night_cam06_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam06",
+      "condition": "day/night",
+      "similarity": 0.474289
+    },
+    {
+      "pair_id": "xcam_night_cam06_027_04__night_cam30_108_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam06/cam30",
+      "condition": "night/night",
+      "similarity": 0.578589
+    },
+    {
+      "pair_id": "xcam_day_cam21_088_00__day_cam30_109_14",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.651651
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam10_008_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam10",
+      "condition": "day/day",
+      "similarity": 0.845768
+    },
+    {
+      "pair_id": "xcam_day_cam21_174_02__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.738792
+    },
+    {
+      "pair_id": "xcam_day_cam30_049_02__night_cam04_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.748456
+    },
+    {
+      "pair_id": "xcam_day_cam30_001_00__night_cam07_113_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.688874
+    },
+    {
+      "pair_id": "xcam_day_cam21_054_01__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.602162
+    },
+    {
+      "pair_id": "xcam_day_cam21_174_02__day_cam30_121_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.662642
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__day_cam30_036_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.824537
+    },
+    {
+      "pair_id": "xcam_day_cam21_046_01__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.747011
+    },
+    {
+      "pair_id": "xcam_night_cam07_114_00__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.614427
+    },
+    {
+      "pair_id": "xcam_day_cam21_057_00__night_cam04_096_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.799544
+    },
+    {
+      "pair_id": "xcam_day_cam21_072_00__night_cam07_114_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.548635
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_00__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.78727
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__night_cam07_114_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.577815
+    },
+    {
+      "pair_id": "xcam_day_cam30_036_02__night_cam10_006_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam10",
+      "condition": "day/night",
+      "similarity": 0.752956
+    },
+    {
+      "pair_id": "xcam_day_cam30_079_12__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.577967
+    },
+    {
+      "pair_id": "xcam_day_cam30_043_09__night_cam07_046_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.609804
+    },
+    {
+      "pair_id": "xcam_night_cam07_125_01__night_cam30_038_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.703814
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.76128
+    },
+    {
+      "pair_id": "xcam_day_cam21_088_00__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.75523
+    },
+    {
+      "pair_id": "xcam_day_cam21_090_00__night_cam04_115_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.585058
+    },
+    {
+      "pair_id": "xcam_day_cam21_104_01__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.640363
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__night_cam30_038_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.838275
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__day_cam30_015_03",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.752946
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__day_cam21_069_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.876684
+    },
+    {
+      "pair_id": "xcam_day_cam30_055_04__night_cam04_115_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.703131
+    },
+    {
+      "pair_id": "xcam_day_cam10_034_00__day_cam30_042_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.635091
+    },
+    {
+      "pair_id": "xcam_night_cam07_113_00__night_cam30_031_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.541614
+    },
+    {
+      "pair_id": "xcam_day_cam30_039_04__night_cam07_111_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.651179
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__night_cam04_015_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.508774
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam30_079_12",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.741639
+    },
+    {
+      "pair_id": "xcam_day_cam10_126_23__night_cam07_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam07",
+      "condition": "day/night",
+      "similarity": 0.696598
+    },
+    {
+      "pair_id": "xcam_night_cam07_113_00__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "night/night",
+      "similarity": 0.489937
+    },
+    {
+      "pair_id": "xcam_day_cam30_039_04__night_cam07_125_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.629652
+    },
+    {
+      "pair_id": "xcam_day_cam21_046_01__night_cam07_102_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.564238
+    },
+    {
+      "pair_id": "xcam_day_cam21_057_00__day_cam30_036_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.635571
+    },
+    {
+      "pair_id": "xcam_day_cam21_150_00__day_cam30_055_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.508945
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam30_039_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/day",
+      "similarity": 0.711311
+    },
+    {
+      "pair_id": "xcam_day_cam04_086_07__night_cam30_076_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/night",
+      "similarity": 0.709907
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__day_cam21_090_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.801455
+    },
+    {
+      "pair_id": "xcam_day_cam21_054_01__night_cam07_114_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.572428
+    },
+    {
+      "pair_id": "xcam_day_cam21_072_00__night_cam30_031_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.854636
+    },
+    {
+      "pair_id": "xcam_night_cam07_103_02__night_cam30_024_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.548104
+    },
+    {
+      "pair_id": "xcam_day_cam21_072_00__night_cam07_125_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.568135
+    },
+    {
+      "pair_id": "xcam_day_cam21_072_00__night_cam04_022_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.532816
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__day_cam21_044_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.851637
+    },
+    {
+      "pair_id": "xcam_night_cam07_048_00__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "night/night",
+      "similarity": 0.539861
+    },
+    {
+      "pair_id": "xcam_night_cam07_102_02__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.626713
+    },
+    {
+      "pair_id": "xcam_night_cam10_006_07__night_cam30_024_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "night/night",
+      "similarity": 0.744349
+    },
+    {
+      "pair_id": "xcam_day_cam21_107_00__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.809886
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__day_cam30_046_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.6037
+    },
+    {
+      "pair_id": "xcam_day_cam30_001_00__night_cam07_102_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.674198
+    },
+    {
+      "pair_id": "xcam_day_cam21_104_01__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.555737
+    },
+    {
+      "pair_id": "xcam_day_cam30_036_00__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam10",
+      "condition": "day/night",
+      "similarity": 0.718231
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam30_046_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/day",
+      "similarity": 0.664762
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__night_cam30_031_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.838275
+    },
+    {
+      "pair_id": "xcam_day_cam21_149_00__night_cam04_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.717247
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__night_cam04_137_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam04",
+      "condition": "day/night",
+      "similarity": 0.802371
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__night_cam30_031_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.870326
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam30_036_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.716292
+    },
+    {
+      "pair_id": "xcam_day_cam30_109_14__night_cam07_048_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.462545
+    },
+    {
+      "pair_id": "xcam_night_cam07_103_02__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "night/night",
+      "similarity": 0.421062
+    },
+    {
+      "pair_id": "xcam_day_cam21_149_00__day_cam30_063_10",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.555684
+    },
+    {
+      "pair_id": "xcam_day_cam21_157_00__night_cam07_123_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.576913
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__day_cam21_089_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.818797
+    },
+    {
+      "pair_id": "xcam_day_cam21_149_00__night_cam07_048_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.560637
+    },
+    {
+      "pair_id": "xcam_day_cam21_056_00__day_cam30_015_03",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.773904
+    },
+    {
+      "pair_id": "xcam_day_cam21_149_00__night_cam10_006_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.60492
+    },
+    {
+      "pair_id": "xcam_day_cam30_121_05__night_cam04_015_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.665087
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/night",
+      "similarity": 0.668836
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/night",
+      "similarity": 0.784547
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam07_103_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.603476
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam21_104_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam21",
+      "condition": "day/day",
+      "similarity": 0.823385
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__day_cam21_043_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.831522
+    },
+    {
+      "pair_id": "xcam_day_cam04_124_00__day_cam10_087_15",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam10",
+      "condition": "day/day",
+      "similarity": 0.870224
+    },
+    {
+      "pair_id": "xcam_day_cam04_123_01__night_cam07_007_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/night",
+      "similarity": 0.394611
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__night_cam04_137_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.754343
+    },
+    {
+      "pair_id": "xcam_day_cam10_154_09__night_cam06_027_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam06",
+      "condition": "day/night",
+      "similarity": 0.56474
+    },
+    {
+      "pair_id": "xcam_day_cam21_070_00__day_cam30_049_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.617162
+    },
+    {
+      "pair_id": "xcam_day_cam21_165_00__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.62756
+    },
+    {
+      "pair_id": "xcam_day_cam21_090_00__night_cam30_024_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.564694
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__day_cam30_063_10",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.55619
+    },
+    {
+      "pair_id": "xcam_day_cam21_057_00__night_cam07_113_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.707075
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam21_056_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.814961
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__day_cam30_046_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.656069
+    },
+    {
+      "pair_id": "xcam_day_cam30_063_10__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.418949
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__night_cam04_015_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam04",
+      "condition": "day/night",
+      "similarity": 0.637467
+    },
+    {
+      "pair_id": "xcam_day_cam21_039_01__night_cam06_013_03",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam06",
+      "condition": "day/night",
+      "similarity": 0.484476
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__day_cam21_043_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.854065
+    },
+    {
+      "pair_id": "xcam_day_cam07_059_05__night_cam04_025_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam04",
+      "condition": "day/night",
+      "similarity": 0.847069
+    },
+    {
+      "pair_id": "xcam_day_cam30_036_00__night_cam07_113_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.582519
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/night",
+      "similarity": 0.682309
+    },
+    {
+      "pair_id": "xcam_day_cam30_049_02__night_cam04_115_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.805686
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam21_165_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.81563
+    },
+    {
+      "pair_id": "xcam_night_cam07_046_00__night_cam10_006_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "night/night",
+      "similarity": 0.478329
+    },
+    {
+      "pair_id": "xcam_night_cam04_047_00__night_cam06_013_03",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam06",
+      "condition": "night/night",
+      "similarity": 0.427556
+    },
+    {
+      "pair_id": "xcam_day_cam10_034_00__day_cam30_079_12",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.747607
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam21_104_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.834363
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__night_cam30_117_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/night",
+      "similarity": 0.73516
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__night_cam07_046_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.562827
+    },
+    {
+      "pair_id": "xcam_day_cam21_046_01__day_cam30_036_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.581594
+    },
+    {
+      "pair_id": "xcam_day_cam04_086_07__day_cam07_097_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/day",
+      "similarity": 0.785776
+    },
+    {
+      "pair_id": "xcam_day_cam30_046_09__night_cam07_111_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.650224
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_00__day_cam30_042_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.608764
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.84951
+    },
+    {
+      "pair_id": "xcam_day_cam30_053_09__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam10",
+      "condition": "day/night",
+      "similarity": 0.661048
+    },
+    {
+      "pair_id": "xcam_day_cam07_059_05__day_cam30_036_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "day/day",
+      "similarity": 0.758588
+    },
+    {
+      "pair_id": "xcam_day_cam21_054_01__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.656977
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__day_cam30_117_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.873179
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__day_cam30_039_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.728377
+    },
+    {
+      "pair_id": "xcam_day_cam04_123_01__night_cam30_076_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/night",
+      "similarity": 0.693996
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam21_054_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam21",
+      "condition": "day/day",
+      "similarity": 0.849844
+    },
+    {
+      "pair_id": "xcam_night_cam04_015_00__night_cam30_024_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "night/night",
+      "similarity": 0.626798
+    },
+    {
+      "pair_id": "xcam_night_cam07_048_00__night_cam30_024_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.666129
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__day_cam21_174_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.839732
+    },
+    {
+      "pair_id": "xcam_day_cam07_173_02__night_cam30_076_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "day/night",
+      "similarity": 0.812859
+    },
+    {
+      "pair_id": "xcam_day_cam21_057_00__day_cam30_121_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.701288
+    },
+    {
+      "pair_id": "xcam_day_cam21_060_01__night_cam30_076_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.888513
+    },
+    {
+      "pair_id": "xcam_day_cam21_107_00__night_cam30_024_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.619223
+    },
+    {
+      "pair_id": "xcam_day_cam30_063_10__night_cam07_111_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.418641
+    },
+    {
+      "pair_id": "xcam_day_cam21_149_00__night_cam04_096_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.760189
+    },
+    {
+      "pair_id": "xcam_day_cam21_150_00__day_cam30_079_12",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.653205
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__night_cam07_103_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.636455
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam07_048_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.567863
+    },
+    {
+      "pair_id": "xcam_day_cam21_057_00__night_cam30_117_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.823252
+    },
+    {
+      "pair_id": "xcam_day_cam21_044_00__day_cam30_046_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.614659
+    },
+    {
+      "pair_id": "xcam_day_cam21_046_01__day_cam30_117_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.820094
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.726154
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__day_cam30_109_14",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.793393
+    },
+    {
+      "pair_id": "xcam_day_cam30_046_09__night_cam07_103_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.619645
+    },
+    {
+      "pair_id": "xcam_day_cam21_028_00__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.753859
+    },
+    {
+      "pair_id": "xcam_night_cam04_124_01__night_cam30_117_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "night/night",
+      "similarity": 0.785496
+    },
+    {
+      "pair_id": "xcam_night_cam04_059_00__night_cam06_013_03",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam06",
+      "condition": "night/night",
+      "similarity": 0.430717
+    },
+    {
+      "pair_id": "xcam_day_cam21_090_00__night_cam04_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.683596
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__night_cam04_022_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam04",
+      "condition": "day/night",
+      "similarity": 0.645771
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__night_cam30_038_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/night",
+      "similarity": 0.6567
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_00__night_cam30_031_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.630054
+    },
+    {
+      "pair_id": "xcam_day_cam21_150_00__night_cam04_022_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.504388
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__day_cam30_134_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.592934
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam21_107_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.835755
+    },
+    {
+      "pair_id": "xcam_day_cam04_122_02__night_cam07_007_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/night",
+      "similarity": 0.412041
+    },
+    {
+      "pair_id": "xcam_day_cam30_049_02__night_cam07_125_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.603775
+    },
+    {
+      "pair_id": "xcam_day_cam04_086_07__day_cam07_173_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/day",
+      "similarity": 0.810204
+    },
+    {
+      "pair_id": "xcam_night_cam04_096_00__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "night/night",
+      "similarity": 0.76071
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam04_124_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.758933
+    },
+    {
+      "pair_id": "xcam_day_cam04_124_01__night_cam30_076_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/night",
+      "similarity": 0.693428
+    },
+    {
+      "pair_id": "xcam_day_cam21_028_00__night_cam10_006_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.561266
+    },
+    {
+      "pair_id": "xcam_day_cam21_090_00__day_cam30_042_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.546847
+    },
+    {
+      "pair_id": "xcam_day_cam10_086_21__night_cam06_027_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam06",
+      "condition": "day/night",
+      "similarity": 0.493713
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__night_cam04_025_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.726537
+    },
+    {
+      "pair_id": "xcam_day_cam21_088_00__day_cam30_046_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.607919
+    },
+    {
+      "pair_id": "xcam_day_cam21_056_00__day_cam30_039_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.617487
+    },
+    {
+      "pair_id": "xcam_day_cam30_134_00__night_cam07_048_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.494623
+    },
+    {
+      "pair_id": "xcam_day_cam07_059_05__day_cam30_121_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "day/day",
+      "similarity": 0.72912
+    },
+    {
+      "pair_id": "xcam_day_cam30_036_00__night_cam04_022_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.737966
+    },
+    {
+      "pair_id": "xcam_day_cam30_055_04__night_cam07_102_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.65492
+    },
+    {
+      "pair_id": "xcam_day_cam07_073_02__night_cam30_108_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "day/night",
+      "similarity": 0.839008
+    },
+    {
+      "pair_id": "xcam_day_cam30_117_07__night_cam04_025_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.828224
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam10",
+      "condition": "day/night",
+      "similarity": 0.80158
+    },
+    {
+      "pair_id": "xcam_night_cam07_046_00__night_cam30_024_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam30",
+      "condition": "night/night",
+      "similarity": 0.685853
+    },
+    {
+      "pair_id": "xcam_day_cam10_066_15__day_cam30_049_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.747747
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__day_cam30_063_10",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.60138
+    },
+    {
+      "pair_id": "xcam_day_cam21_057_00__night_cam04_015_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.580446
+    },
+    {
+      "pair_id": "xcam_day_cam21_070_00__day_cam30_134_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.603623
+    },
+    {
+      "pair_id": "xcam_day_cam04_123_01__day_cam07_097_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "day/day",
+      "similarity": 0.740875
+    },
+    {
+      "pair_id": "xcam_day_cam04_123_01__day_cam21_157_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam21",
+      "condition": "day/day",
+      "similarity": 0.735372
+    },
+    {
+      "pair_id": "xcam_day_cam07_073_02__day_cam10_120_08",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "day/day",
+      "similarity": 0.727474
+    },
+    {
+      "pair_id": "xcam_day_cam21_056_00__night_cam07_048_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.527467
+    },
+    {
+      "pair_id": "xcam_day_cam30_014_04__night_cam10_006_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam10",
+      "condition": "day/night",
+      "similarity": 0.723023
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/day",
+      "similarity": 0.85271
+    },
+    {
+      "pair_id": "xcam_night_cam04_022_07__night_cam07_102_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "night/night",
+      "similarity": 0.518014
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__night_cam07_113_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.648599
+    },
+    {
+      "pair_id": "xcam_day_cam07_073_02__day_cam10_086_21",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "day/day",
+      "similarity": 0.759773
+    },
+    {
+      "pair_id": "xcam_day_cam21_174_02__night_cam04_115_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.646408
+    },
+    {
+      "pair_id": "xcam_day_cam21_054_01__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.77705
+    },
+    {
+      "pair_id": "xcam_day_cam30_043_09__night_cam04_025_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.738871
+    },
+    {
+      "pair_id": "xcam_day_cam21_054_01__night_cam07_048_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.562535
+    },
+    {
+      "pair_id": "xcam_day_cam21_104_01__night_cam30_038_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.858469
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam30_055_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/night",
+      "similarity": 0.770977
+    },
+    {
+      "pair_id": "xcam_night_cam07_112_00__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam07/cam10",
+      "condition": "night/night",
+      "similarity": 0.459523
+    },
+    {
+      "pair_id": "xcam_day_cam30_043_09__night_cam07_114_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.623729
+    },
+    {
+      "pair_id": "xcam_day_cam30_036_00__night_cam07_114_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.579238
+    },
+    {
+      "pair_id": "xcam_day_cam21_080_00__night_cam07_046_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.571176
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_00__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.763017
+    },
+    {
+      "pair_id": "xcam_day_cam21_104_01__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.78121
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__night_cam07_111_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam07",
+      "condition": "day/night",
+      "similarity": 0.650105
+    },
+    {
+      "pair_id": "xcam_night_cam04_115_00__night_cam07_111_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "night/night",
+      "similarity": 0.521547
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_00__day_cam30_046_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.623552
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__day_cam21_054_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.864386
+    },
+    {
+      "pair_id": "xcam_day_cam10_120_08__night_cam04_072_13",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam04",
+      "condition": "day/night",
+      "similarity": 0.784624
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__day_cam21_104_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.870031
+    },
+    {
+      "pair_id": "xcam_day_cam21_043_01__night_cam07_114_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam07",
+      "condition": "day/night",
+      "similarity": 0.594184
+    },
+    {
+      "pair_id": "xcam_day_cam21_104_01__day_cam30_109_14",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.723827
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__night_cam30_024_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/night",
+      "similarity": 0.6567
+    },
+    {
+      "pair_id": "xcam_day_cam30_039_04__night_cam07_114_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam07",
+      "condition": "day/night",
+      "similarity": 0.631133
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__day_cam30_014_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.759186
+    },
+    {
+      "pair_id": "xcam_night_cam04_115_00__night_cam30_024_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "night/night",
+      "similarity": 0.77239
+    },
+    {
+      "pair_id": "xcam_day_cam10_120_08__night_cam06_027_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam06",
+      "condition": "day/night",
+      "similarity": 0.451322
+    },
+    {
+      "pair_id": "xcam_day_cam10_077_01__day_cam21_060_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.855764
+    },
+    {
+      "pair_id": "xcam_day_cam21_056_00__day_cam30_109_14",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.77397
+    },
+    {
+      "pair_id": "xcam_day_cam21_072_00__day_cam30_121_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.623238
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__day_cam21_043_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.866199
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__day_cam30_001_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.84208
+    },
+    {
+      "pair_id": "xcam_day_cam21_064_01__day_cam30_079_12",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.717923
+    },
+    {
+      "pair_id": "xcam_day_cam10_008_01__night_cam04_115_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam04",
+      "condition": "day/night",
+      "similarity": 0.710947
+    },
+    {
+      "pair_id": "xcam_day_cam10_012_05__day_cam30_063_10",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.586319
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_23__day_cam10_126_23",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam10",
+      "condition": "day/day",
+      "similarity": 0.806394
+    },
+    {
+      "pair_id": "xcam_day_cam04_001_01__day_cam30_109_14",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam30",
+      "condition": "day/day",
+      "similarity": 0.842882
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__day_cam30_043_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.610391
+    },
+    {
+      "pair_id": "xcam_night_cam04_137_00__night_cam07_102_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "night/night",
+      "similarity": 0.600343
+    },
+    {
+      "pair_id": "xcam_day_cam30_001_00__night_cam10_005_09",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam10",
+      "condition": "day/night",
+      "similarity": 0.778898
+    },
+    {
+      "pair_id": "xcam_day_cam21_150_00__night_cam10_022_05",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam10",
+      "condition": "day/night",
+      "similarity": 0.641506
+    },
+    {
+      "pair_id": "xcam_day_cam30_036_02__night_cam04_137_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam04",
+      "condition": "day/night",
+      "similarity": 0.839719
+    },
+    {
+      "pair_id": "xcam_day_cam10_034_00__night_cam07_125_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam07",
+      "condition": "day/night",
+      "similarity": 0.568222
+    },
+    {
+      "pair_id": "xcam_day_cam21_089_00__day_cam30_036_02",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.734524
+    },
+    {
+      "pair_id": "xcam_day_cam21_069_01__day_cam30_117_07",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam30",
+      "condition": "day/day",
+      "similarity": 0.832398
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__day_cam21_056_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam21",
+      "condition": "day/day",
+      "similarity": 0.861278
+    },
+    {
+      "pair_id": "xcam_day_cam10_007_01__night_cam07_112_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam07",
+      "condition": "day/night",
+      "similarity": 0.598748
+    },
+    {
+      "pair_id": "xcam_day_cam21_090_00__night_cam04_015_00",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam21/cam04",
+      "condition": "day/night",
+      "similarity": 0.528006
+    },
+    {
+      "pair_id": "xcam_day_cam10_034_00__day_cam30_014_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam10/cam30",
+      "condition": "day/day",
+      "similarity": 0.823098
+    },
+    {
+      "pair_id": "xcam_night_cam04_137_00__night_cam07_125_01",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam04/cam07",
+      "condition": "night/night",
+      "similarity": 0.598947
+    },
+    {
+      "pair_id": "xcam_day_cam30_039_08__night_cam06_027_04",
+      "label": "different",
+      "stratum": "cross_camera_diagnostic",
+      "camera": "cam30/cam06",
+      "condition": "day/night",
+      "similarity": 0.572653
+    }
+  ]
+}

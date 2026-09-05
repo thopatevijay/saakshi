@@ -17,6 +17,7 @@ Licences were read from the upstream repositories on **2026-09-05**, not from me
 | **YOLO-v9-s 608 license-plate end2end** (`yolo-v9-s-608-license-plates-end2end.onnx`) | Plate detection (D2-01) | `ankandrew/open-image-models` release assets | **MIT** | GitHub licence API, repo `open-image-models` |
 | **`cct-s-v2-global`, `cct-xs-v1-global`** (`.onnx` + plate config) | OCR — `fast_plate_ocr` backend | `ankandrew/fast-plate-ocr` release assets (published under the repo's former name `cnn-ocr-lp`) | **MIT** | GitHub licence API, repo `fast-plate-ocr` |
 | **PP-OCRv6 det/rec/cls** (`PP-OCRv6_det_small.onnx`, `PP-OCRv6_rec_small.onnx`, `ch_ppocr_mobile_v2.0_cls_mobile.onnx`) | OCR — `paddle_ppocr` backend | shipped with / fetched by `rapidocr` | **Apache-2.0** (PaddleOCR models; RapidOCR's port is Apache-2.0) | RapidOCR and PaddleOCR `LICENSE` |
+| **None — vehicle re-ID** (D3-03) | Vehicle appearance bridging | *no weights ship*; `workers/analytics/reid.py` uses a classical descriptor (OpenCV, Apache-2.0) and offers `OnnxEmbedder` behind `SAAKSHI_REID_WEIGHTS` | n/a — nothing to licence | this table; `docs/reid.md` §4 |
 
 ## The libraries that load them
 
@@ -58,3 +59,10 @@ out of scope (`CLAUDE.md`): it is not mandated by the challenge, and it needs se
 authorisation. No model in the table above processes biometric data. `person` appears as a detector
 class only as a bounding box — a pedestrian near a vehicle of interest is context — and no identity
 is derived from it.
+
+**Vehicle appearance re-ID (D3-03) is not an exception to this, and the distinction is worth being
+exact about** because the word "embedding" invites the wrong assumption.
+`sighting_appearance.embedding` is 200 numbers describing the *outside of a vehicle*: white-balanced
+colour histograms over four stripes of the vehicle crop, plus a coarse edge-orientation signature. It
+cannot identify a person, no person is examined to produce it, and it expires with its sighting under
+D3-05's retention clock. `docs/reid.md` §2 and migration `0022` say the same thing in the same words.

@@ -2810,6 +2810,7 @@ export interface paths {
                     max_distance?: number;
                     limit?: number;
                     reconstruct?: string;
+                    include_reid?: string;
                 };
                 header?: never;
                 path?: never;
@@ -3032,6 +3033,13 @@ export interface paths {
                                 };
                                 buildMs: number;
                             } | null;
+                            reid: {
+                                requested: boolean;
+                                enabled: boolean;
+                                links: number;
+                                measuredPrecision: number;
+                                disclaimer: string;
+                            };
                             /** @enum {string|null} */
                             emptyReason: "query_not_searchable" | "no_matching_plate" | "no_sightings_in_window" | "below_min_confidence" | null;
                             disclaimer: string;
@@ -3121,6 +3129,7 @@ export interface paths {
                     max_distance?: number;
                     limit?: number;
                     reconstruct?: string;
+                    include_reid?: string;
                 };
                 header?: never;
                 path?: never;
@@ -3166,6 +3175,7 @@ export interface paths {
                     max_distance?: number;
                     limit?: number;
                     reconstruct?: string;
+                    include_reid?: string;
                 };
                 header?: never;
                 path?: never;

@@ -43,6 +43,22 @@ export const EvidenceRecord = z.object({
   colorChromaShare: z.number().min(0).max(1).default(0),
   colorRunnerUp: z.string().nullable().default(null),
 
+  /**
+   * Vehicle appearance descriptor (D3-03), or `null` when none could be made.
+   *
+   * **Not biometric.** It describes the outside of a vehicle — white-balanced colour histograms over
+   * four stripes of the crop plus a coarse edge signature. SAAKSHI performs no face recognition and
+   * stores no biometric template; `docs/reid.md` §2 and migration `0022` both say so, because a
+   * reader who sees "embedding" and assumes "face" would be wrong about the most sensitive thing in
+   * the system.
+   *
+   * Optional and nullable so that a record produced before D3-03 — or by a worker whose embedder
+   * failed — still validates. The consumer writes `sighting_appearance` only when both fields are
+   * present, and two descriptors may only ever be compared when their `appearanceEmbedderId`s match.
+   */
+  appearanceEmbedderId: z.string().min(1).nullable().default(null),
+  appearance: z.array(z.number()).min(1).max(4096).nullable().default(null),
+
   contentType: z.string().default('image/jpeg'),
   /** The JPEG. Base64 because both Valkey clients round-trip text safely and neither does bytes. */
   cropBase64: z.string().min(1),

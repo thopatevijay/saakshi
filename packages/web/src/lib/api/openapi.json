@@ -7677,6 +7677,14 @@
             "in": "query",
             "name": "reconstruct",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "include_reid",
+            "required": false
           }
         ],
         "responses": {
@@ -8678,6 +8686,36 @@
                       ],
                       "additionalProperties": false
                     },
+                    "reid": {
+                      "type": "object",
+                      "properties": {
+                        "requested": {
+                          "type": "boolean"
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "links": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "measuredPrecision": {
+                          "type": "number"
+                        },
+                        "disclaimer": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "requested",
+                        "enabled",
+                        "links",
+                        "measuredPrecision",
+                        "disclaimer"
+                      ],
+                      "additionalProperties": false
+                    },
                     "emptyReason": {
                       "nullable": true,
                       "type": "string",
@@ -8712,6 +8750,7 @@
                     "coverage",
                     "claims",
                     "route",
+                    "reid",
                     "emptyReason",
                     "disclaimer",
                     "tookMs"
@@ -8974,6 +9013,14 @@
             "in": "query",
             "name": "reconstruct",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "include_reid",
+            "required": false
           }
         ],
         "responses": {
@@ -9088,6 +9135,14 @@
             },
             "in": "query",
             "name": "reconstruct",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "include_reid",
             "required": false
           }
         ],

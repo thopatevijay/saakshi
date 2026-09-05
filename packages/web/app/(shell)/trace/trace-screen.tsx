@@ -107,6 +107,9 @@ export function TraceScreen({
     query.to,
     query.minConfidence,
     query.maxDistance,
+    // D3-03: turning appearance links on or off is a different evidentiary standard, so it is a
+    // different trace and a different audited event — never a client-side filter over a cached one.
+    query.includeReid,
   ]);
 
   const select = useCallback((seq: number | null) => {
@@ -250,6 +253,28 @@ export function TraceScreen({
           />
         </label>
 
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+            Appearance links
+          </span>
+          <span className="flex h-9 items-center gap-2 text-xs text-slate-300">
+            <input
+              type="checkbox"
+              checked={draft.includeReid}
+              data-testid="trace-include-reid"
+              onChange={(e) => {
+                setDraft({ ...draft, includeReid: e.target.checked });
+              }}
+              className="h-4 w-4 accent-violet-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400"
+            />
+            {/* Violet, matching the map's re-ID pins and the legend D2-08 shipped: the weakest
+                claim in the system gets its own colour everywhere it appears. */}
+            <span title="Vehicle appearance re-ID. Measured at 0.761 precision — roughly one link in four is wrong. Not face recognition: no biometrics are processed.">
+              include re-ID
+            </span>
+          </span>
+        </label>
+
         <button
           type="submit"
           className={`${BUTTON} h-9`}
@@ -333,6 +358,34 @@ export function TraceScreen({
               {coverage.truncated ? ' · truncated at the row cap' : ''}
             </p>
           )}
+          {/* D3-03. Rendered whenever appearance links were asked for or found — never silently.
+              A screen that shows a re-ID link without its measured precision is over-claiming, and
+              a switch that looks on while the server has the feature off is worse. */}
+          {trace.reid !== undefined && (trace.reid.requested || trace.reid.links > 0) ? (
+            <p
+              className="mt-2 rounded border border-violet-900/60 bg-violet-950/30 px-2.5 py-1.5 text-xs text-violet-200"
+              data-testid="trace-reid-note"
+            >
+              {trace.reid.requested && !trace.reid.enabled ? (
+                <>
+                  <span className="font-semibold">Appearance links unavailable.</span> They were
+                  asked for, but re-ID is disabled on this deployment. Everything above is a plate
+                  read.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">
+                    {trace.reid.links} link{trace.reid.links === 1 ? '' : 's'} by vehicle appearance
+                  </span>{' '}
+                  — measured at {(trace.reid.measuredPrecision * 100).toFixed(1)}% precision, so
+                  roughly one in{' '}
+                  {Math.max(2, Math.round(1 / Math.max(1e-6, 1 - trace.reid.measuredPrecision)))} is
+                  wrong. Not face recognition; no biometrics are processed. Untick{' '}
+                  <span className="font-semibold">include re-ID</span> for a plate-only trace.
+                </>
+              )}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
