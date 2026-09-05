@@ -26,6 +26,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerWatchlistRoutes } from './routes/watchlist.js';
 import { registerPlateRoutes } from './routes/plates.js';
 import { registerAlertRoutes } from './routes/alerts.js';
+import type { AlertEngine } from './services/alerts.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -58,6 +59,8 @@ export interface ServerOptions {
    * where the engine and the routes already share one process and one bus.
    */
   listenSql?: Sql;
+  /** D2-06's alert engine, so a test can drive the same bus the stream serves. Built if omitted. */
+  alertEngine?: AlertEngine;
   fetchCatalogue?: (url: string, cookie: string) => Promise<unknown>;
 }
 
@@ -186,6 +189,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerAlertRoutes(app, {
       db,
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
+      ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
     });
   }
 

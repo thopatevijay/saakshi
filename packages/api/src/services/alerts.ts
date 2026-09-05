@@ -940,8 +940,8 @@ export class AlertEngine {
     if (cropUrl === null) {
       caveats.push(
         cropUri === null
-          ? 'no crop was stored for this sighting — only ~1 sighting in 30 is a best shot.'
-          : 'no evidence store configured — the crop cannot be signed for viewing.',
+          ? 'no crop URL — no crop was stored for this sighting; only about 1 sighting in 30 is a best shot.'
+          : 'no crop URL — no evidence store is configured, so the crop cannot be signed for viewing.',
       );
     }
     if (!sighting.isBestShot) {

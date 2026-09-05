@@ -256,7 +256,7 @@ export const REQUIRED_WHY_FIELDS = [
 export const EXPLAINED_NULL_FIELDS: Readonly<Record<string, string>> = {
   'camera.location': 'no location on file',
   'camera.trustScore': 'never probed',
-  'evidence.cropUrl': 'no evidence store configured',
+  'evidence.cropUrl': 'no crop URL',
 };
 
 /**
