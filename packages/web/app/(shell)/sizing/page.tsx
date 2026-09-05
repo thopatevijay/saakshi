@@ -10,7 +10,15 @@
  */
 import { Calculator } from './calculator';
 
-export const dynamic = 'force-static';
+/**
+ * Dynamic, even though this page fetches nothing.
+ *
+ * `force-static` looks right here — the calculator is a client island over constants that ship in
+ * the bundle — but it renders the route without a request, so the shell layout's `cookies()` sees no
+ * session and redirects every visitor to `/login`. The page has no data to cache; the layout around
+ * it has a user to identify.
+ */
+export const dynamic = 'force-dynamic';
 
 export default function Page() {
   return <Calculator />;
