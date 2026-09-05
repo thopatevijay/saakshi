@@ -27,6 +27,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 
+from .attributes import AttributeStats, BestShotSelector
 from .anpr.crops import DEFAULT_CROP_DIR, LocalCropStore
 from .anpr.engine import AnprEngine
 from .anpr.ocr import OCR_BACKENDS, create_ocr_backend, ocr_backend_name
@@ -35,6 +36,7 @@ from .anpr.thresholds import thresholds_from_env
 from .bus import NullSink, SightingSink, ValkeySink
 from .detect import DEFAULT_MODEL, Detector
 from .device import select_device
+from .evidence import EvidenceSink, NullEvidenceSink, ValkeyEvidenceSink
 from .pipeline import CameraPipeline, CameraSource, CameraStats
 from .sources import from_registry, parse_source_override
 from .thresholds import DEFAULTS
@@ -59,6 +61,7 @@ def run_worker(
     connect_deadline_s: float = DEFAULT_CONNECT_DEADLINE_S,
     cookie: str | None = None,
     detector: object | None = None,
+    evidence_sink: EvidenceSink | None = None,
     anpr: AnprEngine | None = None,
 ) -> dict:
     """Runs every source concurrently for `minutes` and returns the run summary."""
@@ -73,8 +76,23 @@ def run_worker(
     start_gate = threading.Event()
     ready = threading.Semaphore(0)
 
+    # One selector and one attribute counter shared across every camera thread. Shared because the
+    # run's storage total and low-confidence rate are properties of the run, not of one camera; safe
+    # because every key is `(camera_id, track_id)` and no two threads touch the same camera.
+    best_shots = BestShotSelector()
+    attribute_stats = AttributeStats()
     pipelines = [
-        CameraPipeline(source, engine, out_sink, thresholds=DEFAULTS, cookie=cookie, anpr=anpr)
+        CameraPipeline(
+            source,
+            engine,
+            out_sink,
+            thresholds=DEFAULTS,
+            cookie=cookie,
+            evidence_sink=evidence_sink,
+            best_shots=best_shots,
+            attribute_stats=attribute_stats,
+            anpr=anpr,
+        )
         for source in sources
     ]
 
@@ -134,6 +152,8 @@ def run_worker(
         window_s=window_s,
         started_wall=started_wall,
         sink=out_sink,
+        attribute_stats=attribute_stats if evidence_sink is not None else None,
+        evidence_sink=evidence_sink,
     )
 
     stats_source = getattr(engine, "stats", None)
@@ -178,6 +198,8 @@ def summarise(
     window_s: float,
     started_wall: float,
     sink: SightingSink | None = None,
+    attribute_stats: AttributeStats | None = None,
+    evidence_sink: EvidenceSink | None = None,
 ) -> dict:
     """The run summary. Every number in it was measured; nothing is declared."""
     producing = [s for s in stats if s.frames_decoded > 0]
@@ -218,6 +240,26 @@ def summarise(
         "time_split": {"upstream_wait_s": upstream, "loop_self_time_s": self_time},
         "plate_reads_published": sum(s.plate_reads for s in stats),
         "publish_failures": getattr(sink, "failed", 0),
+        # D2-02. `best_shots` is one per track *session*, never one per sighting: the ratio below is
+        # the storage argument in PROJECT.md §9 measured rather than assumed. `None` when the run
+        # did not read attributes at all, so an absent measurement is never printed as a zero.
+        "evidence": None
+        if attribute_stats is None
+        else {
+            "best_shots": sum(s.best_shots for s in stats),
+            "crop_bytes": sum(s.best_shot_bytes for s in stats),
+            "mean_crop_bytes": (
+                round(sum(s.best_shot_bytes for s in stats) / sum(s.best_shots for s in stats))
+                if sum(s.best_shots for s in stats)
+                else None
+            ),
+            "crops_read": attribute_stats.crops_read,
+            "color_reads": attribute_stats.color_reads,
+            "low_confidence": attribute_stats.low_confidence,
+            "low_confidence_rate": attribute_stats.low_confidence_rate,
+            "by_color": dict(sorted(attribute_stats.by_color.items(), key=lambda kv: -kv[1])),
+            "publish_failures": getattr(evidence_sink, "failed", 0),
+        },
         # `effective_fps` and `skip_ratio` are properties, so `asdict` does not carry them. Merged in
         # explicitly: they are the two per-camera numbers the throughput table is made of, and a
         # summary that omits them forces every reader to recompute them from the raw counters.
@@ -253,6 +295,21 @@ def render(summary: dict) -> str:
         f"{split['loop_self_time_s']} s"
     )
     lines.append(f"  sightings         {summary['sightings_published']} published")
+    ev = summary.get("evidence")
+    if ev:
+        ratio = (
+            f"1 crop per {summary['sightings_published'] / ev['best_shots']:.1f} sightings"
+            if ev["best_shots"]
+            else "no best shots"
+        )
+        lines.append(
+            f"  best-shot crops   {ev['best_shots']} objects, {ev['crop_bytes']} B "
+            f"(mean {ev['mean_crop_bytes']} B) — {ratio}"
+        )
+        lines.append(
+            f"  colour            {ev['color_reads']} reads, "
+            f"{ev['low_confidence_rate']:.1%} low-confidence -> unknown  {ev['by_color']}"
+        )
     anpr = summary.get("anpr")
     if anpr is not None:
         lines.append(
@@ -315,6 +372,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", default=None, help="cuda | mps | cpu (default: auto-detect)")
     parser.add_argument("--connect-deadline", type=float, default=DEFAULT_CONNECT_DEADLINE_S)
     parser.add_argument("--no-publish", action="store_true", help="measure without writing to the bus")
+    parser.add_argument(
+        "--evidence", action="store_true",
+        help="read vehicle attributes and publish one best-shot crop per track session (D2-02)",
+    )
     parser.add_argument("--anpr", action="store_true", help="run the ANPR stage (D2-01)")
     parser.add_argument(
         "--ocr-backend", default=None,
@@ -361,6 +422,9 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     sink: SightingSink = NullSink() if args.no_publish else ValkeySink()
+    evidence: EvidenceSink | None = None
+    if args.evidence:
+        evidence = NullEvidenceSink() if args.no_publish else ValkeyEvidenceSink()
     try:
         summary = run_worker(
             sources,
@@ -371,10 +435,13 @@ def main(argv: list[str] | None = None) -> int:
             device_override=args.device,
             connect_deadline_s=args.connect_deadline,
             cookie=os.environ.get("SENTINEL_PORTAL_COOKIE"),
+            evidence_sink=evidence,
             anpr=anpr,
         )
     finally:
         sink.close()
+        if evidence is not None:
+            evidence.close()
 
     print(render(summary))
     if args.json:

@@ -1,0 +1,35 @@
+{
+  "$comment": [
+    "Evidence retention, per bucket prefix. Applied with `npm run evidence:retention` and read back",
+    "from the store itself, so the policy that is enforced and the policy that is documented are the",
+    "same object.",
+    "",
+    "Why it is per prefix: PROJECT.md P3 records the actual estate problem — 'some systems storing",
+    "footage for 7 days and others for 15 days or more'. A single global number would model an",
+    "estate that does not exist. The key convention evidence/<camera_id>/<yyyy-mm-dd>/... is what",
+    "makes a department's own clock expressible as a prefix rule.",
+    "",
+    "Rules are evaluated by S3 with the LONGEST matching prefix winning, so the catch-all sits first",
+    "here for readability only; order in this file has no effect.",
+    "",
+    "These are OUR crops, not the departments' video. We store no footage — a crop is a few KB of a",
+    "single frame. The clock still matters: an alert whose crop has expired is an alert nobody can",
+    "verify, and D3-05 surfaces exactly that."
+  ],
+  "rules": [
+    {
+      "id": "evidence-default",
+      "prefix": "evidence/",
+      "retainDays": 15,
+      "enabled": true,
+      "note": "Catch-all. 15 days matches the longer of the two retention regimes the challenge brief describes, so our evidence never expires before the source footage it points at."
+    },
+    {
+      "id": "evidence-watchlist-hits",
+      "prefix": "evidence/watchlist/",
+      "retainDays": 90,
+      "enabled": true,
+      "note": "A watchlist hit is the crop an investigation is built on. D3-04's export bundles hash these bytes, so a 15-day clock would break a manifest three weeks after it was signed."
+    }
+  ]
+}

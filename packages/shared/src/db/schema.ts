@@ -256,6 +256,11 @@ export const sightings = pgTable(
     vehicleColor: text('vehicle_color'),
     vehicleType: text('vehicle_type'),
     cropUri: text('crop_uri'),
+    // 0014 (D2-02). `unknown` with the flag set, never the runner-up quietly promoted.
+    vehicleColorConfidence: numericAsNumber('vehicle_color_confidence'),
+    attributesLowConfidence: boolean('attributes_low_confidence'),
+    // One per track *session* — the stored track_id is already session-qualified.
+    isBestShot: boolean('is_best_shot').notNull().default(false),
 
     ingestedAt: ts('ingested_at').notNull().defaultNow(),
   },

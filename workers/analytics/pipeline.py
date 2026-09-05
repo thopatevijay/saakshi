@@ -30,14 +30,27 @@ from typing import Callable, Iterator
 import av
 import av.error
 import av.logging
+import numpy as np
 
 from workers.prober.probe import BENIGN_DECODER_WARNINGS
 
+from .attributes import (
+    AttributeStats,
+    BestShot,
+    BestShotSelector,
+    best_shot_score,
+    body_type,
+    classify_color,
+    crop_box,
+    encode_jpeg,
+    sharpness,
+)
 from .anpr.engine import AnprEngine
 from .bus import SightingSink
 from .capabilities import CameraCapabilities, inference_size
 from .backoff import backoff_delay_ms
 from .detect import Detection
+from .evidence import EvidenceSink, to_record
 from .motion import MotionGate, SceneCutDetector, thumbnail
 from .thresholds import DEFAULTS, AnalyticsThresholds
 from .track import SessionTracker
@@ -75,6 +88,10 @@ class CameraStats:
     keepalive_inferences: int = 0
     detections: int = 0
     sightings: int = 0
+    #: Evidence records emitted — one per track session, never one per sighting (D2-02).
+    best_shots: int = 0
+    #: Bytes of JPEG actually produced. The sizing model's storage input, measured not assumed.
+    best_shot_bytes: int = 0
     #: Voted plate reads emitted for this camera — one per vehicle track that produced one (D2-01).
     plate_reads: int = 0
     scene_cuts: int = 0
@@ -239,6 +256,9 @@ class CameraPipeline:
         cookie: str | None = None,
         user_agent: str = DEFAULT_USER_AGENT,
         jitter: float = 0.2,
+        evidence_sink: EvidenceSink | None = None,
+        best_shots: BestShotSelector | None = None,
+        attribute_stats: AttributeStats | None = None,
         anpr: AnprEngine | None = None,
     ) -> None:
         self.source = source
@@ -252,6 +272,12 @@ class CameraPipeline:
         self.cookie = cookie
         self.user_agent = user_agent
         self.jitter = jitter
+        # D2-02. All three are optional and default to off: a throughput run must be able to
+        # measure the decode/infer loop without paying for JPEG encoding, and D1-09's benchmark
+        # numbers stay comparable only if the attribute stage can be left out of them.
+        self.evidence_sink = evidence_sink
+        self.best_shots = best_shots if best_shots is not None else BestShotSelector()
+        self.attribute_stats = attribute_stats if attribute_stats is not None else AttributeStats()
         self.stats = CameraStats(external_id=source.external_id, url=source.url)
         #: The backoff ladder actually walked, in ms. AC 4's evidence.
         self.backoff_ladder_ms: list[int] = []
@@ -329,6 +355,10 @@ class CameraPipeline:
                 if stop.wait(delay_ms / 1000.0):
                     break
 
+        # Whatever is still held when the run ends is stored. A vehicle that was in frame at the
+        # deadline is exactly as much evidence as one that left before it, and dropping the tail
+        # would make the object count quietly lower than the best-shot count for no stated reason.
+        self._emit_evidence(self.best_shots.end_session(self.source.external_id))
         return self.stats
 
     def _session(
@@ -423,6 +453,7 @@ class CameraPipeline:
             # A reconnect replays a buffered GOP: the frames that follow are not a continuation of
             # the ones before, so identity must not bleed across it any more than across a cut.
             self.stats.sessions = self._tracker.new_session() + 1
+            self._emit_evidence(self.best_shots.end_session(self.source.external_id))
         tracker = self._tracker
 
         time_base = float(stream.time_base) if stream.time_base else 1 / 90_000
@@ -521,6 +552,11 @@ class CameraPipeline:
             session = tracker.new_session()
             gate.reset()
             self.stats.sessions = session + 1
+            # Whatever the pre-cut session was still holding is stored now. Carrying a candidate
+            # across the cut would let a post-cut observation of a *different* vehicle beat it and
+            # be stored under the earlier vehicle's identity (D1-09: raw ids 1 and 2 were reused
+            # across sessions 6 and 9 on cam03 inside one run).
+            self._emit_evidence(self.best_shots.end_session(self.source.external_id))
             log.info(
                 "%s: scene cut at pts %.2fs (diff %.1f vs median %s) — tracking session %d",
                 self.source.external_id, pts_s, cuts.last_diff or 0.0,
@@ -559,18 +595,19 @@ class CameraPipeline:
             self.stats.plate_reads += len(plate_reads)
 
         for item in tracked:
+            bbox = {
+                "x": round(item.x, 2),
+                "y": round(item.y, 2),
+                "w": round(item.w, 2),
+                "h": round(item.h, 2),
+            }
             payload = {
                 "cameraId": self.source.external_id,
                 "ts": iso_ts,
                 "framePtsMs": frame_pts_ms,
                 "trackId": item.track_id,
                 "class": item.vehicle_class,
-                "bbox": {
-                    "x": round(item.x, 2),
-                    "y": round(item.y, 2),
-                    "w": round(item.w, 2),
-                    "h": round(item.h, 2),
-                },
+                "bbox": bbox,
                 "detConfidence": round(item.confidence, 3),
             }
             read = plate_reads.get(item.track_id)
@@ -580,10 +617,80 @@ class CameraPipeline:
                 payload["plateReads"] = [read]
             self.sink.publish(payload)
             self.stats.sightings += 1
+            if self.evidence_sink is not None:
+                self._offer_best_shot(image, item, bbox, iso_ts, frame_pts_ms)
 
         self.stats.frames_considered = gate.frames_considered
         self.stats.inferences_run = gate.inferences_run
         self.stats.keepalive_inferences = gate.keepalive_inferences
+
+    # ── D2-02 · attributes and evidence ─────────────────────────────────────────────────────────
+
+    def _offer_best_shot(
+        self,
+        image: np.ndarray,
+        item: object,
+        bbox: dict[str, float],
+        ts_iso: str,
+        frame_pts_ms: int,
+    ) -> None:
+        """Score one observation as evidence and hand it to the selector.
+
+        Attributes are read here, on the frame we already have in memory, rather than by re-fetching
+        the crop later: the frame is gone the moment the loop advances, and a second decode pass to
+        recover it would cost more than the whole attribute stage.
+
+        Only what the selector hands back is published — one record per track session, never one per
+        sighting. That is the storage argument in PROJECT.md §9 expressed as control flow.
+        """
+        crop = crop_box(image, bbox["x"], bbox["y"], bbox["w"], bbox["h"])
+        if crop.size == 0:
+            return
+        height, width = image.shape[:2]
+        focus = sharpness(crop)
+        score = best_shot_score(
+            det_confidence=float(item.confidence),  # type: ignore[attr-defined]
+            w=bbox["w"],
+            h=bbox["h"],
+            focus=focus,
+            frame_width=width,
+            frame_height=height,
+            x=bbox["x"],
+            y=bbox["y"],
+        )
+        color = classify_color(crop)
+        self.attribute_stats.crops_read += 1
+        self.attribute_stats.record(color)
+        shot = BestShot(
+            camera_id=self.source.external_id,
+            track_id=int(item.track_id),  # type: ignore[attr-defined]
+            ts=ts_iso,
+            frame_pts_ms=frame_pts_ms,
+            vehicle_class=str(item.vehicle_class),  # type: ignore[attr-defined]
+            det_confidence=float(item.confidence),  # type: ignore[attr-defined]
+            bbox=bbox,
+            score=score,
+            focus=focus,
+            color=color,
+            body=body_type(str(item.vehicle_class)),  # type: ignore[attr-defined]
+            # Encoded only for a candidate that could still win. The JPEG is the expensive part of
+            # this stage, and re-encoding on every frame of every track is what would make the
+            # attribute pass show up in the throughput table.
+            crop_jpeg=b"",
+        )
+        # The crop is encoded lazily: only when this observation actually beats what is held.
+        held = self.best_shots.candidate_score(self.source.external_id, shot.track_id)
+        if held is None or score > held:
+            shot.crop_jpeg = encode_jpeg(crop)
+        self._emit_evidence(self.best_shots.offer(shot))
+
+    def _emit_evidence(self, shots: list[BestShot]) -> None:
+        if self.evidence_sink is None:
+            return
+        for shot in shots:
+            self.evidence_sink.publish(to_record(shot))
+            self.stats.best_shots += 1
+            self.stats.best_shot_bytes += len(shot.crop_jpeg)
 
     def _finish(
         self,
