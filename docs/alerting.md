@@ -428,10 +428,16 @@ seconds later. `routes/alerts.ts` therefore re-reads the current `crop_uri` from
 **To check a live alert's crop resolves:**
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" localhost:4000/api/v1/alerts \
-  | jq -r '.data[0].reason.evidence.cropUrl' \
-  | xargs -r curl -s -o /dev/null -w '%{http_code} %{content_type}\n'
-# -> 200 image/jpeg   ... or the jq prints `null`, which is the honest "no crop stored"
+TOKEN=$(curl -fsS -X POST localhost:4000/api/v1/auth/login -H 'content-type: application/json' \
+  -d '{"badgeNo":"GP-OPR-1042","password":"saakshi-dev"}' | jq -r .token)
+
+URL=$(curl -fsS -H "Authorization: Bearer $TOKEN" 'localhost:4000/api/v1/alerts' \
+  | jq -r '.data[0].reason.evidence.cropUrl')
+
+# GET, never HEAD — a GET-presigned URL answers 403 to a HEAD against a healthy store.
+[ "$URL" = "null" ] && echo 'no crop stored (the honest answer)' \
+  || curl -s -o /dev/null -w 'HTTP %{http_code}  %{content_type}\n' "$URL"
+# measured 2026-09-05 on saakshi_d2_11:  HTTP 200  image/jpeg
 ```
 
 **`caveats` is never empty.** Even a perfect exact match carries the mock-provider line, because the
