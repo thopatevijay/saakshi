@@ -1,0 +1,150 @@
+{
+  "$comment": [
+    "Alert policy (D2-06). Config, not code: this file is read from disk at runtime, so a severity",
+    "change, a dedupe-window change or a cap change alters the running system with no rebuild.",
+    "alerts.test.ts (AC 4) proves it by scoring one identical watchlist hit under two policy files.",
+    "",
+    "THE RULE THAT SHAPES THIS WHOLE FILE: severity starts from the watchlist category and can only",
+    "be LOWERED by how weak the identification is. It is never raised by a model's opinion.",
+    "",
+    "Why the ceilings exist at all, in one measurement: D2-01 measured 0 exact plate reads across a",
+    "120-instance hand-labelled sample of this estate, because only 3 plates were legible. D2-03",
+    "then correctly rejected all 15 strings the live run produced, including '757508300' — a",
+    "hoarding's phone number, and the single highest-confidence read of the entire run. An engine",
+    "that fires 'critical' on input like that is manufacturing certainty from noise, and the first",
+    "officer who follows one to a hoarding stops trusting the queue. docs/alerting.md section 4."
+  ],
+  "version": 1,
+
+  "dedupe": {
+    "$comment": [
+      "The same vehicle at the same camera inside one window is ONE alert with a sighting count,",
+      "not fifty rows. Camera-scoped on purpose: the same vehicle at a DIFFERENT camera is new",
+      "information — it is movement, which is the thing a control room is watching for."
+    ],
+    "windowMinutes": 10,
+    "scope": "camera"
+  },
+
+  "severity": {
+    "$comment": [
+      "byCategory is the ticket's ordering (wanted_person > stolen_vehicle > blacklisted_vehicle >",
+      "suspect > missing_person) expressed against the four-value alert_severity enum. Two",
+      "categories share 'high', so categoryRank carries the strict ordering the queue sorts on —",
+      "collapsing five categories onto four levels would otherwise silently lose it.",
+      "",
+      "missing_person is 'low' as an ALERT severity and that is not a statement about how much a",
+      "missing person matters. It is a statement about what an ANPR hit on one is: a lead to follow",
+      "carefully, not a reason to intercept a vehicle. The rank keeps it visible in its own right."
+    ],
+    "byCategory": {
+      "wanted_person": "critical",
+      "stolen_vehicle": "high",
+      "blacklisted_vehicle": "high",
+      "suspect": "medium",
+      "missing_person": "low"
+    },
+    "categoryRank": {
+      "wanted_person": 1,
+      "stolen_vehicle": 2,
+      "blacklisted_vehicle": 3,
+      "suspect": 4,
+      "missing_person": 5
+    },
+    "entrySeverity": "ceiling",
+    "$entrySeverityNote": [
+      "'ceiling' | 'ignore' | 'override'. Default 'ceiling': the severity a human put on the entry",
+      "caps the category default but cannot raise it. The officer who added the row knew something",
+      "the category does not — the five estate-ocr-output entries are seeded 'low' precisely",
+      "because they are OCR fragments, not registrations — and a category default must not shout",
+      "over that. 'override' would let the entry win outright; 'ignore' would use the category only."
+    ],
+
+    "identificationCeilings": [
+      {
+        "id": "fuzzy-never-critical",
+        "when": { "matchType": "fuzzy" },
+        "maxSeverity": "high",
+        "$why": "A fuzzy match is a ranked possibility. Nothing that might be a different vehicle gets to be the most serious thing on the screen."
+      },
+      {
+        "id": "partial-plate",
+        "when": { "validity": "partial" },
+        "maxSeverity": "high",
+        "$why": "A clean prefix of a registration is a usable identification and the dominant outcome on this estate — but it is missing characters, and the vehicle it names is a set, not one vehicle."
+      },
+      {
+        "id": "ungrammatical-read",
+        "when": { "validity": "invalid" },
+        "maxSeverity": "low",
+        "$why": "The read is not a registration under any Indian plate layout. It may still be worth looking at — the five seeded estate-ocr-output strings are exactly this — but it identifies nothing, and '757508300' is what the top of this distribution looks like."
+      },
+      {
+        "id": "combined-below-80",
+        "when": { "combinedConfidenceBelow": 0.8 },
+        "maxSeverity": "high"
+      },
+      {
+        "id": "combined-below-55",
+        "when": { "combinedConfidenceBelow": 0.55 },
+        "maxSeverity": "medium"
+      },
+      {
+        "id": "combined-below-30",
+        "when": { "combinedConfidenceBelow": 0.3 },
+        "maxSeverity": "low"
+      }
+    ]
+  },
+
+  "correlation": {
+    "$comment": [
+      "maxDistance 2 is D2-04's measured operating point (docs/fuzzy-matching.md section 6): it",
+      "recovers GJ35U07 -> GJ35U0779 at weighted distance 0.70 and GJ32DD10 -> GJ32D0107 at 0.55,",
+      "and the measured false-positive count on unrelated queries is 0.",
+      "",
+      "fuzzyRefusalCodes is the important line. A read D2-03 classifies as structurally non-plate —",
+      "all digits, all letters, empty, too short — gets maxDistance 0, which disables fuzzy search",
+      "for it entirely. Fuzzy-expanding a phone number invents neighbours that were never on any",
+      "vehicle. The EXACT path stays open for those reads, because exact string equality against a",
+      "watchlist entry is a fact rather than an inference — capped at 'low' by the",
+      "'ungrammatical-read' ceiling above, which is what keeps it honest."
+    ],
+    "maxDistance": 2,
+    "limit": 10,
+    "fuzzyRefusalCodes": ["empty", "too_short", "no_letters", "no_digits"],
+    "minPlateConfidence": 0.25,
+    "$minPlateConfidenceNote": [
+      "Raw OCR confidence floor, applied before any lookup. 0.25 rather than something comfortable",
+      "because the whole legible range on this estate is low: the five seeded estate strings were",
+      "measured at 0.449, 0.503, 0.732, 0.627 and 0.56. A floor at 0.5 would silence most of the",
+      "estate's real output and make the demo look better than the cameras are."
+    ]
+  },
+
+  "rateLimit": {
+    "$comment": [
+      "The cap is on DELIVERY, never on persistence. Every alert row is written to `alerts` whatever",
+      "happens here — suppressing evidence would be the worse failure. What is capped is the",
+      "operator's queue, because the thing that actually drowns in a camera storm is the human.",
+      "",
+      "120/minute is two per second: fast enough that a real incident is never held back, slow",
+      "enough that a stuck feed re-detecting the same scene cannot fill a screen. Overflow is",
+      "aggregated into one `alert_digests` row per window plus one `digest` stream event, so the",
+      "operator is told what they were not shown."
+    ],
+    "deliveriesPerMinute": 120,
+    "windowSeconds": 60,
+    "digestSampleSize": 5
+  },
+
+  "evidence": {
+    "$comment": [
+      "Signed-URL lifetime for the crop on an alert. 15 minutes: long enough to open the queue,",
+      "read it and click through, short enough that a URL pasted into a chat stops working. The URL",
+      "is minted at read time and never stored — a stored signed URL is a credential with an expiry",
+      "rotting in the database (D2-02's handoff)."
+    ],
+    "cropUrlExpiresInS": 900
+  }
+}

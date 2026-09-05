@@ -30,6 +30,7 @@ const TABLES: PgTable[] = [
   schema.identitySightings,
   schema.watchlistEntries,
   schema.alerts,
+  schema.alertDigests,
   schema.routes,
   schema.routeSegments,
   schema.auditLog,

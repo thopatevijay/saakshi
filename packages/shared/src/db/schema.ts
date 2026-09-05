@@ -378,7 +378,8 @@ export const alerts = pgTable(
     ts: ts('ts').notNull(),
 
     matchType: matchTypeEnum('match_type').notNull(),
-    matchDistance: integer('match_distance').notNull().default(0),
+    // numeric, not integer, since 0016: D2-04's confusion-aware metric is continuous (0.70, 0.55).
+    matchDistance: numericAsNumber('match_distance').notNull().default(0),
     confidence: numericAsNumber('confidence').notNull(),
     severity: alertSeverityEnum('severity').notNull(),
 
@@ -388,9 +389,19 @@ export const alerts = pgTable(
     dedupeKey: text('dedupe_key').notNull(),
     dedupeWindowStart: ts('dedupe_window_start').notNull(),
 
+    // 0016 (D2-06). `ts` is the FIRST sighting; these three describe the most recent one folded in.
+    lastSeenAt: ts('last_seen_at').notNull().defaultNow(),
+    lastSightingId: uuid('last_sighting_id'),
+    lastSightingTs: ts('last_sighting_ts'),
+    sightingCount: integer('sighting_count').notNull().default(1),
+    lastObservedPlate: text('last_observed_plate'),
+
     status: alertStatusEnum('status').notNull().default('new'),
     ackedBy: uuid('acked_by').references(() => users.id, { onDelete: 'set null' }),
     ackedAt: ts('acked_at'),
+    // Any transition, not only ack — a dismissal and an escalation need an actor too.
+    statusChangedAt: ts('status_changed_at'),
+    statusChangedBy: uuid('status_changed_by').references(() => users.id, { onDelete: 'set null' }),
 
     createdAt: ts('created_at').notNull().defaultNow(),
   },
@@ -399,6 +410,36 @@ export const alerts = pgTable(
     index('alerts_status_ts_idx').on(t.status, t.ts.desc()),
     index('alerts_camera_ts_idx').on(t.cameraId, t.ts.desc()),
     index('alerts_watchlist_entry_idx').on(t.watchlistEntryId),
+    index('alerts_last_seen_idx').on(t.lastSeenAt.desc()),
+    index('alerts_dedupe_key_last_seen_idx').on(t.dedupeKey, t.lastSeenAt.desc()),
+  ],
+);
+
+/**
+ * The rate limiter's overflow record (0016, D2-06).
+ *
+ * An alert that exceeds the per-minute delivery cap is still **written to `alerts`** — what is
+ * capped is the operator's queue, never the evidence. This table is how the suppression is made
+ * visible: one row per window, carrying the counts and a sample, so "you were not shown 380 alerts
+ * in the 14:02 minute, mostly `low` on cam04" is a statement the system can make about itself.
+ */
+export const alertDigests = pgTable(
+  'alert_digests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    windowStart: ts('window_start').notNull(),
+    windowEnd: ts('window_end').notNull(),
+    suppressedCount: integer('suppressed_count').notNull(),
+    deliveredCount: integer('delivered_count').notNull().default(0),
+    bySeverity: jsonb('by_severity').notNull().default({}),
+    byCategory: jsonb('by_category').notNull().default({}),
+    byCamera: jsonb('by_camera').notNull().default({}),
+    sample: jsonb('sample').notNull().default([]),
+    createdAt: ts('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('alert_digests_window_uidx').on(t.windowStart),
+    index('alert_digests_created_idx').on(t.createdAt.desc()),
   ],
 );
 
