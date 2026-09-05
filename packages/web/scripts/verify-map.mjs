@@ -11,12 +11,28 @@
  * hop. Comparing `ST_X`/`ST_Y` from PostGIS to the numbers MapLibre is actually holding tests the
  * whole chain, including the longitude/latitude transposition everybody makes exactly once.
  *
+ * ## Why this script brings its own cameras (D2-09)
+ *
+ * The Gujarat Sentinel catalogue publishes `{id, name}` and nothing else, so **no real camera in
+ * the estate has a coordinate or a district**. Four of the checks below — clustering, street-zoom
+ * pins, the filter, and filter restoration from the URL — need one or the other, and against the
+ * real estate they failed on every run. A check that always fails is a check nobody reads, and the
+ * GIS map is Model 1's headline deliverable: the worst place in the product to lose a signal.
+ *
+ * So `map-fixtures.mjs` seeds a small placed estate under the reserved `MAPFIX-` prefix, the
+ * assertions run against known numbers, and the fixtures are deleted again — including when the
+ * script fails part way, via the `process.on('exit')` net below. The real estate is never touched:
+ * no coordinate is backfilled onto a real camera, and the count of cameras *without* coordinates is
+ * asserted to be identical before and after. That absence is a Pillar 1 finding, and it stays.
+ *
  *   DATABASE_URL=… node scripts/verify-map.mjs <token-file> [base-url] [api-url]
+ *
+ * `VERIFY_MAP_CRASH=1` throws immediately after seeding — the repeatable way to prove the estate is
+ * still restored when the script dies in the middle.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import {
   MAP_READY,
   authenticate,
@@ -26,6 +42,19 @@ import {
   screenshot,
   waitFor,
 } from './cdp.mjs';
+import {
+  FILTER_MATCHES,
+  FIXTURES,
+  FIXTURE_PREFIX,
+  STREET_ZOOM_IDS,
+  UNSCORED_COUNT,
+  cameraCount,
+  psqlFor,
+  realFilterMatches,
+  removeMapFixtures,
+  seedMapFixtures,
+  unplacedCount,
+} from './map-fixtures.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS = path.resolve(here, '../../../docs/screenshots');
@@ -36,19 +65,52 @@ const api = process.argv[4] ?? 'http://localhost:4100';
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is required — this script checks against psql');
 
+const sql = psqlFor(databaseUrl);
 const psql = (query) =>
-  JSON.parse(
-    execFileSync(
-      'psql',
-      [databaseUrl, '-tAc', `select coalesce(json_agg(t), '[]') from (${query}) t`],
-      {
-        encoding: 'utf8',
-      },
-    ).trim(),
-  );
+  JSON.parse(sql(`select coalesce(json_agg(t), '[]') from (${query}) t`) || '[]');
 
 const apiGet = (path) =>
   fetch(`${api}${path}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json());
+
+// ── Fixtures · seed, and guarantee the estate comes back ────────────────────────────────────────
+console.log('\nEstate-independent fixtures\n');
+
+const camerasBefore = cameraCount(sql);
+const unplacedBefore = unplacedCount(sql);
+const realMatches = realFilterMatches(sql);
+let fixturesLive = false;
+
+const cleanupFixtures = () => {
+  if (!fixturesLive) return 0;
+  fixturesLive = false;
+  return removeMapFixtures(sql);
+};
+
+// The safety net for AC "still identical when the script fails part way". Everything it does is a
+// synchronous `execFileSync`, which is the only kind of work an `exit` handler is allowed to
+// finish — an async cleanup here would be silently abandoned and leave rows behind.
+process.on('exit', () => {
+  if (!fixturesLive) return;
+  const removed = cleanupFixtures();
+  console.error(
+    `\n  ! the script exited early — removed ${String(removed)} fixtures, ${String(cameraCount(sql))} cameras remain (${String(camerasBefore)} before)\n`,
+  );
+});
+
+seedMapFixtures(sql);
+fixturesLive = true;
+console.log(
+  `  seeded ${String(FIXTURES.length)} placed fixtures as ${FIXTURE_PREFIX}* — ${String(camerasBefore)} cameras → ${String(cameraCount(sql))}`,
+);
+console.log(
+  `  the real estate is untouched: ${String(unplacedBefore)} cameras still have no coordinates, and none was backfilled`,
+);
+
+if (process.env.VERIFY_MAP_CRASH === '1') {
+  throw new Error(
+    'VERIFY_MAP_CRASH=1 — deliberate mid-script failure, to prove cleanup still runs',
+  );
+}
 
 const cdp = await openBrowser();
 await authenticate(cdp, token, 'admin', base);
@@ -121,6 +183,12 @@ check(
   trayCount === dbUnplaced,
   `the ${String(dbUnplaced)} cameras PostGIS has no location for are listed in the tray, not dropped (${String(trayCount)} rows)`,
 );
+// The fixtures are all placed, so they must not move this number by one. If they did, the seed had
+// started editing the real estate rather than adding to it.
+check(
+  dbUnplaced === unplacedBefore,
+  `the "without coordinates" count is unchanged by the ${String(FIXTURES.length)} fixtures — ${String(unplacedBefore)} before, ${String(dbUnplaced)} with them seeded`,
+);
 
 // Clustering: statewide must aggregate, street level must not.
 const statewide = await cdp
@@ -137,10 +205,22 @@ const statewide = await cdp
 })()`,
   )
   .then(JSON.parse);
+const rendered = statewide.clusters + statewide.singles;
 console.log(`  z6  ${JSON.stringify(statewide)}`);
 check(
   statewide.clusters > 0,
   `clustering works at statewide zoom — ${String(statewide.clusters)} clusters covering ${String(statewide.clustered)} cameras`,
+);
+// Two halves, and both are needed. The first says nothing was lost on the way into a cluster; the
+// second says the clustering actually did something. A map that drew every pin separately would
+// pass the first alone, and a map that dropped half the estate would pass the second alone.
+check(
+  statewide.clustered + statewide.singles === inDb.length,
+  `every one of the ${String(inDb.length)} placed cameras is accounted for at z6 — ${String(statewide.clustered)} inside clusters, ${String(statewide.singles)} standing alone`,
+);
+check(
+  rendered < inDb.length,
+  `they collapse rather than pile up — ${String(inDb.length)} cameras render as ${String(rendered)} features at z6`,
 );
 
 const street = await cdp
@@ -149,18 +229,24 @@ const street = await cdp
   window.__saakshiMap.jumpTo({ center: [72.5714, 23.0225], zoom: 14 });
   await new Promise((r) => window.__saakshiMap.once('idle', r));
   const f = window.__saakshiMap.queryRenderedFeatures({ layers: ['clusters', 'camera-pins'] });
+  const pins = f.filter((x) => x.properties.point_count === undefined);
   return JSON.stringify({
     clusters: f.filter((x) => x.properties.point_count !== undefined).length,
-    singles: f.filter((x) => x.properties.point_count === undefined).length,
+    // Deduplicated: a pin on a tile boundary is returned once per tile it appears in.
+    singleIds: [...new Set(pins.map((x) => x.properties.externalId))],
   });
 })()`,
   )
   .then(JSON.parse);
-console.log(`  z14 ${JSON.stringify(street)}`);
-check(
-  street.singles > 0 && street.clusters === 0,
-  `individual pins at street zoom — ${String(street.singles)} pins, ${String(street.clusters)} clusters`,
+const missingPins = STREET_ZOOM_IDS.filter((id) => !street.singleIds.includes(id));
+console.log(
+  `  z14 ${JSON.stringify({ clusters: street.clusters, pins: street.singleIds.length })}`,
 );
+check(
+  street.singleIds.length > 0 && street.clusters === 0 && missingPins.length === 0,
+  `individual pins at street zoom — ${String(street.singleIds.length)} pins, ${String(street.clusters)} clusters, and all ${String(STREET_ZOOM_IDS.length)} Ahmedabad fixtures are among them`,
+);
+if (missingPins.length > 0) console.error(`    missing at z14: ${missingPins.join(', ')}`);
 
 // ── AC 4 · colour comes from the API's band ─────────────────────────────────────────────────────
 console.log('\nAC 4 · trust colouring matches the API band exactly\n');
@@ -260,12 +346,22 @@ console.log(
 );
 
 // The server-side half: the API returns exactly the same set for the same query.
+//
+// The expectation is a *number PostGIS predicted*, not "more than zero". `realFilterMatches` counted
+// the real cameras this filter already selects before anything was seeded (zero, on an estate whose
+// catalogue publishes no district), and `FILTER_MATCHES` is how many of the fixtures match all
+// three clauses. A filter that quietly ignored one of them would return more than that and fail.
 const apiFiltered = await apiGet(
   '/api/v1/cameras?district=Ahmedabad&adapterKind=hls&cameraType=ip&limit=500',
 );
+const expectedMatches = realMatches + FILTER_MATCHES;
 check(
-  apiFiltered.data.length > 0,
-  `the filter narrows the estate rather than emptying it — the API returns ${String(apiFiltered.data.length)} cameras`,
+  apiFiltered.data.length === expectedMatches && expectedMatches > 0,
+  `the filter narrows the estate rather than emptying it — the API returns ${String(apiFiltered.data.length)} cameras, the ${String(expectedMatches)} PostGIS predicted (${String(realMatches)} real + ${String(FILTER_MATCHES)} fixture)`,
+);
+check(
+  expectedMatches < list.data.length,
+  `and it narrows: ${String(expectedMatches)} of ${String(list.data.length)} cameras, not all of them`,
 );
 
 check(
@@ -285,6 +381,16 @@ check(
 
 // Composition: the hidden band must not be on the map, and the filtered-out cameras must not be
 // in the response at all.
+//
+// The first check is what stops the second from being vacuous. `hiddenLeaked === 0` is trivially
+// true on a map holding no unscored pins at all, which is precisely the state this script used to
+// run in — so the unfiltered load is asserted to have held them first.
+const unscoredOnMap = onMap.filter((f) => f.band === 'unscored').length;
+check(
+  unscoredOnMap === UNSCORED_COUNT,
+  `the unfiltered map held ${String(unscoredOnMap)} never-probed pins, so hiding the band is a real removal (${String(UNSCORED_COUNT)} fixtures carry no score)`,
+);
+
 const hiddenLeaked = await cdp.evaluate(`(() => {
   return window.__saakshiFeatures.features.filter((f) => f.properties.band === 'unscored').length;
 })()`);
@@ -313,7 +419,10 @@ check(
 
 await navigate(cdp, `${base}/registry`);
 await ready();
-await screenshot(cdp, path.join(SHOTS, 'd1-08-registry-map.png'));
+// Named for the fixtures, not for D1-08. Every pin in this frame is a `MAPFIX-` row, so filing it
+// as the registry-map screenshot would put a picture of synthetic cameras where the estate's own
+// screenshot belongs — the exact kind of claim this project does not make.
+await screenshot(cdp, path.join(SHOTS, 'd2-09-map-fixtures.png'));
 
 // ── AC 8 · panning stays smooth ─────────────────────────────────────────────────────────────────
 console.log('\nAC 8 · map interaction stays smooth\n');
@@ -369,4 +478,28 @@ check(
 );
 
 await cdp.close();
+
+// ── The estate goes back exactly as it was found ────────────────────────────────────────────────
+console.log('\nFixtures removed — the estate is as it was found\n');
+
+const removedFixtures = cleanupFixtures();
+const camerasAfter = cameraCount(sql);
+const unplacedAfter = unplacedCount(sql);
+const strays = Number(
+  sql(`select count(*) from cameras where external_id like '${FIXTURE_PREFIX}%'`),
+);
+
+check(
+  removedFixtures === FIXTURES.length && strays === 0,
+  `all ${String(FIXTURES.length)} fixtures deleted, ${String(strays)} ${FIXTURE_PREFIX}* rows left behind`,
+);
+check(
+  camerasAfter === camerasBefore,
+  `the camera row count is identical before and after — ${String(camerasBefore)} → ${String(camerasAfter)}`,
+);
+check(
+  unplacedAfter === unplacedBefore,
+  `and so is the "without coordinates" count — ${String(unplacedBefore)} → ${String(unplacedAfter)}; no real camera was placed, edited or removed`,
+);
+
 console.log('');
