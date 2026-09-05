@@ -72,6 +72,8 @@ const base = process.argv[3] ?? 'http://localhost:3100';
 const api = process.argv[4] ?? 'http://localhost:4100';
 const minutesArg = process.argv.indexOf('--minutes');
 const SOAK_MINUTES = minutesArg === -1 ? 0 : Number(process.argv[minutesArg + 1] ?? 10);
+/** Skip straight to the soak. The wall takes minutes to fill against a throttled gateway. */
+const SOAK_ONLY = process.argv.includes('--soak-only');
 
 /** A tile is *on screen* only when it has a measured height. See trap 1. */
 const TILES_LAID_OUT = `(() => {
@@ -115,6 +117,12 @@ const state = async (cdp) => JSON.parse(await cdp.evaluate(WALL_STATE));
 async function main() {
   const cdp = await openBrowser({ width: 1680, height: 1050 });
   await authenticate(cdp, token, 'admin', base);
+
+  if (SOAK_ONLY) {
+    await soak(cdp);
+    await cdp.close();
+    return;
+  }
 
   // ── 1 · The 3x3 grid ────────────────────────────────────────────────────────────────────────
   console.log('\n— 3×3 grid —');
@@ -432,10 +440,45 @@ async function main() {
   });
 
   // ── 8 · The soak: memory and leaks over N minutes ───────────────────────────────────────────
-  if (SOAK_MINUTES > 0) {
-    await section(`${String(SOAK_MINUTES)}-minute 3×3 soak`, async () => {
+  if (SOAK_MINUTES > 0) await soak(cdp);
+
+  await relayReport();
+  await cdp.close();
+}
+
+/**
+ * The 10-minute soak — AC 8, and the second half of AC 3.
+ *
+ * Run on a **full 3×3**, set explicitly here rather than inherited. An earlier section leaves this
+ * operator on a 4×4 wall carrying four cameras, and soaking four players proves a quarter of what
+ * the criterion asks; nine concurrent decoders is the load being tested.
+ *
+ * Every sample is taken **inside the page on the page's own clock**. Sampling across the CDP wire
+ * would quantise to `waitFor`'s 200 ms poll — D2-07's lesson — and would fold Node's own GC pauses
+ * into a measurement about the browser's heap.
+ */
+async function soak(cdp) {
+  await section(`${String(SOAK_MINUTES)}-minute 3×3 soak`, async () => {
     await navigate(cdp, `${base}/video-wall`);
+    await waitFor(cdp, `${TILES_LAID_OUT} >= 4`, { label: 'the wall to lay out' });
+    await cdp.evaluate(
+      `document.querySelector('[data-testid="wall-grid-option"][data-grid="3x3"]').click()`,
+    );
     await waitFor(cdp, `${TILES_LAID_OUT} >= 9`, { label: 'the 3×3 wall for the soak' });
+
+    const before = await state(cdp);
+    const filled = before.tiles.filter((t) => t.camera !== null).length;
+    check(filled === 9, `the soak runs on nine filled tiles (${String(filled)})`);
+
+    // Every tile must have **attached a player** before the clock starts, or the soak measures an
+    // idle page. `attached` flips when `hls.js` is constructed — deliberately not when a frame
+    // arrives, which on this gateway can be minutes later and is a different criterion entirely.
+    await waitFor(
+      cdp,
+      `[...document.querySelectorAll('[data-testid="wall-tile"]')]
+        .filter((t) => t.getAttribute('data-attached') === 'true').length >= 9`,
+      { timeoutMs: 180000, label: 'nine attached players' },
+    );
 
     // Sampled inside the page on the page's own clock — see trap 2.
     const samples = JSON.parse(
@@ -490,12 +533,14 @@ async function main() {
       `no more than nine players alive at the end of the soak (${String(last.live)})`,
     );
     console.log(
-      `  DOM nodes: ${String(samples[0].nodes)} → ${String(last.nodes)} (a canvas overlay allocates none)`,
+      `  DOM nodes: ${String(samples[0].nodes)} → ${String(last.nodes)} ` +
+        '(a canvas overlay allocates none)',
     );
-    });
-  }
+  });
+}
 
-  // ── The relay's cost to the gateway ─────────────────────────────────────────────────────────
+/** What the whole run cost the department's gateway. The pacing claim, in one line. */
+async function relayReport() {
   const relay = await fetch(`${api}/api/v1/streams/relay/stats`, {
     headers: { authorization: `Bearer ${token}` },
   }).then((r) => r.json());
@@ -504,8 +549,6 @@ async function main() {
       `${String(relay.misses)} misses · mean ${String(relay.meanUpstreamMs)} ms upstream · ` +
       `${(relay.cachedBytes / 1048576).toFixed(1)} MB cached`,
   );
-
-  await cdp.close();
 }
 
 main().catch((error) => {

@@ -47,8 +47,13 @@ async function main() {
 
   // Let the wall settle before the camera rolls: a recording that opens on nine grey rectangles
   // filling in is a recording of our start-up sequence, not of the product.
+  //
+  // Four minutes, not thirty seconds, and the reason is the gateway rather than the console: a 6 s
+  // segment was measured arriving in 22–49 s, so nine tiles need minutes before there is anything
+  // to film. Warming the relay first (`npm run warm:wall`) shortens this to seconds; without it,
+  // this wait is the sandbox's throttle and nothing else.
   console.log('  warming the wall…');
-  await cdp.evaluate(`new Promise((r) => setTimeout(r, 60000))`);
+  await cdp.evaluate(`new Promise((r) => setTimeout(r, 240000))`);
 
   const written = [];
   const started = Date.now();
