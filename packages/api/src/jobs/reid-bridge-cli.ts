@@ -55,7 +55,9 @@ function parse(argv: string[]): Args {
 async function main(): Promise<number> {
   const args = parse(process.argv.slice(2));
   if (args.plate === '') {
-    console.error('usage: reid:bridge --plate <registration> --purpose "<why>" [--dry-run] [--force]');
+    console.error(
+      'usage: reid:bridge --plate <registration> --purpose "<why>" [--dry-run] [--force]',
+    );
     return 2;
   }
   if (args.purpose.trim().length < 3) {
@@ -103,7 +105,9 @@ async function main(): Promise<number> {
     console.log(`plate                ${result.canonicalPlate}`);
     console.log(`anchors              ${result.anchors} (${result.anchorsWithEmbedding} embedded)`);
     console.log(`candidates           ${result.candidatesConsidered}`);
-    console.log(`gated out            ${result.pairsGatedOut}  <- before any appearance comparison`);
+    console.log(
+      `gated out            ${result.pairsGatedOut}  <- before any appearance comparison`,
+    );
     console.log(`compared             ${result.pairsCompared}`);
     console.log(`linked               ${result.links.length}`);
     console.log(`written              ${result.written}${args.dryRun ? ' (dry run)' : ''}`);

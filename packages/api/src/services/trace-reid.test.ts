@@ -126,7 +126,13 @@ beforeAll(async () => {
 
   // The candidate: camera B at 09:10, exactly the free-flow drive from either anchor — and **no
   // plate read at all**, which is why ANPR alone can never find it.
-  unreadableSightingId = await seedSighting('b', '2026-06-01T09:10:00.000Z', 900_001, null, unit(0));
+  unreadableSightingId = await seedSighting(
+    'b',
+    '2026-06-01T09:10:00.000Z',
+    900_001,
+    null,
+    unit(0),
+  );
 
   // The decoy, on an **unplaced** camera — which is the state of all thirty real cameras on this
   // estate, not a contrived case. Identical embedding: a perfect appearance match. It must be

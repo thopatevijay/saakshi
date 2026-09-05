@@ -77,13 +77,15 @@ describe('the spatio-temporal gate', () => {
   });
 
   it("refuses an unroutable pair rather than guessing, exactly as D3-01's classifier does", () => {
-    expect(gateReason({ sameCamera: false, elapsedS: 600, expectedTravelTimeS: null }, CONFIG)).toBe(
-      'no route between the cameras — travel time unmeasured',
-    );
+    expect(
+      gateReason({ sameCamera: false, elapsedS: 600, expectedTravelTimeS: null }, CONFIG),
+    ).toBe('no route between the cameras — travel time unmeasured');
   });
 
   it('treats one camera as a dwell window and says so, rather than as a zero travel time', () => {
-    expect(gateReason({ sameCamera: true, elapsedS: 60, expectedTravelTimeS: null }, CONFIG)).toBeNull();
+    expect(
+      gateReason({ sameCamera: true, elapsedS: 60, expectedTravelTimeS: null }, CONFIG),
+    ).toBeNull();
     expect(
       gateReason({ sameCamera: true, elapsedS: 600, expectedTravelTimeS: null }, CONFIG),
     ).toMatch(/dwell window/);
