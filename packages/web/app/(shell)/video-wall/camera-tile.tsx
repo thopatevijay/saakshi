@@ -187,7 +187,8 @@ export function CameraTile({
         />
       ) : null}
 
-      {playable && overlay && manifest !== null ? (
+      {/* Mounted whenever there is a picture to draw on; `enabled` decides whether it draws. */}
+      {playable && manifest !== null ? (
         <DetectionOverlay
           videoRef={videoRef}
           cameraId={camera.id}

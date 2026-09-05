@@ -66,14 +66,18 @@ function HlsPane({
         data-testid="single-hls-video"
         className="absolute inset-0 size-full object-contain"
       />
-      {overlay ? (
-        <DetectionOverlay
-          videoRef={videoRef}
-          cameraId={cameraId}
-          measuredResolution={measuredResolution}
-          enabled={overlay}
-        />
-      ) : null}
+      {/*
+        Always mounted, never conditionally rendered. Toggling the overlay off clears the canvas and
+        stops the fetch loop — but the element stays, so the transform is not re-initialised on every
+        toggle and a verification script has something stable to read pixels from. A canvas that
+        appears and disappears is also a layout shift under a playing video.
+      */}
+      <DetectionOverlay
+        videoRef={videoRef}
+        cameraId={cameraId}
+        measuredResolution={measuredResolution}
+        enabled={overlay}
+      />
       <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/85 to-transparent px-3 py-2 text-[11px]">
         <span className="font-medium text-slate-200">HLS · buffered, segment-based</span>
         <span className="tabular-nums text-slate-400" title={deliveryReason(player.deliveryRate, verdict)}>

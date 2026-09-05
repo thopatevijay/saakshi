@@ -30,7 +30,32 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openBrowser, authenticate, navigate, waitFor, screenshot, check, pass } from './cdp.mjs';
+import {
+  openBrowser,
+  authenticate,
+  navigate,
+  waitFor,
+  screenshot,
+  check,
+  pass,
+  fail,
+} from './cdp.mjs';
+
+/**
+ * Run one section, reporting a thrown error as a failed check rather than as an aborted run.
+ *
+ * A gate that stops at the first broken selector reports nothing about the eight criteria after it,
+ * and the eight-minute wall warm-up has to be paid again to find out. Every section still fails
+ * loudly — `fail` sets a non-zero exit code — but they all get to run.
+ */
+async function section(title, body) {
+  console.log(`\n— ${title} —`);
+  try {
+    await body();
+  } catch (error) {
+    fail(`${title}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SHOTS = path.resolve(here, '../../../docs/screenshots');
@@ -219,15 +244,28 @@ async function main() {
   );
   check(overlayOff, 'the overlay toggle survived the reload too');
 
-  // Restore 3x3 for the remaining checks and the recording.
+  // Restore 3×3 with the overlay back on, and **wait for the save to land** — the single-camera
+  // view reads the layout from the server, so proceeding before the round trip completes verifies
+  // the previous wall. That is D2-07's stale-build lesson wearing a different hat.
   await cdp.evaluate(
     `document.querySelector('[data-testid="wall-grid-option"][data-grid="3x3"]').click()`,
   );
-  await cdp.evaluate(`document.querySelector('[data-testid="wall-overlay-toggle"]').click()`);
+  await cdp.evaluate(
+    `(() => {
+      const box = document.querySelector('[data-testid="wall-overlay-toggle"]');
+      if (!box.checked) box.click();
+      return box.checked;
+    })()`,
+  );
   await waitFor(cdp, `${TILES_LAID_OUT} >= 9`, { label: 'the 3×3 wall again' });
+  await waitFor(
+    cdp,
+    `document.querySelector('[data-testid="wall-save-state"]')?.textContent?.includes('saved') === true`,
+    { label: 'the restored layout to be saved' },
+  );
 
   // ── 5 · Trust reasons are rendered, not spun on ─────────────────────────────────────────────
-  console.log('\n— trust bands on the wall —');
+  await section('trust bands on the wall', async () => {
   const bands = (await state(cdp)).tiles.map((t) => `${String(t.externalId)}=${String(t.band)}`);
   console.log(`  ${bands.join(' · ')}`);
   const cameras = await fetch(`${api}/api/v1/cameras?limit=200`, {
@@ -263,9 +301,10 @@ async function main() {
     console.log(`    ${reason.replace(/\s+/g, ' ').slice(0, 240)}`);
     await screenshot(cdp, path.join(SHOTS, 'video-wall-trust-reason.png'));
   }
+  });
 
   // ── 6 · Detection overlay ───────────────────────────────────────────────────────────────────
-  console.log('\n— detection overlay —');
+  await section('detection overlay', async () => {
   const withSightings = await fetch(`${api}/api/v1/cameras?limit=200`, {
     headers: { authorization: `Bearer ${token}` },
   })
@@ -335,9 +374,10 @@ async function main() {
     );
     await screenshot(cdp, path.join(SHOTS, 'video-wall-overlay.png'));
   }
+  });
 
   // ── 7 · WHEP against the edge gateway ───────────────────────────────────────────────────────
-  console.log('\n— WHEP vs HLS on the edge gateway —');
+  await section('WHEP vs HLS on the edge gateway', async () => {
   await cdp.evaluate(
     `document.querySelector('[data-testid="latency-compare"]')?.click() ?? null`,
   );
@@ -364,10 +404,11 @@ async function main() {
     await screenshot(cdp, path.join(SHOTS, 'video-wall-whep-vs-hls.png'));
     pass('screenshot: the same source through both transports, side by side');
   }
+  });
 
   // ── 8 · The soak: memory and leaks over N minutes ───────────────────────────────────────────
   if (SOAK_MINUTES > 0) {
-    console.log(`\n— ${String(SOAK_MINUTES)}-minute 3×3 soak —`);
+    await section(`${String(SOAK_MINUTES)}-minute 3×3 soak`, async () => {
     await navigate(cdp, `${base}/video-wall`);
     await waitFor(cdp, `${TILES_LAID_OUT} >= 9`, { label: 'the 3×3 wall for the soak' });
 
@@ -426,6 +467,7 @@ async function main() {
     console.log(
       `  DOM nodes: ${String(samples[0].nodes)} → ${String(last.nodes)} (a canvas overlay allocates none)`,
     );
+    });
   }
 
   // ── The relay's cost to the gateway ─────────────────────────────────────────────────────────
