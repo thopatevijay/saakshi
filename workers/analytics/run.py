@@ -63,6 +63,7 @@ def run_worker(
     detector: object | None = None,
     evidence_sink: EvidenceSink | None = None,
     anpr: AnprEngine | None = None,
+    metrics_port: int | None = None,
 ) -> dict:
     """Runs every source concurrently for `minutes` and returns the run summary."""
     if not sources:
@@ -95,6 +96,17 @@ def run_worker(
         )
         for source in sources
     ]
+
+    # D3-10. Registered before the threads start, so a camera that never connects is still visible
+    # as `connected 0` rather than as a missing series — "absent" and "down" must not look alike.
+    if metrics_port is not None:
+        from .metrics import serve as serve_metrics
+
+        serve_metrics(
+            pipelines,
+            metrics_port,
+            inference=engine.stats if hasattr(engine, "stats") else None,
+        )
 
     started_wall = time.time()
     connect_started = time.monotonic()
@@ -401,6 +413,13 @@ def main(argv: list[str] | None = None) -> int:
         help="AC 1's control arm: OCR every examined frame instead of the best shots",
     )
     parser.add_argument("--json", default=None, help="write the run summary to this path")
+    parser.add_argument(
+        "--metrics-port",
+        type=int,
+        default=None,
+        help="expose Prometheus metrics on this port (D3-10). Off by default: a worker that binds "
+        "a port nobody asked for is a worker whose second copy will not start.",
+    )
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args(argv)
 
@@ -451,6 +470,7 @@ def main(argv: list[str] | None = None) -> int:
             cookie=os.environ.get("SENTINEL_PORTAL_COOKIE"),
             evidence_sink=evidence,
             anpr=anpr,
+            metrics_port=args.metrics_port,
         )
     finally:
         sink.close()

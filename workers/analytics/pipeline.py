@@ -61,6 +61,9 @@ log = logging.getLogger("saakshi.analytics")
 FPS_MEASURE_PTS_S = 20.0
 #: Below this many post-burst frames, `measured_fps` stays `None` — *could not measure*, never zero.
 MIN_FPS_SAMPLE_FRAMES = 10
+#: How often the running rate is re-published mid-session, in post-burst frames (D3-10). 64 is about
+#: 2.5 s at 25 fps and about 16 s at the ~4 fps the government gateway actually delivers.
+FPS_PUBLISH_EVERY = 64
 
 
 @dataclass
@@ -293,6 +296,14 @@ class CameraPipeline:
         #: `on_open` fires once per camera, not once per reconnect — the run's connect count is
         #: "how many cameras came up", and a camera that reconnects twice is still one camera.
         self._announced = False
+        # ── Liveness, for the observability exporter (D3-10) ────────────────────────────────────
+        # Deliberately *not* on `CameraStats`: these are instantaneous and only meaningful while
+        # the thread runs, and `asdict(stats)` becomes the run summary JSON, where a monotonic
+        # clock reading would be noise. A metrics scrape reads them; nothing else does.
+        #: True between a successful container open and the end of that session.
+        self.connected = False
+        #: `time.monotonic()` of the last decoded frame. 0.0 until the first one arrives.
+        self.last_frame_at = 0.0
 
     # ── the loop ────────────────────────────────────────────────────────────────────────────────
 
@@ -394,6 +405,9 @@ class CameraPipeline:
             ) as container:
                 if self.stats.connect_s is None:
                     self.stats.connect_s = round(time.monotonic() - connect_started, 2)
+                # D3-10: the camera-down signal. Set only after the container is actually open, so
+                # a camera stuck in a 500-second connect never reads as connected.
+                self.connected = True
 
                 stream = container.streams.video[0]
                 # Per-camera decoder shape from the container's own header — never a fixed batch.
@@ -415,6 +429,7 @@ class CameraPipeline:
 
                 self._decode(container, stream, capabilities, stop, deadline_at)
           finally:
+            self.connected = False
             self.stats.benign_warnings += warnings_seen.benign
             self.stats.other_warnings += warnings_seen.other
             if warnings_seen.samples:
@@ -497,6 +512,7 @@ class CameraPipeline:
                     self.stats.upstream_wait_s,
                 )
             last_frame_wall = work_started
+            self.last_frame_at = work_started
 
             if frame.pts is None:
                 self.stats.loop_self_time_s += time.monotonic() - work_started
@@ -518,6 +534,18 @@ class CameraPipeline:
                 if window_first_pts is None:
                     window_first_pts = pts_s
                 window_frames += 1
+                # Publish the running rate every FPS_PUBLISH_EVERY frames rather than only at the
+                # end of the session (D3-10). Without this, a 30-minute soak exposes no
+                # `measured_fps` for 30 minutes, and the declared-vs-measured-vs-effective panel —
+                # the one piece of evidence behind every capacity claim we make about the gateway —
+                # would be missing its middle column for the whole run. One modulo per frame and a
+                # division every FPS_PUBLISH_EVERY frames; `_finish` still writes the final value.
+                if window_frames % FPS_PUBLISH_EVERY == 0:
+                    running = measured_fps(
+                        window_first_pts, pts_s, window_frames, self.thresholds
+                    )
+                    if running is not None:
+                        self.stats.measured_fps = running
 
             try:
                 self._process(
