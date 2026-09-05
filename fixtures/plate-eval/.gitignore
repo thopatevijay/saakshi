@@ -1,0 +1,11 @@
+# Captured source frames: tens of megabytes of JPEG, re-fetchable with one command
+# (`python -m workers.analytics.anpr.dataset capture …`, see README.md).
+#
+# The *crops* are committed instead, because they are what a human actually labelled and a number
+# measured on a set nobody else can inspect is not a measurement.
+frames/
+
+# Contact sheets: derived from crops/ by one command
+#   python -m workers.analytics.anpr.dataset sheet --condition day
+# and 5 MB of PNG that nothing is measured from. The crops themselves are committed.
+sheets/

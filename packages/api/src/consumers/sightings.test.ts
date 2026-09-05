@@ -105,6 +105,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable && cameraUuid !== '') {
+    await deletePlateReads();
     await db.execute(sql`delete from sightings where camera_id = ${cameraUuid}::uuid`);
     await db.execute(sql`delete from cameras where id = ${cameraUuid}::uuid`);
   }
@@ -116,8 +117,21 @@ afterAll(async () => {
   await rawSql?.end();
 });
 
+/**
+ * `plate_reads` has no foreign key to `sightings` — it cannot: `sightings` is a hypertable and
+ * PostgreSQL will not let one be the target of a REFERENCES clause (`0005_anpr_identity.up.sql`).
+ * So the cleanup has to walk the link by hand, in the right order, exactly as the writer does.
+ */
+async function deletePlateReads(): Promise<void> {
+  await db.execute(
+    sql`delete from plate_reads where sighting_id in
+          (select id from sightings where camera_id = ${cameraUuid}::uuid)`,
+  );
+}
+
 beforeEach(async () => {
   if (reachable && cameraUuid !== '') {
+    await deletePlateReads();
     await db.execute(sql`delete from sightings where camera_id = ${cameraUuid}::uuid`);
   }
 });
@@ -194,6 +208,72 @@ describe('sightings consumer', () => {
     // A session-qualified track id survives the int4 column, which is what makes "no identity bleed
     // across the loop-point cut" checkable in SQL rather than only asserted in Python.
     expect(rows[1]?.track_id).toBe(100_007);
+  });
+
+  it('writes a plate read linked to the sighting it arrived on, with every D2-01 column', async () => {
+    if (!reachable) return;
+
+    const stats = await consumeSightings({
+      reader: fakeReader([
+        entries(
+          payload({
+            trackId: 200_012,
+            plateReads: [
+              {
+                rawText: 'GJ01AB1234',
+                normalizedText: null,
+                confidence: 0.812,
+                isBestShot: true,
+                voteCount: 3,
+                cropUri: 'file:///evidence/cam01/2026-09-04/200012-plate.jpg',
+              },
+            ],
+          }),
+          // A sighting with no plate read must not gain one — the link is positional, and an
+          // off-by-one here would attach a read to the wrong vehicle.
+          payload({ trackId: 200_013 }),
+        ),
+      ]),
+      db,
+      maxIdlePolls: 1,
+      blockMs: 1,
+    });
+
+    expect(stats.inserted).toBe(2);
+    expect(stats.plateReadsInserted).toBe(1);
+
+    const rows = await db.execute<{
+      raw_text: string;
+      normalized_text: string | null;
+      confidence: string;
+      is_best_shot: boolean;
+      vote_count: number;
+      crop_uri: string;
+      track_id: number;
+      sighting_ts: string;
+      ts: string;
+    }>(
+      sql`select p.raw_text, p.normalized_text, p.confidence::text, p.is_best_shot, p.vote_count,
+                 p.crop_uri, s.track_id, p.sighting_ts::text, s.ts::text
+          from plate_reads p
+          join sightings s on s.id = p.sighting_id and s.ts = p.sighting_ts
+          where s.camera_id = ${cameraUuid}::uuid`,
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.raw_text).toBe('GJ01AB1234');
+    // Raw here, normalised by D2-03. A worker that guessed would make the rejection rate — a trust
+    // signal — unmeasurable.
+    expect(rows[0]?.normalized_text).toBeNull();
+    expect(Number(rows[0]?.confidence)).toBeCloseTo(0.812, 3);
+    expect(rows[0]?.is_best_shot).toBe(true);
+    expect(rows[0]?.vote_count).toBe(3);
+    expect(rows[0]?.crop_uri).toContain('200012-plate.jpg');
+    // The read landed on the vehicle that produced it, not on its neighbour in the batch.
+    expect(rows[0]?.track_id).toBe(200_012);
+    // `sighting_ts` is carried so the planner can exclude hypertable chunks; it must equal the
+    // sighting's own ts or the index is useless and the join is a lie.
+    expect(rows[0]?.sighting_ts).toBe(rows[0]?.ts);
   });
 
   it('round-trips a real XADD through a real consumer group into Postgres', async () => {

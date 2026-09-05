@@ -28,6 +28,11 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 
 from .attributes import AttributeStats, BestShotSelector
+from .anpr.crops import DEFAULT_CROP_DIR, LocalCropStore
+from .anpr.engine import AnprEngine
+from .anpr.ocr import OCR_BACKENDS, create_ocr_backend, ocr_backend_name
+from .anpr.plates import DEFAULT_PLATE_MODEL, PlateDetector
+from .anpr.thresholds import thresholds_from_env
 from .bus import NullSink, SightingSink, ValkeySink
 from .detect import DEFAULT_MODEL, Detector
 from .device import select_device
@@ -57,6 +62,7 @@ def run_worker(
     cookie: str | None = None,
     detector: object | None = None,
     evidence_sink: EvidenceSink | None = None,
+    anpr: AnprEngine | None = None,
 ) -> dict:
     """Runs every source concurrently for `minutes` and returns the run summary."""
     if not sources:
@@ -85,6 +91,7 @@ def run_worker(
             evidence_sink=evidence_sink,
             best_shots=best_shots,
             attribute_stats=attribute_stats,
+            anpr=anpr,
         )
         for source in sources
     ]
@@ -159,6 +166,24 @@ def run_worker(
             "p50_ms": stats_source.percentile(50),
             "p95_ms": stats_source.percentile(95),
         }
+
+    if anpr is not None:
+        # Reported next to, never merged into, the detector's numbers. Plate detection and OCR are
+        # a second and a third model on the same device, and a single blended latency would hide
+        # which of the three a capacity claim is actually about.
+        summary["anpr"] = {
+            **anpr.stats.as_dict(),
+            "tracks_unemitted_at_deadline": anpr.tracks_unemitted,
+            "ocr_backend": getattr(anpr.ocr, "name", "unknown"),
+            "ocr_model": getattr(anpr.ocr, "model_name", "unknown"),
+            "plate_model": anpr.plate_detector.model,
+            "plate_detect_p50_ms": anpr.plate_detector.stats.percentile(50),
+            "plate_detect_p95_ms": anpr.plate_detector.stats.percentile(95),
+            "ocr_p50_ms": getattr(anpr.ocr, "stats", None)
+            and anpr.ocr.stats.percentile(50),  # type: ignore[attr-defined]
+            "ocr_p95_ms": getattr(anpr.ocr, "stats", None)
+            and anpr.ocr.stats.percentile(95),  # type: ignore[attr-defined]
+        }
     return summary
 
 
@@ -213,6 +238,7 @@ def summarise(
         # The split that says whose stall it was. A large `upstream_wait_s` with a small
         # `loop_self_time_s` is a throttled gateway, not a frame-loop stall in this worker.
         "time_split": {"upstream_wait_s": upstream, "loop_self_time_s": self_time},
+        "plate_reads_published": sum(s.plate_reads for s in stats),
         "publish_failures": getattr(sink, "failed", 0),
         # D2-02. `best_shots` is one per track *session*, never one per sighting: the ratio below is
         # the storage argument in PROJECT.md §9 measured rather than assumed. `None` when the run
@@ -284,6 +310,23 @@ def render(summary: dict) -> str:
             f"  colour            {ev['color_reads']} reads, "
             f"{ev['low_confidence_rate']:.1%} low-confidence -> unknown  {ev['by_color']}"
         )
+    anpr = summary.get("anpr")
+    if anpr is not None:
+        lines.append(
+            f"  anpr              {anpr['votes_emitted']} plate reads from "
+            f"{anpr['tracks_seen']} tracks · {anpr['ocr_calls']} OCR calls "
+            f"({anpr['ocr_backend']}) · {anpr['plate_detector_calls']} plate-detect calls"
+        )
+        lines.append(
+            f"  anpr latency      plate-detect p50 {anpr['plate_detect_p50_ms']} ms / "
+            f"p95 {anpr['plate_detect_p95_ms']} ms · OCR p50 {anpr['ocr_p50_ms']} ms / "
+            f"p95 {anpr['ocr_p95_ms']} ms"
+        )
+        lines.append(
+            f"  anpr rejects      {anpr['plates_too_narrow']} plate boxes below the width floor · "
+            f"{anpr['votes_below_floor']} votes below the confidence floor · "
+            f"{anpr['tracks_unemitted_at_deadline']} tracks unemitted at the deadline"
+        )
     lines.append(
         f"  scene cuts        {summary['scene_cuts']}   reconnects {summary['reconnects']}"
     )
@@ -333,6 +376,20 @@ def main(argv: list[str] | None = None) -> int:
         "--evidence", action="store_true",
         help="read vehicle attributes and publish one best-shot crop per track session (D2-02)",
     )
+    parser.add_argument("--anpr", action="store_true", help="run the ANPR stage (D2-01)")
+    parser.add_argument(
+        "--ocr-backend", default=None,
+        help=f"OCR engine: {', '.join(sorted(OCR_BACKENDS))}",
+    )
+    parser.add_argument("--plate-model", default=DEFAULT_PLATE_MODEL)
+    parser.add_argument(
+        "--crop-dir", default=DEFAULT_CROP_DIR,
+        help="where best-shot plate crops are written (gitignored; D2-02 replaces this with MinIO)",
+    )
+    parser.add_argument(
+        "--anpr-every-frame", action="store_true",
+        help="AC 1's control arm: OCR every examined frame instead of the best shots",
+    )
     parser.add_argument("--json", default=None, help="write the run summary to this path")
     parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args(argv)
@@ -351,6 +408,19 @@ def main(argv: list[str] | None = None) -> int:
         print("no cameras in scope — pass --cameras or --source", file=sys.stderr)
         return 2
 
+    anpr: AnprEngine | None = None
+    if args.anpr:
+        backend = ocr_backend_name(args.ocr_backend)
+        log.info("anpr: plate model %s · ocr backend %s", args.plate_model, backend)
+        anpr_thresholds = thresholds_from_env()
+        anpr = AnprEngine(
+            PlateDetector(args.plate_model, anpr_thresholds),
+            create_ocr_backend(backend),
+            LocalCropStore(args.crop_dir),
+            anpr_thresholds,
+            every_frame=args.anpr_every_frame,
+        )
+
     sink: SightingSink = NullSink() if args.no_publish else ValkeySink()
     evidence: EvidenceSink | None = None
     if args.evidence:
@@ -366,6 +436,7 @@ def main(argv: list[str] | None = None) -> int:
             connect_deadline_s=args.connect_deadline,
             cookie=os.environ.get("SENTINEL_PORTAL_COOKIE"),
             evidence_sink=evidence,
+            anpr=anpr,
         )
     finally:
         sink.close()

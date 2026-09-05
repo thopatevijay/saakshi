@@ -45,6 +45,7 @@ from .attributes import (
     encode_jpeg,
     sharpness,
 )
+from .anpr.engine import AnprEngine
 from .bus import SightingSink
 from .capabilities import CameraCapabilities, inference_size
 from .backoff import backoff_delay_ms
@@ -91,6 +92,8 @@ class CameraStats:
     best_shots: int = 0
     #: Bytes of JPEG actually produced. The sizing model's storage input, measured not assumed.
     best_shot_bytes: int = 0
+    #: Voted plate reads emitted for this camera — one per vehicle track that produced one (D2-01).
+    plate_reads: int = 0
     scene_cuts: int = 0
     sessions: int = 1
     benign_warnings: int = 0
@@ -256,11 +259,16 @@ class CameraPipeline:
         evidence_sink: EvidenceSink | None = None,
         best_shots: BestShotSelector | None = None,
         attribute_stats: AttributeStats | None = None,
+        anpr: AnprEngine | None = None,
     ) -> None:
         self.source = source
         self.detector = detector
         self.sink = sink
         self.thresholds = thresholds
+        #: The ANPR stage (D2-01), or `None`. Shared across camera threads; its per-track state is
+        #: keyed by `(camera, track_id)`, and `track_id` already carries the tracking session, so a
+        #: vote cannot span a loop-point cut.
+        self.anpr = anpr
         self.cookie = cookie
         self.user_agent = user_agent
         self.jitter = jitter
@@ -569,8 +577,23 @@ class CameraPipeline:
         tracked = tracker.update(detections)
 
         ts = epoch + timedelta(seconds=pts_s)
-        ts_iso = ts.isoformat().replace("+00:00", "Z")
+        iso_ts = ts.isoformat().replace("+00:00", "Z")
         frame_pts_ms = int(round(pts_s * 1000.0))
+
+        # ANPR runs on the frames the motion gate already let through — deliberately no second gate.
+        # D1-09's keep-alive forces an inference every 2 s of PTS so a vehicle stopped at a signal
+        # keeps its identity; an ANPR-side gate on top would re-open exactly that hole.
+        plate_reads: dict[int, dict] = {}
+        if self.anpr is not None:
+            plate_reads = self.anpr.observe(
+                image,
+                tracked,
+                camera_external_id=self.source.external_id,
+                ts=iso_ts,
+                frame_pts_ms=frame_pts_ms,
+            )
+            self.stats.plate_reads += len(plate_reads)
+
         for item in tracked:
             bbox = {
                 "x": round(item.x, 2),
@@ -578,20 +601,24 @@ class CameraPipeline:
                 "w": round(item.w, 2),
                 "h": round(item.h, 2),
             }
-            self.sink.publish(
-                {
-                    "cameraId": self.source.external_id,
-                    "ts": ts_iso,
-                    "framePtsMs": frame_pts_ms,
-                    "trackId": item.track_id,
-                    "class": item.vehicle_class,
-                    "bbox": bbox,
-                    "detConfidence": round(item.confidence, 3),
-                }
-            )
+            payload = {
+                "cameraId": self.source.external_id,
+                "ts": iso_ts,
+                "framePtsMs": frame_pts_ms,
+                "trackId": item.track_id,
+                "class": item.vehicle_class,
+                "bbox": bbox,
+                "detConfidence": round(item.confidence, 3),
+            }
+            read = plate_reads.get(item.track_id)
+            if read is not None:
+                # `plateReads` already exists on the shared `Sighting` type with a `[]` default
+                # (D1-09's handoff), so extending the payload needs no change to packages/shared.
+                payload["plateReads"] = [read]
+            self.sink.publish(payload)
             self.stats.sightings += 1
             if self.evidence_sink is not None:
-                self._offer_best_shot(image, item, bbox, ts_iso, frame_pts_ms)
+                self._offer_best_shot(image, item, bbox, iso_ts, frame_pts_ms)
 
         self.stats.frames_considered = gate.frames_considered
         self.stats.inferences_run = gate.inferences_run

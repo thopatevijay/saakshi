@@ -28,8 +28,8 @@
  *    instead of silent.
  */
 import { sql } from 'drizzle-orm';
-import { Sighting } from '@saakshi/shared';
-import { sightings as sightingsTable } from '@saakshi/shared/db';
+import { Sighting, type PlateRead } from '@saakshi/shared';
+import { plateReads as plateReadsTable, sightings as sightingsTable } from '@saakshi/shared/db';
 import type { Db } from '../db/client.js';
 
 export const SIGHTINGS_STREAM = 'sightings';
@@ -65,6 +65,8 @@ export interface SightingStreamReader {
 export interface SightingsConsumerStats {
   entriesRead: number;
   inserted: number;
+  /** `plate_reads` rows written (D2-01). One per vehicle track that produced a voted read. */
+  plateReadsInserted: number;
   invalidPayloads: number;
   unknownCameras: number;
   /** External ids seen that are not in the registry, capped so a misconfigured worker cannot OOM us. */
@@ -75,6 +77,7 @@ export function emptyStats(): SightingsConsumerStats {
   return {
     entriesRead: 0,
     inserted: 0,
+    plateReadsInserted: 0,
     invalidPayloads: 0,
     unknownCameras: 0,
     unknownCameraIds: [],
@@ -124,6 +127,18 @@ interface SightingRow {
 }
 
 /**
+ * A decoded payload and the plate reads that travelled with it.
+ *
+ * They are carried side by side rather than folded into `SightingRow` because `plate_reads` is a
+ * separate table that needs the `sighting_id` Postgres has not generated yet. Keeping them
+ * parallel is what lets the insert stay one multi-row statement per table.
+ */
+interface DecodedSighting {
+  row: SightingRow;
+  plateReads: PlateRead[];
+}
+
+/**
  * Decodes and validates one batch, resolving external ids to uuids.
  *
  * Kept separate from the insert so the failure modes — malformed JSON, a payload that is not a
@@ -134,8 +149,8 @@ export async function decodeBatch(
   entries: StreamEntry[],
   resolver: CameraIdResolver,
   stats: SightingsConsumerStats,
-): Promise<SightingRow[]> {
-  const rows: SightingRow[] = [];
+): Promise<DecodedSighting[]> {
+  const rows: DecodedSighting[] = [];
 
   for (const entry of entries) {
     let parsed: unknown;
@@ -166,26 +181,75 @@ export async function decodeBatch(
     }
 
     rows.push({
-      cameraId,
-      // The worker's `ts` is PTS + the stream epoch, never arrival time. Carried through, never
-      // re-derived: a consumer that stamped `now()` would throw away the only timing that is the
-      // camera's, and would make every row's timestamp a measure of consumer lag instead.
-      ts: sighting.ts,
-      framePtsMs: sighting.framePtsMs,
-      trackId: sighting.trackId,
-      class: sighting.class,
-      bbox: sighting.bbox,
-      detConfidence: sighting.detConfidence,
+      row: {
+        cameraId,
+        // The worker's `ts` is PTS + the stream epoch, never arrival time. Carried through, never
+        // re-derived: a consumer that stamped `now()` would throw away the only timing that is the
+        // camera's, and would make every row's timestamp a measure of consumer lag instead.
+        ts: sighting.ts,
+        framePtsMs: sighting.framePtsMs,
+        trackId: sighting.trackId,
+        class: sighting.class,
+        bbox: sighting.bbox,
+        detConfidence: sighting.detConfidence,
+      },
+      plateReads: sighting.plateReads,
     });
   }
 
   return rows;
 }
 
-export async function insertBatch(db: Db, rows: SightingRow[]): Promise<number> {
-  if (rows.length === 0) return 0;
-  await db.insert(sightingsTable).values(rows);
-  return rows.length;
+export interface InsertCounts {
+  sightings: number;
+  plateReads: number;
+}
+
+/**
+ * Writes one batch: sightings first, then the plate reads that hang off them.
+ *
+ * `sightings` is a hypertable, so `plate_reads` cannot carry a foreign key to it — Timescale does
+ * not support being the target of a REFERENCES clause, and the composite `(id, ts)` primary key
+ * could not be referenced by id alone anyway. `0005_anpr_identity.up.sql` states that referential
+ * integrity is therefore the writer's responsibility. **This function is that writer**, which is
+ * why the link is made from `.returning()` on the insert that generated the ids rather than from a
+ * lookup afterwards: a lookup would have to guess which of several identical-looking sightings on
+ * the same camera and track a read belonged to.
+ *
+ * `sighting_ts` is carried alongside `sighting_id` for the same reason the migration gives: without
+ * it, a lookup by id alone scans every daily chunk of the hypertable.
+ */
+export async function insertBatch(db: Db, decoded: DecodedSighting[]): Promise<InsertCounts> {
+  if (decoded.length === 0) return { sightings: 0, plateReads: 0 };
+
+  const inserted = await db
+    .insert(sightingsTable)
+    .values(decoded.map((item) => item.row))
+    .returning({ id: sightingsTable.id, ts: sightingsTable.ts });
+
+  const reads: (typeof plateReadsTable.$inferInsert)[] = [];
+  for (const [index, item] of decoded.entries()) {
+    const parent = inserted[index];
+    if (parent === undefined) continue;
+    for (const read of item.plateReads) {
+      reads.push({
+        sightingId: parent.id,
+        sightingTs: parent.ts,
+        rawText: read.rawText,
+        // Left as the worker sent it — `null`. D2-03 owns normalisation and grammar validation,
+        // and the rejection rate per camera is a trust signal that only exists if this column
+        // distinguishes "not normalised yet" from "normalised to nothing".
+        normalizedText: read.normalizedText,
+        confidence: read.confidence,
+        isBestShot: read.isBestShot,
+        voteCount: read.voteCount,
+        cropUri: read.cropUri,
+      });
+    }
+  }
+  if (reads.length > 0) await db.insert(plateReadsTable).values(reads);
+
+  return { sightings: inserted.length, plateReads: reads.length };
 }
 
 export interface ConsumeOptions {
@@ -247,7 +311,9 @@ export async function consumeSightings(options: ConsumeOptions): Promise<Sightin
     stats.entriesRead += entries.length;
 
     const rows = await decodeBatch(entries, resolver, stats);
-    stats.inserted += await insertBatch(db, rows);
+    const counts = await insertBatch(db, rows);
+    stats.inserted += counts.sightings;
+    stats.plateReadsInserted += counts.plateReads;
 
     // Acked after the insert commits, including for the entries that were dropped: a payload that
     // failed validation will fail again on redelivery, and redelivering it forever is a stuck

@@ -44,6 +44,7 @@ try {
   console.log('');
   console.log(`  entries read      ${String(stats.entriesRead)}`);
   console.log(`  rows inserted     ${String(stats.inserted)}`);
+  console.log(`  plate reads       ${String(stats.plateReadsInserted)}`);
   console.log(`  invalid payloads  ${String(stats.invalidPayloads)}`);
   console.log(`  unknown cameras   ${String(stats.unknownCameras)}`);
   if (stats.unknownCameraIds.length > 0) {
