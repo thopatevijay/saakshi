@@ -346,6 +346,31 @@ export interface ConsumeOptions {
    * Optional, so `npm run consume:sightings` on a machine with no watchlist still ingests.
    */
   alertEngine?: AlertCorrelator;
+  /**
+   * D3-10's observation seam. Called once per batch, after the insert commits and the correlation
+   * has run, with the PTS-derived timestamps of what was written.
+   *
+   * A callback rather than a `prom-client` import in here on purpose: this module is the one the
+   * consumer's unit tests drive, and a metrics registry has process-global state that would leak
+   * between test files. The CLI supplies the observer; the core stays pure.
+   */
+  onIngest?: (observation: IngestObservation) => void;
+}
+
+/**
+ * What one batch produced, in the terms the end-to-end latency metric needs.
+ *
+ * Every timestamp here is **PTS-derived**, never arrival time — the worker's `ts` is PTS plus the
+ * stream epoch and is carried through untouched. `Date.now() - ts` is therefore the honest
+ * PTS → row and PTS → alert latency, which is the number the deck quotes.
+ */
+export interface IngestObservation {
+  /** One per sighting row written. */
+  readonly sightingTimestamps: string[];
+  /** Confidence of every plate read written. A distribution, not an accuracy claim. */
+  readonly plateReadConfidences: number[];
+  /** One per correlated plate read: its sighting timestamp and how many alerts it raised. */
+  readonly correlated: { sightingTs: string; alerts: number }[];
 }
 
 /** The slice of `AlertEngine` this consumer needs — narrow so the consumer's tests need no engine. */
@@ -374,6 +399,7 @@ export async function consumeSightings(options: ConsumeOptions): Promise<Sightin
     maxIdlePolls = Infinity,
     signal,
     onBatch,
+    onIngest,
     alertEngine,
   } = options;
 
@@ -408,14 +434,29 @@ export async function consumeSightings(options: ConsumeOptions): Promise<Sightin
     // replay harmless, which is the whole reason the dedupe key is derived from the data.
     // A correlation failure must never wedge ingest: the sightings are already durable, and an
     // un-acked batch would be redelivered forever.
+    const correlated: { sightingTs: string; alerts: number }[] = [];
     if (alertEngine !== undefined && counts.correlatable.length > 0) {
       try {
         const outcomes = await alertEngine.correlateBatch(counts.correlatable);
         stats.alertsRaised += outcomes.reduce((n, o) => n + o.alerts.length, 0);
+        // One outcome per candidate, in order — `AlertEngine.correlateBatch` builds the array by
+        // iterating the candidates. Pairing them back up is what makes the PTS -> alert latency a
+        // measurement rather than an estimate.
+        for (const [index, outcome] of outcomes.entries()) {
+          const candidate = counts.correlatable[index];
+          if (candidate === undefined) continue;
+          correlated.push({ sightingTs: candidate.sightingTs, alerts: outcome.alerts.length });
+        }
       } catch {
         stats.correlationFailures += 1;
       }
     }
+
+    onIngest?.({
+      sightingTimestamps: rows.map((item) => item.row.ts),
+      plateReadConfidences: counts.correlatable.map((read) => read.confidence),
+      correlated,
+    });
 
     // Acked after the insert commits, including for the entries that were dropped: a payload that
     // failed validation will fail again on redelivery, and redelivering it forever is a stuck

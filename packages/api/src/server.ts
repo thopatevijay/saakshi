@@ -30,7 +30,10 @@ import { HttpOsrmClient } from './services/osrm.js';
 import type { CropPresigner } from './services/trace.js';
 import { registerAlertRoutes } from './routes/alerts.js';
 import { registerStreamRoutes } from './routes/streams.js';
+import type { StreamRelay } from './services/stream-relay.js';
 import { registerAuditRoutes } from './routes/audit.js';
+import { registerMetricsRoutes } from './routes/metrics.js';
+import type { BusInspector } from './metrics.js';
 import type { AlertEngine } from './services/alerts.js';
 
 /**
@@ -74,6 +77,12 @@ export interface ServerOptions {
   cropPresigner?: CropPresigner;
   /** Where `POST /api/v1/audit/export` writes bundles (D3-04). Defaults to `exports/`. */
   exportDir?: string;
+  /**
+   * Read-only Valkey introspection for the bus-lag gauges on `/metrics` (D3-10). Omitted in tests
+   * and on a machine with no bus — the endpoint then reports the bus as unreachable rather than
+   * failing, which is the honest answer.
+   */
+  busInspector?: BusInspector;
 }
 
 export async function buildServer(options: ServerOptions): Promise<App> {
@@ -207,6 +216,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     }),
   );
 
+  let relay: StreamRelay | undefined;
   if (db !== undefined) {
     registerCameraRoutes(app, {
       db,
@@ -232,13 +242,22 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
-    registerStreamRoutes(app, { db, env });
+    relay = registerStreamRoutes(app, { db, env });
     registerAuditRoutes(app, {
       db,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
       ...(options.exportDir !== undefined ? { exportDir: options.exportDir } : {}),
     });
   }
+
+  // Last, so the onResponse hook it installs wraps every route above it, and so it can export the
+  // relay's own counters rather than a second copy of them (D3-10).
+  registerMetricsRoutes(app, {
+    env,
+    ...(db !== undefined ? { db } : {}),
+    ...(relay !== undefined ? { relay } : {}),
+    ...(options.busInspector !== undefined ? { bus: options.busInspector } : {}),
+  });
 
   return app;
 }
