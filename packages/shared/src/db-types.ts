@@ -7,6 +7,7 @@
  */
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import type {
+  alertDigests,
   alerts,
   auditLog,
   cameraCoverage,
@@ -65,6 +66,9 @@ export type NewWatchlistEntry = InferInsertModel<typeof watchlistEntries>;
 
 export type AlertRow = InferSelectModel<typeof alerts>;
 export type NewAlert = InferInsertModel<typeof alerts>;
+
+export type AlertDigestRow = InferSelectModel<typeof alertDigests>;
+export type NewAlertDigest = InferInsertModel<typeof alertDigests>;
 
 export type RouteRow = InferSelectModel<typeof routes>;
 export type NewRoute = InferInsertModel<typeof routes>;

@@ -71,6 +71,10 @@ export interface SightingsConsumerStats {
   unknownCameras: number;
   /** External ids seen that are not in the registry, capped so a misconfigured worker cannot OOM us. */
   unknownCameraIds: string[];
+  /** Alerts created or bumped by watchlist correlation (D2-06). 0 when no engine is attached. */
+  alertsRaised: number;
+  /** Batches whose correlation threw. Counted, never fatal — ingest outlives the watchlist. */
+  correlationFailures: number;
 }
 
 export function emptyStats(): SightingsConsumerStats {
@@ -81,6 +85,8 @@ export function emptyStats(): SightingsConsumerStats {
     invalidPayloads: 0,
     unknownCameras: 0,
     unknownCameraIds: [],
+    alertsRaised: 0,
+    correlationFailures: 0,
   };
 }
 
@@ -203,6 +209,25 @@ export async function decodeBatch(
 export interface InsertCounts {
   sightings: number;
   plateReads: number;
+  /**
+   * The plate reads just written, with the ids Postgres generated (D2-06).
+   *
+   * Returned rather than re-queried: the alert engine correlates exactly the reads this batch
+   * inserted, and a `select … where ingested_at > x` would race a concurrent consumer and either
+   * miss reads or correlate somebody else's twice.
+   */
+  correlatable: CorrelatablePlateRead[];
+}
+
+/** One newly written plate read, in the shape `AlertEngine.correlate` consumes (D2-06). */
+export interface CorrelatablePlateRead {
+  sightingId: string;
+  sightingTs: string;
+  cameraId: string;
+  rawText: string;
+  confidence: number;
+  cropUri: string | null;
+  isBestShot: boolean;
 }
 
 /**
@@ -220,7 +245,7 @@ export interface InsertCounts {
  * it, a lookup by id alone scans every daily chunk of the hypertable.
  */
 export async function insertBatch(db: Db, decoded: DecodedSighting[]): Promise<InsertCounts> {
-  if (decoded.length === 0) return { sightings: 0, plateReads: 0 };
+  if (decoded.length === 0) return { sightings: 0, plateReads: 0, correlatable: [] };
 
   const inserted = await db
     .insert(sightingsTable)
@@ -228,10 +253,23 @@ export async function insertBatch(db: Db, decoded: DecodedSighting[]): Promise<I
     .returning({ id: sightingsTable.id, ts: sightingsTable.ts });
 
   const reads: (typeof plateReadsTable.$inferInsert)[] = [];
+  const correlatable: CorrelatablePlateRead[] = [];
   for (const [index, item] of decoded.entries()) {
     const parent = inserted[index];
     if (parent === undefined) continue;
     for (const read of item.plateReads) {
+      correlatable.push({
+        sightingId: parent.id,
+        sightingTs: parent.ts,
+        cameraId: item.row.cameraId,
+        // The RAW text, never a pre-normalised string: D2-01's handoff is emphatic that
+        // `raw_text` is a string a camera produced, not a registration, and the engine has to run
+        // it through D2-03's grammar itself or `757508300` reaches a watchlist lookup.
+        rawText: read.rawText,
+        confidence: read.confidence,
+        cropUri: read.cropUri,
+        isBestShot: read.isBestShot,
+      });
       reads.push({
         sightingId: parent.id,
         sightingTs: parent.ts,
@@ -249,7 +287,7 @@ export async function insertBatch(db: Db, decoded: DecodedSighting[]): Promise<I
   }
   if (reads.length > 0) await db.insert(plateReadsTable).values(reads);
 
-  return { sightings: inserted.length, plateReads: reads.length };
+  return { sightings: inserted.length, plateReads: reads.length, correlatable };
 }
 
 export interface ConsumeOptions {
@@ -264,6 +302,23 @@ export interface ConsumeOptions {
   maxIdlePolls?: number;
   signal?: AbortSignal;
   onBatch?: (inserted: number, stats: SightingsConsumerStats) => void;
+  /**
+   * D2-06's alert engine. When supplied, every plate read this consumer writes is correlated
+   * against the watchlist **after the insert commits** and before the entries are acked.
+   *
+   * Here rather than in the Python worker on purpose. The worker reads pixels; the watchlist,
+   * the validity windows, the dedupe state and the audit chain are all this side of the bus, and
+   * correlating in the worker would mean shipping all four across it. It is also the only place
+   * where the read already has the `sighting_id` Postgres generated.
+   *
+   * Optional, so `npm run consume:sightings` on a machine with no watchlist still ingests.
+   */
+  alertEngine?: AlertCorrelator;
+}
+
+/** The slice of `AlertEngine` this consumer needs — narrow so the consumer's tests need no engine. */
+export interface AlertCorrelator {
+  correlateBatch(candidates: CorrelatablePlateRead[]): Promise<{ alerts: unknown[] }[]>;
 }
 
 /**
@@ -287,6 +342,7 @@ export async function consumeSightings(options: ConsumeOptions): Promise<Sightin
     maxIdlePolls = Infinity,
     signal,
     onBatch,
+    alertEngine,
   } = options;
 
   const stats = emptyStats();
@@ -314,6 +370,20 @@ export async function consumeSightings(options: ConsumeOptions): Promise<Sightin
     const counts = await insertBatch(db, rows);
     stats.inserted += counts.sightings;
     stats.plateReadsInserted += counts.plateReads;
+
+    // Correlation runs after the insert commits and before the ack, so a crash mid-correlation
+    // redelivers the batch rather than losing the alerts — the alert engine's dedupe makes the
+    // replay harmless, which is the whole reason the dedupe key is derived from the data.
+    // A correlation failure must never wedge ingest: the sightings are already durable, and an
+    // un-acked batch would be redelivered forever.
+    if (alertEngine !== undefined && counts.correlatable.length > 0) {
+      try {
+        const outcomes = await alertEngine.correlateBatch(counts.correlatable);
+        stats.alertsRaised += outcomes.reduce((n, o) => n + o.alerts.length, 0);
+      } catch {
+        stats.correlationFailures += 1;
+      }
+    }
 
     // Acked after the insert commits, including for the entries that were dropped: a payload that
     // failed validation will fail again on redelivery, and redelivering it forever is a stuck

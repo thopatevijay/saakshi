@@ -17,7 +17,7 @@ import {
 } from 'fastify-type-provider-zod';
 import type { FastifyError } from 'fastify';
 import type { Env } from './env.js';
-import type { Db } from './db/client.js';
+import type { Db, Sql } from './db/client.js';
 import { registerCameraRoutes } from './routes/cameras.js';
 import { registerDepartmentRoutes } from './routes/departments.js';
 import { registerSyncRoutes } from './routes/sync.js';
@@ -27,6 +27,8 @@ import { registerWatchlistRoutes } from './routes/watchlist.js';
 import { registerPlateRoutes } from './routes/plates.js';
 import { registerTraceRoutes } from './routes/trace.js';
 import type { CropPresigner } from './services/trace.js';
+import { registerAlertRoutes } from './routes/alerts.js';
+import type { AlertEngine } from './services/alerts.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -54,6 +56,13 @@ export interface ServerOptions {
   env: Env;
   /** Omitted for a bare health-only server; the registry routes need a connection. */
   db?: Db;
+  /**
+   * A raw connection reserved for `LISTEN` (D2-06's cross-process alert fan-out). Omitted in tests,
+   * where the engine and the routes already share one process and one bus.
+   */
+  listenSql?: Sql;
+  /** D2-06's alert engine, so a test can drive the same bus the stream serves. Built if omitted. */
+  alertEngine?: AlertEngine;
   fetchCatalogue?: (url: string, cookie: string) => Promise<unknown>;
   /**
    * Mints short-lived URLs for stored evidence crops (D2-08). Built at the composition root so no
@@ -152,6 +161,13 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'vehicle, and the path between them, are inferred — every row carries the link ' +
             'method and its confidence.',
         },
+        {
+          name: 'alerts',
+          description:
+            'The alert queue: live SSE stream, lifecycle transitions, rate-limit digests. Every ' +
+            'alert carries a why-payload and a mock-provider disclaimer — a fuzzy match is never ' +
+            'presented as certainty.',
+        },
         { name: 'health', description: 'Liveness' },
         { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
@@ -187,6 +203,11 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerTraceRoutes(app, {
       db,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
+    });
+    registerAlertRoutes(app, {
+      db,
+      ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
+      ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
     });
   }
 
