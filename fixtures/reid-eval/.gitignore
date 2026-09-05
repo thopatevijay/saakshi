@@ -1,0 +1,4 @@
+# Contact sheets are deterministically regenerable from pairs.json:
+#   python -m workers.analytics.reid_dataset sheet --stratum same_camera_pass
+# The verdicts they were used to reach are recorded in `EYE_VERDICTS`, which is the durable record.
+sheets/
