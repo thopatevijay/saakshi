@@ -13,6 +13,7 @@ import { buildServer, type App } from '../server.js';
 import { createDb, createSql, type Db, type Sql } from '../db/client.js';
 import { loadEnv, type Env } from '../env.js';
 import type { UserRole } from '../auth.js';
+import { loadSeedCsv, SEED_CSV_PATH, upsertWatchlistEntries } from '../watchlist/index.js';
 
 /** Marks every row this suite creates so teardown removes exactly them and nothing else. */
 const TAG = `WL${String(Date.now()).slice(-9)}`;
@@ -65,6 +66,12 @@ beforeAll(async () => {
       throw new Error(`seed user ${actors[role].badgeNo} missing — run make migrate`);
     actors[role].sub = row.id;
   }
+
+  // Self-seeding, for the same reason the provider suite is: the validation gate runs the tests
+  // before `npm run seed:watchlist`, and a suite that only passes in one order is not a gate. The
+  // load upserts on the natural key, so it is a no-op when the data is already there.
+  const batch = await loadSeedCsv(SEED_CSV_PATH);
+  await upsertWatchlistEntries(db, batch.valid);
 
   app = await buildServer({ env, db });
   await app.ready();

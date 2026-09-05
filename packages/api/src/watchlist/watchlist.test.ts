@@ -14,6 +14,7 @@ import { loadEnv } from '../env.js';
 import {
   biometricKeysIn,
   createWatchlistRegistry,
+  loadSeedCsv,
   MockProvider,
   normaliseForLookup,
   parseWatchlistCsv,
@@ -46,7 +47,15 @@ beforeAll(async () => {
     reachable = true;
   } catch {
     console.warn('[watchlist] database unreachable — skipping. Run `make up && make migrate`.');
+    return;
   }
+
+  // The suite seeds itself. The validation gate runs the tests *before* `npm run seed:watchlist`,
+  // so a suite that assumed a seeded table would fail from a clean database — and a gate that only
+  // passes in a particular order is not a gate. The load is idempotent (upsert on the natural key),
+  // so running it here costs nothing when the data is already present.
+  const batch = await loadSeedCsv(SEED_CSV_PATH);
+  await upsertWatchlistEntries(db, batch.valid);
 });
 
 afterAll(async () => {
