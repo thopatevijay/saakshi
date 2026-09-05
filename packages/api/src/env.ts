@@ -24,6 +24,16 @@ const EnvSchema = z.object({
   MINIO_REGION: z.string().default('us-east-1'),
   QUERY_COMPILER: z.enum(['none', 'openai', 'anthropic', 'ollama']).default('none'),
 
+  // The road graph, for D3-01's route reconstruction. Defaults to the compose `osrm` service.
+  // Optional in effect rather than in type: a machine that has never run `scripts/import-osm.sh`
+  // has no graph, every route query returns `null`, and the affected segments render as
+  // `inferred_unroutable` with a reason. The trace itself is unaffected — a cold subsystem must not
+  // take the answer down with it.
+  OSRM_URL: z.string().min(1).default('http://localhost:5000'),
+  // Per-query ceiling. A trace is interactive; an OSRM that has not answered in two seconds is
+  // spending the request's budget, not about to rescue it.
+  OSRM_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2000),
+
   // Bearer tokens are signed with this. The default is a development value and the deploy must
   // override it — D4-01 sets it from the platform's secret store.
   JWT_SECRET: z.string().min(8).default('saakshi-dev-jwt-secret'),

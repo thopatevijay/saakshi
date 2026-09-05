@@ -2664,6 +2664,8 @@ export interface paths {
             parameters: {
                 query: {
                     q: string;
+                    purpose: string;
+                    case_ref?: string;
                     max_distance?: number;
                     from?: string;
                     to?: string;
@@ -2799,12 +2801,15 @@ export interface paths {
             parameters: {
                 query: {
                     plate: string;
+                    purpose: string;
+                    case_ref?: string;
                     from?: string;
                     to?: string;
                     camera_ids?: string;
                     min_confidence?: number;
                     max_distance?: number;
                     limit?: number;
+                    reconstruct?: string;
                 };
                 header?: never;
                 path?: never;
@@ -2934,6 +2939,84 @@ export interface paths {
                                 observed: string;
                                 inferred: string;
                             };
+                            route: {
+                                canonicalPlate: string;
+                                segments: {
+                                    seq: number;
+                                    fromSeq: number;
+                                    toSeq: number;
+                                    fromSightingId: string;
+                                    toSightingId: string;
+                                    fromCameraId: string;
+                                    toCameraId: string;
+                                    fromCameraName: string;
+                                    toCameraName: string;
+                                    /** @enum {string} */
+                                    kind: "observed_dwell" | "inferred_path" | "inferred_revisit" | "inferred_unroutable";
+                                    observed: boolean;
+                                    /** @enum {string} */
+                                    basis: "observed" | "inferred";
+                                    sameCamera: boolean;
+                                    elapsedSeconds: number;
+                                    straightLineKm: number | null;
+                                    roadDistanceKm: number | null;
+                                    expectedTravelTimeS: number | null;
+                                    elapsedVsExpected: number | null;
+                                    minimumAverageSpeedKmh: number | null;
+                                    pathOptions: number | null;
+                                    inferredConfidence: number | null;
+                                    confidenceBasis: {
+                                        timing: number;
+                                        uniqueness: number;
+                                        endpoints: number;
+                                    } | null;
+                                    geometry: {
+                                        /** @enum {string} */
+                                        type: "LineString";
+                                        coordinates: (number)[][];
+                                    } | null;
+                                    note: string;
+                                }[];
+                                summary: {
+                                    segments: number;
+                                    observedSegments: number;
+                                    inferredSegments: number;
+                                    unmeasuredSegments: number;
+                                    cameras: number;
+                                    camerasPlaced: number;
+                                    firstSeen: string | null;
+                                    lastSeen: string | null;
+                                    elapsedSeconds: number;
+                                    totalKm: number;
+                                    observedKm: number;
+                                    inferredKm: number;
+                                    meanInferredConfidence: number | null;
+                                    weakestSegmentSeq: number | null;
+                                };
+                                coverage: {
+                                    segmentsRouted: number;
+                                    segmentsUnroutable: number;
+                                    segmentsUnplaced: number;
+                                    osrmQueries: number;
+                                    osrmFailures: number;
+                                };
+                                legend: {
+                                    observed: string;
+                                    inferred: string;
+                                };
+                                cache: {
+                                    key: string;
+                                    fingerprint: string;
+                                    hit: boolean;
+                                    builtAt: string;
+                                };
+                                roadGraph: {
+                                    available: boolean;
+                                    baseUrl: string;
+                                    modelVersion: string;
+                                };
+                                buildMs: number;
+                            } | null;
                             /** @enum {string|null} */
                             emptyReason: "query_not_searchable" | "no_matching_plate" | "no_sightings_in_window" | "below_min_confidence" | null;
                             disclaimer: string;
@@ -3014,12 +3097,15 @@ export interface paths {
             parameters: {
                 query: {
                     plate: string;
+                    purpose: string;
+                    case_ref?: string;
                     from?: string;
                     to?: string;
                     camera_ids?: string;
                     min_confidence?: number;
                     max_distance?: number;
                     limit?: number;
+                    reconstruct?: string;
                 };
                 header?: never;
                 path?: never;
@@ -3056,12 +3142,15 @@ export interface paths {
             parameters: {
                 query: {
                     plate: string;
+                    purpose: string;
+                    case_ref?: string;
                     from?: string;
                     to?: string;
                     camera_ids?: string;
                     min_confidence?: number;
                     max_distance?: number;
                     limit?: number;
+                    reconstruct?: string;
                 };
                 header?: never;
                 path?: never;
@@ -4581,6 +4670,463 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search the tamper-evident audit chain by actor, action, case reference or time
+         * @description Every entry carries the purpose that was stated when the action ran, and a `status` recomputed from the entry itself rather than trusted — a viewer that showed stored rows without re-checking them would be a list, not an audit.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    actor_id?: string;
+                    badge_no?: string;
+                    action?: string;
+                    case_ref?: string;
+                    target_type?: string;
+                    target_id?: string;
+                    from?: string;
+                    to?: string;
+                    limit?: number;
+                    offset?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            total: number;
+                            limit: number;
+                            offset: number;
+                            entries: {
+                                id: string;
+                                seq: number;
+                                ts: string;
+                                action: string;
+                                actorId: string | null;
+                                actorBadgeNo: string | null;
+                                actorRole: string | null;
+                                targetType: string;
+                                targetId: string | null;
+                                purpose: string;
+                                caseRef: string | null;
+                                params: {
+                                    [key: string]: unknown;
+                                };
+                                resultCount: number | null;
+                                hash: string;
+                                prevHash: string;
+                                /** @enum {string} */
+                                status: "ok" | "pre_canonical" | "hash_mismatch";
+                            }[];
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Walk the whole chain and report the first broken link, if there is one
+         * @description A failing verification is a 200 with `ok: false`, not an error status: "the chain is broken" is an answer, and an auditor needs to read which entry and why.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ok: boolean;
+                            algorithm: string;
+                            checkedAt: string;
+                            entries: number;
+                            preCanonicalEntries: number;
+                            verifiedEntries: number;
+                            epochSealed: boolean;
+                            genesisHash: string;
+                            tipHash: string | null;
+                            forks: {
+                                prevHash: string;
+                                entryIds: string[];
+                            }[];
+                            firstBreak: {
+                                /** @enum {string} */
+                                reason: "hash_mismatch" | "link_mismatch" | "epoch_mismatch" | "unsealed_prologue";
+                                position: number;
+                                expected: string;
+                                actual: string;
+                                detail: string;
+                                entry: {
+                                    id: string;
+                                    seq: number;
+                                    ts: string;
+                                    action: string;
+                                    actorId: string | null;
+                                    actorBadgeNo: string | null;
+                                    actorRole: string | null;
+                                    targetType: string;
+                                    targetId: string | null;
+                                    caseRef: string | null;
+                                    hash: string;
+                                    prevHash: string;
+                                };
+                            } | null;
+                            claim: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One audit entry, with its stated purpose, parameters and recomputed status */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            seq: number;
+                            ts: string;
+                            action: string;
+                            actorId: string | null;
+                            actorBadgeNo: string | null;
+                            actorRole: string | null;
+                            targetType: string;
+                            targetId: string | null;
+                            purpose: string;
+                            caseRef: string | null;
+                            params: {
+                                [key: string]: unknown;
+                            };
+                            resultCount: number | null;
+                            hash: string;
+                            prevHash: string;
+                            /** @enum {string} */
+                            status: "ok" | "pre_canonical" | "hash_mismatch";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Package a vehicle trace and its evidence crops as an independently verifiable bundle
+         * @description Requires both a stated purpose and a case reference; the case reference is what makes an export answerable once the evidence has left the system. Crops are embedded as bytes — a signed URL is a credential with an expiry and would be dead before the bundle was opened.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        plate: string;
+                        purpose: string;
+                        case_ref: string;
+                        /** Format: date-time */
+                        from?: string;
+                        /** Format: date-time */
+                        to?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            bundleId: string;
+                            createdAt: string;
+                            caseRef: string;
+                            manifestHash: string;
+                            items: number;
+                            bytes: number;
+                            path: string;
+                            auditEntryHash: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

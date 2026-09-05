@@ -2,7 +2,8 @@ import { sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { AlertRecord, type AlertDigest, type AlertStatus } from '@saakshi/shared';
 import type { App } from '../server.js';
-import { authenticate, READ_ROLES, requireRole, type UserRole } from '../auth.js';
+import { authenticate, requireRole, userRoles, type UserRole } from '../auth.js';
+import { can } from '@saakshi/shared';
 import type { Db, Sql } from '../db/client.js';
 import { ErrorResponse } from './camera-contracts.js';
 import { ConfusionPlateMatcher } from '../services/plate-search.js';
@@ -59,7 +60,20 @@ import {
  * `auditor` is excluded for the reason `auth.ts` gives — an auditor who can change the thing being
  * audited is not an auditor.
  */
-export const ALERT_ACTION_ROLES: readonly UserRole[] = ['admin', 'supervisor', 'operator'];
+export const ALERT_ACTION_ROLES: readonly UserRole[] = userRoles.filter((role) =>
+  can(role, 'alerts:acknowledge'),
+);
+
+/**
+ * Who may see the queue at all — derived from `alerts:view`, not from `READ_ROLES` (D3-04).
+ *
+ * `READ_ROLES` is every signed-in role, auditor included, so the read endpoints were serving the
+ * live alert queue to a role the shared RBAC table does not grant `alerts:view` and whose navigation
+ * therefore never shows the screen. That is precisely the drift `packages/shared/src/rbac.ts` warns
+ * about — "the UI would keep hiding a button the server had started allowing" — and the server is
+ * the authoritative side, so it is the side that moves.
+ */
+export const ALERT_VIEW_ROLES = userRoles.filter((role) => can(role, 'alerts:view'));
 
 const SELECT_ALERT = sql`
   select a.id::text as id, a.watchlist_entry_id::text as watchlist_entry_id,
@@ -188,7 +202,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
         },
         authenticate(db),
       ],
-      preHandler: [requireRole(READ_ROLES)],
+      preHandler: [requireRole(ALERT_VIEW_ROLES)],
       schema: {
         tags: ['alerts'],
         summary: 'Live alert stream (SSE). Events: ready · alert · digest · ping',
@@ -255,7 +269,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
     '/api/v1/alerts',
     {
       onRequest: [authenticate(db)],
-      preHandler: [requireRole(READ_ROLES)],
+      preHandler: [requireRole(ALERT_VIEW_ROLES)],
       schema: {
         tags: ['alerts'],
         summary: 'The alert queue, filterable and keyset-paginated',
@@ -321,7 +335,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
     '/api/v1/alerts/digests',
     {
       onRequest: [authenticate(db)],
-      preHandler: [requireRole(READ_ROLES)],
+      preHandler: [requireRole(ALERT_VIEW_ROLES)],
       schema: {
         tags: ['alerts'],
         summary: 'Rate-limit overflow digests — what the queue was not shown, and why',
@@ -344,7 +358,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
     '/api/v1/alerts/stats',
     {
       onRequest: [authenticate(db)],
-      preHandler: [requireRole(READ_ROLES)],
+      preHandler: [requireRole(ALERT_VIEW_ROLES)],
       schema: {
         tags: ['alerts'],
         summary: 'Queue composition, the measured dedupe ratio, and the live delivery cap',
@@ -393,7 +407,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
     '/api/v1/alerts/:id',
     {
       onRequest: [authenticate(db)],
-      preHandler: [requireRole(READ_ROLES)],
+      preHandler: [requireRole(ALERT_VIEW_ROLES)],
       schema: {
         tags: ['alerts'],
         summary: 'One alert with its complete why-payload',

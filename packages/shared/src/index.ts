@@ -3,6 +3,7 @@ export * from './sighting.js';
 export * from './evidence.js';
 export * from './alert.js';
 export * from './rbac.js';
+export * from './canonical-json.js';
 export * from './plate/index.js';
 
 // Types only — no drizzle runtime reaches the browser bundle from here. The schema itself is a

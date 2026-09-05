@@ -18,10 +18,12 @@
  */
 import { z } from 'zod';
 import type { App } from '../server.js';
-import { authenticate, requireRole, userRoles } from '../auth.js';
+import { authenticate, requireRole, userRoles, type Principal } from '../auth.js';
 import { can } from '@saakshi/shared';
 import type { Db } from '../db/client.js';
 import { ErrorResponse } from './camera-contracts.js';
+import { CaseReference, PurposeStatement } from './audit-contracts.js';
+import { writeAudit } from '../audit.js';
 import { LINK_METHODS } from '../services/identity.js';
 import {
   MAX_TRACE_SIGHTINGS,
@@ -30,6 +32,8 @@ import {
   type TraceResult,
 } from '../services/trace.js';
 import { traceCsv, tracePdf } from '../services/trace-export.js';
+import { NullOsrmClient, type OsrmClient } from '../services/osrm.js';
+import { RouteService, type RouteReconstruction } from '../services/route.js';
 
 /** Derived from the shared RBAC table, so the API can never disagree with the navigation. */
 export const TRACE_ROLES = userRoles.filter((role) => can(role, 'trace:run'));
@@ -46,6 +50,13 @@ const csvUuids = z
 
 export const TraceQuery = z.object({
   plate: z.string().trim().min(1).max(24),
+  /**
+   * Purpose binding (D3-04). Required, enforced here rather than in the UI, and written into the
+   * audit chain with the officer who stated it. A trace with no stated reason is a 400.
+   */
+  purpose: PurposeStatement,
+  /** Optional on a trace; an export is where a case reference becomes mandatory. */
+  case_ref: CaseReference.optional(),
   from: z.iso.datetime().optional(),
   to: z.iso.datetime().optional(),
   camera_ids: csvUuids.optional(),
@@ -54,6 +65,15 @@ export const TraceQuery = z.object({
   /** Weighted-distance ceiling. 2 is D2-04's measured knee — `docs/fuzzy-matching.md` §6. */
   max_distance: z.coerce.number().min(0).max(6).default(2),
   limit: z.coerce.number().int().min(1).max(MAX_TRACE_SIGHTINGS).default(MAX_TRACE_SIGHTINGS),
+  /**
+   * Reconstruct the route on the road graph (D3-01). Off by default: it costs an OSRM query per
+   * camera-to-camera transition, and `GET /api/v1/trace` is also the alert queue's deep link.
+   *
+   * `z.stringbool()` rather than the `z.coerce.boolean()` used elsewhere in this codebase, because
+   * `coerce` runs `Boolean("false")` and that is `true` — `?reconstruct=false` would switch the
+   * feature *on*. Logged against the existing uses on BL-01.
+   */
+  reconstruct: z.stringbool().default(false),
 });
 
 const LinkMethod = z.enum(LINK_METHODS);
@@ -146,6 +166,93 @@ const ResolvedIdentity = z.object({
   matcher: z.string(),
 });
 
+/**
+ * Route reconstruction (D3-01), additive.
+ *
+ * `segments` above is D2-08's list of *gaps* and is frozen — D3-02 consumes its exact shape, and
+ * D2-08's handoff forbids re-sorting or re-vocabularising it. This is a second, richer list keyed
+ * on the same `basis` vocabulary, present only when `reconstruct=true` and `null` otherwise.
+ */
+const RouteSegment = z.object({
+  seq: z.number().int(),
+  fromSeq: z.number().int(),
+  toSeq: z.number().int(),
+  fromSightingId: z.string(),
+  toSightingId: z.string(),
+  fromCameraId: z.string(),
+  toCameraId: z.string(),
+  fromCameraName: z.string(),
+  toCameraName: z.string(),
+  kind: z.enum(['observed_dwell', 'inferred_path', 'inferred_revisit', 'inferred_unroutable']),
+  /** `true` only when one camera held the vehicle in an unbroken tracking session. */
+  observed: z.boolean(),
+  basis: z.enum(['observed', 'inferred']),
+  sameCamera: z.boolean(),
+  elapsedSeconds: z.number(),
+  straightLineKm: z.number().nullable(),
+  /** OSRM's fastest path. A LOWER bound on the distance actually driven. */
+  roadDistanceKm: z.number().nullable(),
+  expectedTravelTimeS: z.number().nullable(),
+  elapsedVsExpected: z.number().nullable(),
+  /** `roadDistanceKm / elapsed` — a LOWER bound: the vehicle averaged at least this. */
+  minimumAverageSpeedKmh: z.number().nullable(),
+  pathOptions: z.number().int().nullable(),
+  inferredConfidence: z.number().nullable(),
+  confidenceBasis: z
+    .object({ timing: z.number(), uniqueness: z.number(), endpoints: z.number() })
+    .nullable(),
+  geometry: z
+    .object({
+      type: z.literal('LineString'),
+      coordinates: z.array(z.tuple([z.number(), z.number()])),
+    })
+    .nullable(),
+  note: z.string(),
+});
+
+export const RouteResponse = z.object({
+  canonicalPlate: z.string(),
+  segments: z.array(RouteSegment),
+  summary: z.object({
+    segments: z.number().int(),
+    observedSegments: z.number().int(),
+    inferredSegments: z.number().int(),
+    unmeasuredSegments: z.number().int(),
+    cameras: z.number().int(),
+    camerasPlaced: z.number().int(),
+    firstSeen: z.string().nullable(),
+    lastSeen: z.string().nullable(),
+    elapsedSeconds: z.number(),
+    totalKm: z.number(),
+    observedKm: z.number(),
+    inferredKm: z.number(),
+    meanInferredConfidence: z.number().nullable(),
+    weakestSegmentSeq: z.number().int().nullable(),
+  }),
+  coverage: z.object({
+    segmentsRouted: z.number().int(),
+    segmentsUnroutable: z.number().int(),
+    segmentsUnplaced: z.number().int(),
+    osrmQueries: z.number().int(),
+    osrmFailures: z.number().int(),
+  }),
+  /** The two sentences the map legend renders. The distinction, in words, not a footnote. */
+  legend: z.object({ observed: z.string(), inferred: z.string() }),
+  cache: z.object({
+    key: z.string(),
+    fingerprint: z.string(),
+    hit: z.boolean(),
+    builtAt: z.string(),
+  }),
+  roadGraph: z.object({
+    available: z.boolean(),
+    baseUrl: z.string(),
+    modelVersion: z.string(),
+  }),
+  buildMs: z.number(),
+});
+export type RouteResponse = z.infer<typeof RouteResponse>;
+
 export const TraceResponse = z.object({
   query: z.string(),
   normalized: z.string(),
@@ -174,6 +281,8 @@ export const TraceResponse = z.object({
   }),
   /** The two sentences that keep a trace from over-claiming. Rendered, not buried in a footer. */
   claims: z.object({ observed: z.string(), inferred: z.string() }),
+  /** Present only when `reconstruct=true`. `null` otherwise — never an empty object. */
+  route: RouteResponse.nullable(),
   emptyReason: z
     .enum([
       'query_not_searchable',
@@ -187,9 +296,18 @@ export const TraceResponse = z.object({
 });
 export type TraceResponse = z.infer<typeof TraceResponse>;
 
+/** A trace, plus the reconstruction when one was asked for. `route` is `null` otherwise. */
+export type TracedRoute = TraceResult & { route: RouteReconstruction | null };
+
 export interface TraceRouteOptions {
   db: Db;
   service?: TraceService;
+  /**
+   * The road graph. Absent means no reconstruction is possible, which is the honest state of a
+   * machine that has never run `scripts/import-osm.sh` — every transition then comes back as
+   * `inferred_unroutable` with a reason rather than the endpoint failing.
+   */
+  osrm?: OsrmClient;
   /**
    * Mints a browser-usable URL for a stored `s3://` crop.
    *
@@ -203,9 +321,27 @@ export interface TraceRouteOptions {
 
 export function registerTraceRoutes(app: App, options: TraceRouteOptions): void {
   const service = options.service ?? new TraceService(options.db, undefined, options.presign);
+  const routes = new RouteService(options.db, options.osrm ?? new NullOsrmClient());
 
-  const run = async (query: z.infer<typeof TraceQuery>): Promise<TraceResult> =>
-    service.trace(query.plate, {
+  /**
+   * Runs the trace, **records that it was run** (D3-04), and reconstructs the route (D3-01).
+   *
+   * The audit row is written for every form of the endpoint, including the CSV and the PDF, because
+   * a trace that leaves the building is more consequential than one that is only looked at — and it
+   * carries the stated purpose, the officer, the parameters and how many sightings came back, so an
+   * auditor can later ask why this registration was searched without needing anyone's recollection.
+   *
+   * The write is awaited before the result is returned. An audit row that is merely *scheduled* is
+   * an audit row that a crash loses, and the whole claim is that the record exists. It is also
+   * awaited *before* reconstruction: the search is the auditable act, and it happened whether or
+   * not OSRM could draw a line through it.
+   */
+  const run = async (
+    query: z.infer<typeof TraceQuery>,
+    principal: Principal | undefined,
+    action: 'trace.run' | 'trace.export.csv' | 'trace.export.pdf',
+  ): Promise<TracedRoute> => {
+    const result = await service.trace(query.plate, {
       minConfidence: query.min_confidence,
       maxDistance: query.max_distance,
       limit: query.limit,
@@ -213,6 +349,35 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
       ...(query.to !== undefined ? { to: new Date(query.to) } : {}),
       ...(query.camera_ids !== undefined ? { cameraIds: query.camera_ids } : {}),
     });
+
+    await writeAudit(options.db, principal, {
+      action,
+      targetType: 'vehicle',
+      targetId: result.normalized === '' ? result.query : result.normalized,
+      purpose: query.purpose,
+      caseRef: query.case_ref ?? null,
+      params: {
+        plate: query.plate,
+        normalized: result.normalized,
+        from: query.from ?? null,
+        to: query.to ?? null,
+        cameraIds: query.camera_ids ?? [],
+        minConfidence: query.min_confidence,
+        maxDistance: query.max_distance,
+        limit: query.limit,
+        searched: result.searched,
+        emptyReason: result.emptyReason,
+      },
+      resultCount: result.sightings.length,
+    });
+
+    // Fewer than two sightings is not a degenerate route, it is *no* route: there is no pair to
+    // reconstruct between. Returning `null` rather than an empty reconstruction keeps the UI from
+    // rendering a summary of nothing.
+    if (!query.reconstruct || result.sightings.length < 2) return { ...result, route: null };
+    const route = await routes.reconstruct(result, { requestedBy: principal?.sub ?? null });
+    return { ...result, route };
+  };
 
   app.get(
     '/api/v1/trace',
@@ -235,7 +400,7 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
         },
       },
     },
-    async (request): Promise<TraceResult> => run(request.query),
+    async (request): Promise<TracedRoute> => run(request.query, request.principal, 'trace.run'),
   );
 
   app.get(
@@ -253,7 +418,7 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
       },
     },
     async (request, reply): Promise<void> => {
-      const result = await run(request.query);
+      const result = await run(request.query, request.principal, 'trace.export.csv');
       const stamp = new Date().toISOString().slice(0, 10);
       const name = safeFileName(result.normalized === '' ? result.query : result.normalized);
       // `reply.send` rather than a returned value: the response schema map declares only errors, so
@@ -278,7 +443,7 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
       },
     },
     async (request, reply): Promise<void> => {
-      const result = await run(request.query);
+      const result = await run(request.query, request.principal, 'trace.export.pdf');
       const stamp = new Date().toISOString().slice(0, 10);
       const name = safeFileName(result.normalized === '' ? result.query : result.normalized);
       await reply

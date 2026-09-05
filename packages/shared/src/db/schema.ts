@@ -455,6 +455,16 @@ export const routes = pgTable(
     requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
     requestedAt: ts('requested_at').notNull().defaultNow(),
     params: jsonb('params').notNull().default({}),
+
+    // 0017 · a route is a cache. `cacheKey` is the question (plate, window, params, model
+    // version); `sightingsFingerprint` is the evidence (sha256 of the ordered sighting list), so a
+    // new sighting invalidates the answer without waiting for a TTL to expire.
+    cacheKey: text('cache_key'),
+    sightingsFingerprint: text('sightings_fingerprint'),
+    sightingCount: integer('sighting_count').notNull().default(0),
+    builtAt: ts('built_at').notNull().defaultNow(),
+    buildMs: integer('build_ms'),
+    summary: jsonb('summary').notNull().default({}),
   },
   (t) => [
     index('routes_identity_idx').on(t.identityId),
@@ -484,6 +494,19 @@ export const routeSegments = pgTable(
     inferredConfidence: numericAsNumber('inferred_confidence'),
 
     anomaly: routeAnomalyEnum('anomaly').notNull().default('none'),
+
+    // 0017 · `observed` is the headline claim; `kind` is what "not observed" splits into, because
+    // an unroutable gap, a revisit and a scored road path are three different states of knowledge.
+    fromCameraId: uuid('from_camera_id'),
+    toCameraId: uuid('to_camera_id'),
+    kind: text('kind').notNull().default('inferred_path'),
+    elapsedS: integer('elapsed_s'),
+    // Both distances are LOWER bounds on the distance driven — OSRM returns the fastest path.
+    roadDistanceM: integer('road_distance_m'),
+    straightLineM: integer('straight_line_m'),
+    pathOptions: integer('path_options'),
+    confidenceBasis: jsonb('confidence_basis'),
+    note: text('note'),
   },
   (t) => [primaryKey({ columns: [t.routeId, t.seq] })],
 );
@@ -500,6 +523,11 @@ export const auditLog = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     ts: ts('ts').notNull().defaultNow(),
     actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    // 0018. Captured at write time and inside the hash, because `actor_id` is ON DELETE SET NULL —
+    // without these, removing a user erases who wrote every entry they ever wrote. NULL for both
+    // means a system actor (the alert engine), not a deleted one.
+    actorBadgeNo: text('actor_badge_no'),
+    actorRole: text('actor_role'),
 
     action: text('action').notNull(),
     targetType: text('target_type').notNull(),
@@ -515,11 +543,18 @@ export const auditLog = pgTable(
 
     prevHash: text('prev_hash').notNull(),
     hash: text('hash').notNull().unique(),
+
+    // 0018. Insertion order, GENERATED ALWAYS so nothing can supply one. `audit_log_prev_hash_uidx`
+    // (also 0018) makes the chain unforkable, which is what lets this double as chain order.
+    seq: bigint('seq', { mode: 'number' }).generatedAlwaysAsIdentity(),
   },
   (t) => [
     index('audit_log_ts_idx').on(t.ts.desc()),
     index('audit_log_actor_idx').on(t.actorId),
     index('audit_log_target_idx').on(t.targetType, t.targetId),
+    index('audit_log_action_idx').on(t.action),
+    uniqueIndex('audit_log_seq_uidx').on(t.seq),
+    uniqueIndex('audit_log_prev_hash_uidx').on(t.prevHash),
   ],
 );
 

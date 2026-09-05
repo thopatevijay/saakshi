@@ -7170,6 +7170,27 @@
           },
           {
             "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            "in": "query",
+            "name": "purpose",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9/\\-_.]+$"
+            },
+            "in": "query",
+            "name": "case_ref",
+            "required": false
+          },
+          {
+            "schema": {
               "default": 2,
               "type": "number",
               "minimum": 0,
@@ -7570,6 +7591,27 @@
           {
             "schema": {
               "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            "in": "query",
+            "name": "purpose",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9/\\-_.]+$"
+            },
+            "in": "query",
+            "name": "case_ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
               "format": "date-time",
               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
             },
@@ -7626,6 +7668,14 @@
             },
             "in": "query",
             "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "reconstruct",
             "required": false
           }
         ],
@@ -8169,6 +8219,391 @@
                       ],
                       "additionalProperties": false
                     },
+                    "route": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "canonicalPlate": {
+                          "type": "string"
+                        },
+                        "segments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "seq": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "fromSeq": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "toSeq": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "fromSightingId": {
+                                "type": "string"
+                              },
+                              "toSightingId": {
+                                "type": "string"
+                              },
+                              "fromCameraId": {
+                                "type": "string"
+                              },
+                              "toCameraId": {
+                                "type": "string"
+                              },
+                              "fromCameraName": {
+                                "type": "string"
+                              },
+                              "toCameraName": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "observed_dwell",
+                                  "inferred_path",
+                                  "inferred_revisit",
+                                  "inferred_unroutable"
+                                ]
+                              },
+                              "observed": {
+                                "type": "boolean"
+                              },
+                              "basis": {
+                                "type": "string",
+                                "enum": [
+                                  "observed",
+                                  "inferred"
+                                ]
+                              },
+                              "sameCamera": {
+                                "type": "boolean"
+                              },
+                              "elapsedSeconds": {
+                                "type": "number"
+                              },
+                              "straightLineKm": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "roadDistanceKm": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "expectedTravelTimeS": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "elapsedVsExpected": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "minimumAverageSpeedKmh": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "pathOptions": {
+                                "nullable": true,
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "inferredConfidence": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "confidenceBasis": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "timing": {
+                                    "type": "number"
+                                  },
+                                  "uniqueness": {
+                                    "type": "number"
+                                  },
+                                  "endpoints": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "timing",
+                                  "uniqueness",
+                                  "endpoints"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "geometry": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LineString"
+                                    ]
+                                  },
+                                  "coordinates": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "array",
+                                      "items": {
+                                        "anyOf": [
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "number"
+                                          }
+                                        ]
+                                      },
+                                      "minItems": 2,
+                                      "maxItems": 2
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "coordinates"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "seq",
+                              "fromSeq",
+                              "toSeq",
+                              "fromSightingId",
+                              "toSightingId",
+                              "fromCameraId",
+                              "toCameraId",
+                              "fromCameraName",
+                              "toCameraName",
+                              "kind",
+                              "observed",
+                              "basis",
+                              "sameCamera",
+                              "elapsedSeconds",
+                              "straightLineKm",
+                              "roadDistanceKm",
+                              "expectedTravelTimeS",
+                              "elapsedVsExpected",
+                              "minimumAverageSpeedKmh",
+                              "pathOptions",
+                              "inferredConfidence",
+                              "confidenceBasis",
+                              "geometry",
+                              "note"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "segments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "observedSegments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "inferredSegments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "unmeasuredSegments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "cameras": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "camerasPlaced": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "firstSeen": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "lastSeen": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "elapsedSeconds": {
+                              "type": "number"
+                            },
+                            "totalKm": {
+                              "type": "number"
+                            },
+                            "observedKm": {
+                              "type": "number"
+                            },
+                            "inferredKm": {
+                              "type": "number"
+                            },
+                            "meanInferredConfidence": {
+                              "nullable": true,
+                              "type": "number"
+                            },
+                            "weakestSegmentSeq": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "segments",
+                            "observedSegments",
+                            "inferredSegments",
+                            "unmeasuredSegments",
+                            "cameras",
+                            "camerasPlaced",
+                            "firstSeen",
+                            "lastSeen",
+                            "elapsedSeconds",
+                            "totalKm",
+                            "observedKm",
+                            "inferredKm",
+                            "meanInferredConfidence",
+                            "weakestSegmentSeq"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "properties": {
+                            "segmentsRouted": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "segmentsUnroutable": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "segmentsUnplaced": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "osrmQueries": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "osrmFailures": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "segmentsRouted",
+                            "segmentsUnroutable",
+                            "segmentsUnplaced",
+                            "osrmQueries",
+                            "osrmFailures"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "legend": {
+                          "type": "object",
+                          "properties": {
+                            "observed": {
+                              "type": "string"
+                            },
+                            "inferred": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "observed",
+                            "inferred"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "cache": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "fingerprint": {
+                              "type": "string"
+                            },
+                            "hit": {
+                              "type": "boolean"
+                            },
+                            "builtAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "fingerprint",
+                            "hit",
+                            "builtAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "roadGraph": {
+                          "type": "object",
+                          "properties": {
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "baseUrl": {
+                              "type": "string"
+                            },
+                            "modelVersion": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "available",
+                            "baseUrl",
+                            "modelVersion"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "buildMs": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "canonicalPlate",
+                        "segments",
+                        "summary",
+                        "coverage",
+                        "legend",
+                        "cache",
+                        "roadGraph",
+                        "buildMs"
+                      ],
+                      "additionalProperties": false
+                    },
                     "emptyReason": {
                       "nullable": true,
                       "type": "string",
@@ -8202,6 +8637,7 @@
                     "cameras",
                     "coverage",
                     "claims",
+                    "route",
                     "emptyReason",
                     "disclaimer",
                     "tookMs"
@@ -8378,6 +8814,27 @@
           {
             "schema": {
               "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            "in": "query",
+            "name": "purpose",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9/\\-_.]+$"
+            },
+            "in": "query",
+            "name": "case_ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
               "format": "date-time",
               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
             },
@@ -8434,6 +8891,14 @@
             },
             "in": "query",
             "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "reconstruct",
             "required": false
           }
         ],
@@ -8464,6 +8929,27 @@
           {
             "schema": {
               "type": "string",
+              "minLength": 3,
+              "maxLength": 500
+            },
+            "in": "query",
+            "name": "purpose",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9/\\-_.]+$"
+            },
+            "in": "query",
+            "name": "case_ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
               "format": "date-time",
               "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
             },
@@ -8520,6 +9006,14 @@
             },
             "in": "query",
             "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "reconstruct",
             "required": false
           }
         ],
@@ -12856,6 +13350,1198 @@
           }
         }
       }
+    },
+    "/api/v1/audit": {
+      "get": {
+        "summary": "Search the tamper-evident audit chain by actor, action, case reference or time",
+        "tags": [
+          "audit"
+        ],
+        "description": "Every entry carries the purpose that was stated when the action ran, and a `status` recomputed from the entry itself rather than trusted — a viewer that showed stored rows without re-checking them would be a list, not an audit.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "actor_id",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "badge_no",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "action",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "case_ref",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "in": "query",
+            "name": "target_type",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "in": "query",
+            "name": "target_id",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            "in": "query",
+            "name": "from",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            "in": "query",
+            "name": "to",
+            "required": false
+          },
+          {
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "in": "query",
+            "name": "offset",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "seq": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "ts": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "actorId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "actorBadgeNo": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "actorRole": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "targetType": {
+                            "type": "string"
+                          },
+                          "targetId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "type": "string"
+                          },
+                          "caseRef": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "params": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "resultCount": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "hash": {
+                            "type": "string"
+                          },
+                          "prevHash": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "ok",
+                              "pre_canonical",
+                              "hash_mismatch"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "seq",
+                          "ts",
+                          "action",
+                          "actorId",
+                          "actorBadgeNo",
+                          "actorRole",
+                          "targetType",
+                          "targetId",
+                          "purpose",
+                          "caseRef",
+                          "params",
+                          "resultCount",
+                          "hash",
+                          "prevHash",
+                          "status"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "disclaimer": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "total",
+                    "limit",
+                    "offset",
+                    "entries",
+                    "disclaimer"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/verify": {
+      "get": {
+        "summary": "Walk the whole chain and report the first broken link, if there is one",
+        "tags": [
+          "audit"
+        ],
+        "description": "A failing verification is a 200 with `ok: false`, not an error status: \"the chain is broken\" is an answer, and an auditor needs to read which entry and why.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "algorithm": {
+                      "type": "string"
+                    },
+                    "checkedAt": {
+                      "type": "string"
+                    },
+                    "entries": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "preCanonicalEntries": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "verifiedEntries": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "epochSealed": {
+                      "type": "boolean"
+                    },
+                    "genesisHash": {
+                      "type": "string"
+                    },
+                    "tipHash": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "forks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "prevHash": {
+                            "type": "string"
+                          },
+                          "entryIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "prevHash",
+                          "entryIds"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "firstBreak": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "reason": {
+                          "type": "string",
+                          "enum": [
+                            "hash_mismatch",
+                            "link_mismatch",
+                            "epoch_mismatch",
+                            "unsealed_prologue"
+                          ]
+                        },
+                        "position": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "expected": {
+                          "type": "string"
+                        },
+                        "actual": {
+                          "type": "string"
+                        },
+                        "detail": {
+                          "type": "string"
+                        },
+                        "entry": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "seq": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "ts": {
+                              "type": "string"
+                            },
+                            "action": {
+                              "type": "string"
+                            },
+                            "actorId": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "actorBadgeNo": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "actorRole": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "targetType": {
+                              "type": "string"
+                            },
+                            "targetId": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "caseRef": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "hash": {
+                              "type": "string"
+                            },
+                            "prevHash": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "seq",
+                            "ts",
+                            "action",
+                            "actorId",
+                            "actorBadgeNo",
+                            "actorRole",
+                            "targetType",
+                            "targetId",
+                            "caseRef",
+                            "hash",
+                            "prevHash"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "reason",
+                        "position",
+                        "expected",
+                        "actual",
+                        "detail",
+                        "entry"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "claim": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "algorithm",
+                    "checkedAt",
+                    "entries",
+                    "preCanonicalEntries",
+                    "verifiedEntries",
+                    "epochSealed",
+                    "genesisHash",
+                    "tipHash",
+                    "forks",
+                    "firstBreak",
+                    "claim"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/{id}": {
+      "get": {
+        "summary": "One audit entry, with its stated purpose, parameters and recomputed status",
+        "tags": [
+          "audit"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "seq": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "ts": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "actorId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "actorBadgeNo": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "actorRole": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "targetType": {
+                      "type": "string"
+                    },
+                    "targetId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "purpose": {
+                      "type": "string"
+                    },
+                    "caseRef": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "params": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "resultCount": {
+                      "nullable": true,
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "hash": {
+                      "type": "string"
+                    },
+                    "prevHash": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok",
+                        "pre_canonical",
+                        "hash_mismatch"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "seq",
+                    "ts",
+                    "action",
+                    "actorId",
+                    "actorBadgeNo",
+                    "actorRole",
+                    "targetType",
+                    "targetId",
+                    "purpose",
+                    "caseRef",
+                    "params",
+                    "resultCount",
+                    "hash",
+                    "prevHash",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/export": {
+      "post": {
+        "summary": "Package a vehicle trace and its evidence crops as an independently verifiable bundle",
+        "tags": [
+          "audit"
+        ],
+        "description": "Requires both a stated purpose and a case reference; the case reference is what makes an export answerable once the evidence has left the system. Crops are embedded as bytes — a signed URL is a credential with an expiry and would be dead before the bundle was opened.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plate": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 24
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  },
+                  "case_ref": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 64,
+                    "pattern": "^[A-Za-z0-9/\\-_.]+$"
+                  },
+                  "from": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  }
+                },
+                "required": [
+                  "plate",
+                  "purpose",
+                  "case_ref"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bundleId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "caseRef": {
+                      "type": "string"
+                    },
+                    "manifestHash": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "bytes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "auditEntryHash": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "bundleId",
+                    "createdAt",
+                    "caseRef",
+                    "manifestHash",
+                    "items",
+                    "bytes",
+                    "path",
+                    "auditEntryHash"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "allowed": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "details": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "servers": [
@@ -12905,6 +14591,10 @@
     {
       "name": "streams",
       "description": "The video wall: a relayed HLS playlist per camera, its segments and AES keys, the detections that overlay them, and the saved layout. The relay caches immutable VOD objects and paces upstream concurrency, because each connected client would otherwise cost the department gateway its own copy of the stream."
+    },
+    {
+      "name": "audit",
+      "description": "The tamper-evident chain: search it, verify it, and package evidence as a bundle anyone can re-check offline. Append-only in the database, not merely in this API."
     },
     {
       "name": "health",

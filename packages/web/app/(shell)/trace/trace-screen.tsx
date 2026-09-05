@@ -25,9 +25,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import dynamic from 'next/dynamic';
 import { EmptyState, LoadingPanel } from '@/src/components/states';
 import { LINK_STYLE, type TraceablePoint } from '@/src/lib/trace/geojson';
-import { parseTraceQuery, toSearchParams, type TraceQueryState } from '@/src/lib/trace/query';
+import {
+  parseTraceQuery,
+  purposeIsStated,
+  toSearchParams,
+  type TraceQueryState,
+} from '@/src/lib/trace/query';
 import { runTrace } from './actions';
 import { EvidenceStrip } from './evidence-strip';
+import { RouteSummary } from './route-summary';
 import { TraceTimeline, formatDuration } from './trace-timeline';
 import type { TracePayload, TraceSighting } from './types';
 
@@ -90,7 +96,17 @@ export function TraceScreen({
     });
     // Deliberately keyed on the query's fields rather than on `query` itself: `query.seq` changes
     // on every pin click, and re-tracing on a selection change would refetch the same route.
-  }, [query.plate, query.from, query.to, query.minConfidence, query.maxDistance]);
+    // `purpose` is in the list because a trace run under a different stated reason is a different
+    // audited event, not a cached result (D3-04).
+  }, [
+    query.plate,
+    query.purpose,
+    query.caseRef,
+    query.from,
+    query.to,
+    query.minConfidence,
+    query.maxDistance,
+  ]);
 
   const select = useCallback((seq: number | null) => {
     setQuery((current) => ({ ...current, seq }));
@@ -146,6 +162,41 @@ export function TraceScreen({
 
         <label className="flex flex-col gap-1">
           <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+            Purpose <span className="text-amber-300/80">required</span>
+          </span>
+          <input
+            name="purpose"
+            value={draft.purpose}
+            onChange={(e) => {
+              setDraft({ ...draft, purpose: e.target.value.slice(0, 500) });
+            }}
+            placeholder="why this vehicle is being traced"
+            autoComplete="off"
+            data-testid="trace-purpose"
+            className={`${FIELD} w-72`}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+            Case / FIR
+          </span>
+          <input
+            name="case_ref"
+            value={draft.caseRef ?? ''}
+            onChange={(e) => {
+              setDraft({ ...draft, caseRef: e.target.value.trim() === '' ? null : e.target.value });
+            }}
+            placeholder="FIR/2026/00123"
+            autoComplete="off"
+            spellCheck={false}
+            data-testid="trace-case-ref"
+            className={`${FIELD} w-48 font-mono`}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
             From
           </span>
           <input
@@ -190,7 +241,12 @@ export function TraceScreen({
           />
         </label>
 
-        <button type="submit" className={`${BUTTON} h-9`} data-action="trace" disabled={pending}>
+        <button
+          type="submit"
+          className={`${BUTTON} h-9`}
+          data-action="trace"
+          disabled={pending || !purposeIsStated(draft)}
+        >
           {pending ? 'Tracing…' : 'Trace'}
         </button>
 
@@ -223,6 +279,23 @@ export function TraceScreen({
         >
           {error}
         </p>
+      ) : null}
+
+      {/* Purpose binding (D3-04). A registration alone does not start a search: arriving here from
+          an alert's "trace this vehicle" link leaves the field waiting, deliberately, because a
+          link can carry a vehicle but only a person can state a reason. */}
+      {query.plate !== '' && !purposeIsStated(query) ? (
+        <section
+          className="rounded-lg border border-amber-900/60 bg-amber-950/20 px-4 py-3 text-sm text-amber-100"
+          data-testid="trace-purpose-required"
+        >
+          <p className="font-semibold">State a purpose before searching {query.plate}.</p>
+          <p className="mt-1 text-amber-200/80">
+            Every trace is written into the tamper-evident audit chain against your badge, with the
+            reason you give here and the case reference if you supply one. Nothing has been searched
+            yet.
+          </p>
+        </section>
       ) : null}
 
       {/* ── what this screen is claiming ──────────────────────────────────────────────────── */}
@@ -279,11 +352,17 @@ export function TraceScreen({
                   </p>
                 </div>
               ) : (
-                <TraceMap sightings={points} selectedSeq={query.seq} onSelect={select} />
+                <TraceMap
+                  sightings={points}
+                  route={trace.route?.segments ?? []}
+                  selectedSeq={query.seq}
+                  onSelect={select}
+                />
               )}
             </div>
 
             <div className="space-y-4">
+              {trace.route === null ? null : <RouteSummary route={trace.route} onSelect={select} />}
               <TraceTimeline sightings={points} selectedSeq={query.seq} onSelect={select} />
               <LinkLegend />
             </div>
@@ -344,6 +423,9 @@ function SightingTable({
   onSelect: (seq: number | null) => void;
 }) {
   const segmentTo = new Map(trace.segments.map((s) => [s.toSeq, s]));
+  // D3-01. The hover tooltip on the map is not the only place the distinction may live: a
+  // keyboard reader and a printed case file both need it, so the table carries it too.
+  const routeTo = new Map((trace.route?.segments ?? []).map((s) => [s.toSeq, s]));
   return (
     <section
       className="overflow-x-auto rounded-lg border border-slate-800"
@@ -364,11 +446,13 @@ function SightingTable({
             <th className="px-3 py-2">Link</th>
             <th className="px-3 py-2">Conf.</th>
             <th className="px-3 py-2">Gap from previous (inferred)</th>
+            <th className="px-3 py-2">Road-graph segment</th>
           </tr>
         </thead>
         <tbody>
           {trace.sightings.map((s) => {
             const segment = segmentTo.get(s.seq);
+            const hop = routeTo.get(s.seq);
             const style = LINK_STYLE[s.linkMethod];
             return (
               <tr
@@ -416,6 +500,30 @@ function SightingTable({
                         : segment.sameCamera
                           ? ' · same camera'
                           : ` · ≥ ${segment.straightLineKm.toFixed(2)} km, ≤ ${String(segment.impliedSpeedKmh ?? 0)} km/h`}
+                    </>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-slate-400 tabular-nums" data-route-cell={s.seq}>
+                  {hop === undefined ? (
+                    <span className="text-slate-600">—</span>
+                  ) : (
+                    <>
+                      <span
+                        className="mr-1.5 inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
+                        data-route-basis={hop.basis}
+                        style={{
+                          borderColor: hop.observed ? '#34d399' : '#f59e0b',
+                          color: hop.observed ? '#6ee7b7' : '#fcd34d',
+                        }}
+                      >
+                        {hop.observed ? 'Observed' : 'Inferred'}
+                      </span>
+                      {hop.roadDistanceKm === null
+                        ? 'no path'
+                        : `${hop.roadDistanceKm.toFixed(2)} km`}
+                      {hop.inferredConfidence === null
+                        ? ''
+                        : ` · conf ${hop.inferredConfidence.toFixed(2)}`}
                     </>
                   )}
                 </td>
