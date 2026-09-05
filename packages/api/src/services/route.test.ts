@@ -17,7 +17,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { createDb, createSql, type Db, type Sql } from '../db/client.js';
 import { loadEnv } from '../env.js';
-import { HttpOsrmClient, NullOsrmClient, type LngLat, type OsrmClient, type OsrmRoute } from './osrm.js';
+import {
+  HttpOsrmClient,
+  NullOsrmClient,
+  type LngLat,
+  type OsrmClient,
+  type OsrmRoute,
+} from './osrm.js';
 import {
   MODEL_VERSION,
   RouteService,
@@ -45,30 +51,28 @@ const PLATE = `GJ01AB1234`;
  * that produced a `routes` row with zero segments that every later request happily served as a
  * cache *hit*. The fixture is shaped like the column for a reason.
  */
-const PLACES: Record<
-  string,
-  { id: string; lon: number | null; lat: number | null; name: string }
-> = {
-  A: {
-    id: '11111111-1111-4111-8111-111111111111',
-    lon: 72.5714,
-    lat: 23.0225,
-    name: 'Paldi Circle',
-  },
-  B: { id: '22222222-2222-4222-8222-222222222222', lon: 72.5871, lat: 23.0311, name: 'Janpath' },
-  C: {
-    id: '33333333-3333-4333-8333-333333333333',
-    lon: 72.6042,
-    lat: 23.0398,
-    name: 'Chimanbhai Bridge',
-  },
-  E: {
-    id: '55555555-5555-4555-8555-555555555555',
-    lon: null,
-    lat: null,
-    name: 'Naroda Road (unplaced)',
-  },
-};
+const PLACES: Record<string, { id: string; lon: number | null; lat: number | null; name: string }> =
+  {
+    A: {
+      id: '11111111-1111-4111-8111-111111111111',
+      lon: 72.5714,
+      lat: 23.0225,
+      name: 'Paldi Circle',
+    },
+    B: { id: '22222222-2222-4222-8222-222222222222', lon: 72.5871, lat: 23.0311, name: 'Janpath' },
+    C: {
+      id: '33333333-3333-4333-8333-333333333333',
+      lon: 72.6042,
+      lat: 23.0398,
+      name: 'Chimanbhai Bridge',
+    },
+    E: {
+      id: '55555555-5555-4555-8555-555555555555',
+      lon: null,
+      lat: null,
+      name: 'Naroda Road (unplaced)',
+    },
+  };
 
 let seq = 0;
 function sighting(
@@ -77,7 +81,7 @@ function sighting(
   trackId: number,
   linkConfidence = 0.8,
 ): TraceSighting {
-  const place = PLACES[camera] ?? PLACES.A;
+  const place = PLACES[camera] ?? PLACES['A'];
   seq += 1;
   return {
     seq,
@@ -189,7 +193,10 @@ function stubOsrm(over: Partial<OsrmRoute> = {}, unreachable: LngLat[] = []): Os
       return Promise.resolve({
         distanceM: 4000,
         durationS: 400,
-        geometry: { type: 'LineString', coordinates: [from as [number, number], to as [number, number]] },
+        geometry: {
+          type: 'LineString',
+          coordinates: [from as [number, number], to as [number, number]],
+        },
         options: 1,
         alternativeSpread: null,
         ...over,
@@ -481,7 +488,10 @@ describe('a reconstructed route', () => {
         return {
           distanceM: 4000,
           durationS: 400,
-          geometry: { type: 'LineString', coordinates: [from as [number, number], to as [number, number]] },
+          geometry: {
+            type: 'LineString',
+            coordinates: [from as [number, number], to as [number, number]],
+          },
           options: 1,
           alternativeSpread: null,
         };
@@ -561,9 +571,7 @@ describe('persistence and cache', () => {
 
   afterAll(async () => {
     if (reachable) {
-      await db.execute(
-        sql`delete from vehicle_identities where canonical_plate like ${`${TAG}%`}`,
-      );
+      await db.execute(sql`delete from vehicle_identities where canonical_plate like ${`${TAG}%`}`);
     }
     await rawSql?.end();
   });
@@ -633,7 +641,7 @@ describe('persistence and cache', () => {
 // ── AC 2 · a real road graph, when one is listening ─────────────────────────────────────────────
 
 describe('a live OSRM', () => {
-  const baseUrl = process.env.OSRM_URL ?? 'http://localhost:5000';
+  const baseUrl = process.env['OSRM_URL'] ?? 'http://localhost:5000';
   let live = false;
   let client: HttpOsrmClient;
 

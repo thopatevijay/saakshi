@@ -100,7 +100,17 @@ describe('toTraceApiQuery', () => {
       plate: 'GJ01AB1234',
       min_confidence: 0,
       max_distance: 2,
+      reconstruct: 'false',
     });
+  });
+
+  it('asks for a route reconstruction only when told to, and speaks the wire type', () => {
+    // The API parses this with `z.stringbool()`, so the value has to be the string 'true'. Sending
+    // a boolean here would be coerced by `z.coerce.boolean()` semantics somewhere downstream and
+    // `'false'` would switch the feature ON — the reason D3-01 did not use `coerce`.
+    expect(toTraceApiQuery(state(), { reconstruct: true }).reconstruct).toBe('true');
+    expect(toTraceApiQuery(state(), { reconstruct: false }).reconstruct).toBe('false');
+    expect(toTraceApiQuery(state()).reconstruct).toBe('false');
   });
 
   it('passes the window through when it is set', () => {

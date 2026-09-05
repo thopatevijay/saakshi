@@ -111,10 +111,7 @@ export const UNIQUENESS_FLOOR = 0.35;
 const OSRM_CONCURRENCY = 8;
 
 export type RouteSegmentKind =
-  | 'observed_dwell'
-  | 'inferred_path'
-  | 'inferred_revisit'
-  | 'inferred_unroutable';
+  'observed_dwell' | 'inferred_path' | 'inferred_revisit' | 'inferred_unroutable';
 
 export interface ConfidenceBasis {
   /** Log-normal bell on elapsed ÷ expected. Asymmetric: see `SIGMA_FAST` / `SIGMA_SLOW`. */
@@ -410,9 +407,9 @@ async function writeCacheIn(
   if (first === undefined || last === undefined) return;
 
   // `vehicle_identities` is written by nothing else yet (identity.ts says so explicitly), and
-    // `routes.identity_id` is NOT NULL, so the cache write is what registers the identity. Upsert
-    // rather than insert: a second trace of the same plate must not fail on the unique index.
-    const identityRows = await tx.execute<{ id: string }>(sql`
+  // `routes.identity_id` is NOT NULL, so the cache write is what registers the identity. Upsert
+  // rather than insert: a second trace of the same plate must not fail on the unique index.
+  const identityRows = await tx.execute<{ id: string }>(sql`
       insert into vehicle_identities (canonical_plate, first_seen, last_seen, sighting_count)
       values (${result.canonicalPlate}, ${first.ts}, ${last.ts}, ${trace.sightings.length})
       on conflict (canonical_plate) do update
@@ -421,12 +418,12 @@ async function writeCacheIn(
             sighting_count = excluded.sighting_count
       returning id::text as id
     `);
-    const identityId = identityRows[0]?.id;
-    if (identityId === undefined) return;
+  const identityId = identityRows[0]?.id;
+  if (identityId === undefined) return;
 
-    // One row per question: replace rather than accumulate, or the table grows per request.
-    await tx.execute(sql`delete from routes where cache_key = ${result.cache.key}`);
-    const routeRows = await tx.execute<{ id: string }>(sql`
+  // One row per question: replace rather than accumulate, or the table grows per request.
+  await tx.execute(sql`delete from routes where cache_key = ${result.cache.key}`);
+  const routeRows = await tx.execute<{ id: string }>(sql`
       insert into routes (identity_id, requested_by, params, cache_key, sightings_fingerprint,
                           sighting_count, built_at, build_ms, summary)
       values (${identityId}::uuid, ${requestedBy}::uuid, ${JSON.stringify(routeParams(trace))}::jsonb,
@@ -434,16 +431,16 @@ async function writeCacheIn(
               ${result.cache.builtAt}, ${result.buildMs}, ${JSON.stringify(result.summary)}::jsonb)
       returning id::text as id
     `);
-    const routeId = routeRows[0]?.id;
-    if (routeId === undefined) return;
+  const routeId = routeRows[0]?.id;
+  if (routeId === undefined) return;
 
-    const byId = new Map(trace.sightings.map((s) => [s.sightingId, s.ts]));
-    for (const segment of result.segments) {
-      const path =
-        segment.geometry === null
-          ? sql`null`
-          : sql`st_setsrid(st_geomfromgeojson(${JSON.stringify(segment.geometry)}), 4326)::geography`;
-      await tx.execute(sql`
+  const byId = new Map(trace.sightings.map((s) => [s.sightingId, s.ts]));
+  for (const segment of result.segments) {
+    const path =
+      segment.geometry === null
+        ? sql`null`
+        : sql`st_setsrid(st_geomfromgeojson(${JSON.stringify(segment.geometry)}), 4326)::geography`;
+    await tx.execute(sql`
         insert into route_segments
           (route_id, seq, from_sighting_id, from_sighting_ts, to_sighting_id, to_sighting_ts,
            observed, path, travel_time_s, inferred_confidence, from_camera_id, to_camera_id, kind,
@@ -564,10 +561,7 @@ export function buildSegment(
         endpoints: endpointEvidence(from, to),
       };
       confidenceBasis = basis;
-      inferredConfidence = round(
-        clamp01(basis.timing * basis.uniqueness * basis.endpoints),
-        3,
-      );
+      inferredConfidence = round(clamp01(basis.timing * basis.uniqueness * basis.endpoints), 3);
     }
   }
 
@@ -668,13 +662,18 @@ function coverageOf(
   routed: readonly (OsrmRoute | null)[],
 ): RouteCoverage {
   const attempted = segments.filter((s) => !s.sameCamera && s.kind !== 'observed_dwell');
-  const unplaced = segments.filter((s) => s.kind === 'inferred_unroutable' && s.note === NOTES.unplaced);
+  const unplaced = segments.filter(
+    (s) => s.kind === 'inferred_unroutable' && s.note === NOTES.unplaced,
+  );
   return {
     segmentsRouted: segments.filter((s) => s.kind === 'inferred_path').length,
     segmentsUnroutable: segments.filter((s) => s.kind === 'inferred_unroutable').length,
     segmentsUnplaced: unplaced.length,
     osrmQueries: attempted.length - unplaced.length,
-    osrmFailures: routed.length === 0 ? 0 : attempted.length - unplaced.length - routed.filter((r) => r !== null).length,
+    osrmFailures:
+      routed.length === 0
+        ? 0
+        : attempted.length - unplaced.length - routed.filter((r) => r !== null).length,
   };
 }
 
@@ -772,9 +771,7 @@ function fromStored(row: StoredSegmentRow): RouteSegment {
   };
 }
 
-function consecutivePairs(
-  sightings: readonly TraceSighting[],
-): [TraceSighting, TraceSighting][] {
+function consecutivePairs(sightings: readonly TraceSighting[]): [TraceSighting, TraceSighting][] {
   const pairs: [TraceSighting, TraceSighting][] = [];
   for (let i = 1; i < sightings.length; i += 1) {
     const a = sightings[i - 1];

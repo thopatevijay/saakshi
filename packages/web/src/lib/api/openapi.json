@@ -7627,6 +7627,14 @@
             "in": "query",
             "name": "limit",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "reconstruct",
+            "required": false
           }
         ],
         "responses": {
@@ -8169,6 +8177,391 @@
                       ],
                       "additionalProperties": false
                     },
+                    "route": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "canonicalPlate": {
+                          "type": "string"
+                        },
+                        "segments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "seq": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "fromSeq": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "toSeq": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "fromSightingId": {
+                                "type": "string"
+                              },
+                              "toSightingId": {
+                                "type": "string"
+                              },
+                              "fromCameraId": {
+                                "type": "string"
+                              },
+                              "toCameraId": {
+                                "type": "string"
+                              },
+                              "fromCameraName": {
+                                "type": "string"
+                              },
+                              "toCameraName": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "observed_dwell",
+                                  "inferred_path",
+                                  "inferred_revisit",
+                                  "inferred_unroutable"
+                                ]
+                              },
+                              "observed": {
+                                "type": "boolean"
+                              },
+                              "basis": {
+                                "type": "string",
+                                "enum": [
+                                  "observed",
+                                  "inferred"
+                                ]
+                              },
+                              "sameCamera": {
+                                "type": "boolean"
+                              },
+                              "elapsedSeconds": {
+                                "type": "number"
+                              },
+                              "straightLineKm": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "roadDistanceKm": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "expectedTravelTimeS": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "elapsedVsExpected": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "minimumAverageSpeedKmh": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "pathOptions": {
+                                "nullable": true,
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "inferredConfidence": {
+                                "nullable": true,
+                                "type": "number"
+                              },
+                              "confidenceBasis": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "timing": {
+                                    "type": "number"
+                                  },
+                                  "uniqueness": {
+                                    "type": "number"
+                                  },
+                                  "endpoints": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "timing",
+                                  "uniqueness",
+                                  "endpoints"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "geometry": {
+                                "nullable": true,
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LineString"
+                                    ]
+                                  },
+                                  "coordinates": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "array",
+                                      "items": {
+                                        "anyOf": [
+                                          {
+                                            "type": "number"
+                                          },
+                                          {
+                                            "type": "number"
+                                          }
+                                        ]
+                                      },
+                                      "minItems": 2,
+                                      "maxItems": 2
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "coordinates"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "seq",
+                              "fromSeq",
+                              "toSeq",
+                              "fromSightingId",
+                              "toSightingId",
+                              "fromCameraId",
+                              "toCameraId",
+                              "fromCameraName",
+                              "toCameraName",
+                              "kind",
+                              "observed",
+                              "basis",
+                              "sameCamera",
+                              "elapsedSeconds",
+                              "straightLineKm",
+                              "roadDistanceKm",
+                              "expectedTravelTimeS",
+                              "elapsedVsExpected",
+                              "minimumAverageSpeedKmh",
+                              "pathOptions",
+                              "inferredConfidence",
+                              "confidenceBasis",
+                              "geometry",
+                              "note"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "segments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "observedSegments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "inferredSegments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "unmeasuredSegments": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "cameras": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "camerasPlaced": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "firstSeen": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "lastSeen": {
+                              "nullable": true,
+                              "type": "string"
+                            },
+                            "elapsedSeconds": {
+                              "type": "number"
+                            },
+                            "totalKm": {
+                              "type": "number"
+                            },
+                            "observedKm": {
+                              "type": "number"
+                            },
+                            "inferredKm": {
+                              "type": "number"
+                            },
+                            "meanInferredConfidence": {
+                              "nullable": true,
+                              "type": "number"
+                            },
+                            "weakestSegmentSeq": {
+                              "nullable": true,
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "segments",
+                            "observedSegments",
+                            "inferredSegments",
+                            "unmeasuredSegments",
+                            "cameras",
+                            "camerasPlaced",
+                            "firstSeen",
+                            "lastSeen",
+                            "elapsedSeconds",
+                            "totalKm",
+                            "observedKm",
+                            "inferredKm",
+                            "meanInferredConfidence",
+                            "weakestSegmentSeq"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "coverage": {
+                          "type": "object",
+                          "properties": {
+                            "segmentsRouted": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "segmentsUnroutable": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "segmentsUnplaced": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "osrmQueries": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "osrmFailures": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "segmentsRouted",
+                            "segmentsUnroutable",
+                            "segmentsUnplaced",
+                            "osrmQueries",
+                            "osrmFailures"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "legend": {
+                          "type": "object",
+                          "properties": {
+                            "observed": {
+                              "type": "string"
+                            },
+                            "inferred": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "observed",
+                            "inferred"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "cache": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "fingerprint": {
+                              "type": "string"
+                            },
+                            "hit": {
+                              "type": "boolean"
+                            },
+                            "builtAt": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "fingerprint",
+                            "hit",
+                            "builtAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "roadGraph": {
+                          "type": "object",
+                          "properties": {
+                            "available": {
+                              "type": "boolean"
+                            },
+                            "baseUrl": {
+                              "type": "string"
+                            },
+                            "modelVersion": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "available",
+                            "baseUrl",
+                            "modelVersion"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "buildMs": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "canonicalPlate",
+                        "segments",
+                        "summary",
+                        "coverage",
+                        "legend",
+                        "cache",
+                        "roadGraph",
+                        "buildMs"
+                      ],
+                      "additionalProperties": false
+                    },
                     "emptyReason": {
                       "nullable": true,
                       "type": "string",
@@ -8202,6 +8595,7 @@
                     "cameras",
                     "coverage",
                     "claims",
+                    "route",
                     "emptyReason",
                     "disclaimer",
                     "tookMs"
@@ -8435,6 +8829,14 @@
             "in": "query",
             "name": "limit",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "reconstruct",
+            "required": false
           }
         ],
         "responses": {
@@ -8520,6 +8922,14 @@
             },
             "in": "query",
             "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "reconstruct",
             "required": false
           }
         ],

@@ -193,7 +193,10 @@ const RouteSegment = z.object({
     .object({ timing: z.number(), uniqueness: z.number(), endpoints: z.number() })
     .nullable(),
   geometry: z
-    .object({ type: z.literal('LineString'), coordinates: z.array(z.tuple([z.number(), z.number()])) })
+    .object({
+      type: z.literal('LineString'),
+      coordinates: z.array(z.tuple([z.number(), z.number()])),
+    })
     .nullable(),
   note: z.string(),
 });

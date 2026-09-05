@@ -30,6 +30,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import {
   Map as MlMap,
   NavigationControl,
+  Popup,
   ScaleControl,
   addProtocol,
   type DataDrivenPropertyValueSpecification,
@@ -52,16 +53,36 @@ import {
   traceBounds,
   type TraceablePoint,
 } from '@/src/lib/trace/geojson';
+import {
+  ROUTE_LINE_STYLE,
+  routeBounds,
+  toRouteGeometry,
+  type RouteSegmentLike,
+} from '@/src/lib/trace/route-geojson';
+import type { FeatureCollection } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 const POINT_SOURCE = 'trace-points';
 const PATH_SOURCE = 'trace-path-source';
+/** D3-01. Two sources, because they carry two different claims — see `route-geojson.ts`. */
+const ROUTE_OBSERVED_SOURCE = 'route-observed-source';
+const ROUTE_INFERRED_SOURCE = 'route-inferred-source';
+const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 let protocolRegistered = false;
 function registerMapGlobals(): void {
   if (protocolRegistered) return;
   addProtocol('pmtiles', new Protocol().tile);
   protocolRegistered = true;
+}
+
+/** The popup content is built from API strings; escape before it reaches `setHTML`. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /** `match` over the link method, with no arithmetic — the colour *is* the claim, copied. */
@@ -74,34 +95,65 @@ function linkColour(key: 'fill' | 'stroke'): unknown[] {
 
 export interface TraceMapProps {
   sightings: readonly TraceablePoint[];
+  /** D3-01's reconstruction. Empty when no route was built — the map then falls back to D2-08. */
+  route?: readonly RouteSegmentLike[];
   selectedSeq: number | null;
   onSelect: (seq: number | null) => void;
 }
 
-export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
+export function TraceMap({ sightings, route = [], selectedSeq, onSelect }: TraceMapProps) {
   const container = useRef<HTMLDivElement | null>(null);
   const map = useRef<MlMap | null>(null);
   const ready = useRef(false);
   const handlers = useRef({ onSelect });
   const data = useRef(toTraceGeometry(sightings));
+  const routeData = useRef(toRouteGeometry(route));
   const fitted = useRef<string>('');
 
   handlers.current = { onSelect };
 
-  const applyData = useCallback((sourceSightings: readonly TraceablePoint[]) => {
-    const geometry = toTraceGeometry(sourceSightings);
-    data.current = geometry;
-    (window as unknown as { __saakshiTraceFeatures?: unknown }).__saakshiTraceFeatures =
-      geometry.points;
+  const applyData = useCallback(
+    (sourceSightings: readonly TraceablePoint[], sourceRoute: readonly RouteSegmentLike[]) => {
+      const geometry = toTraceGeometry(sourceSightings);
+      const reconstruction = toRouteGeometry(sourceRoute);
+      data.current = geometry;
+      routeData.current = reconstruction;
+      const globals = window as unknown as {
+        __saakshiTraceFeatures?: unknown;
+        __saakshiRouteFeatures?: unknown;
+      };
+      globals.__saakshiTraceFeatures = geometry.points;
+      // The route's own debug handle, so `verify-route.mjs` can assert which line went into which
+      // layer without trying to read a WebGL canvas.
+      globals.__saakshiRouteFeatures = {
+        observed: reconstruction.observed,
+        inferred: reconstruction.inferred,
+        undrawable: reconstruction.undrawable.map((s) => ({ seq: s.seq, kind: s.kind })),
+        dwellAtSeq: reconstruction.dwellAtSeq,
+      };
 
-    const instance = map.current;
-    if (instance === null || !ready.current) return;
+      const instance = map.current;
+      if (instance === null || !ready.current) return;
 
-    const points: GeoJSONSource | undefined = instance.getSource(POINT_SOURCE);
-    void points?.setData(geometry.points);
-    const path: GeoJSONSource | undefined = instance.getSource(PATH_SOURCE);
-    void path?.setData(geometry.path ?? { type: 'FeatureCollection', features: [] });
-  }, []);
+      const points: GeoJSONSource | undefined = instance.getSource(POINT_SOURCE);
+      void points?.setData(geometry.points);
+      // When a route has been reconstructed the straight-line connector is worse than redundant:
+      // it draws a chord the vehicle certainly did not drive, right beside the road path it
+      // plausibly did. It is emptied rather than removed, so D2-08's fallback (and the layer
+      // `verify-trace.mjs` asserts a dasharray on) still exists.
+      const path: GeoJSONSource | undefined = instance.getSource(PATH_SOURCE);
+      void path?.setData(
+        reconstruction.observed.features.length + reconstruction.inferred.features.length > 0
+          ? EMPTY
+          : (geometry.path ?? EMPTY),
+      );
+      const observed: GeoJSONSource | undefined = instance.getSource(ROUTE_OBSERVED_SOURCE);
+      void observed?.setData(reconstruction.observed);
+      const inferred: GeoJSONSource | undefined = instance.getSource(ROUTE_INFERRED_SOURCE);
+      void inferred?.setData(reconstruction.inferred);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (container.current === null || map.current !== null) return;
@@ -167,8 +219,17 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
         data: data.current.points,
         promoteId: 'id',
       });
+      instance.addSource(ROUTE_OBSERVED_SOURCE, {
+        type: 'geojson',
+        data: routeData.current.observed,
+      });
+      instance.addSource(ROUTE_INFERRED_SOURCE, {
+        type: 'geojson',
+        data: routeData.current.inferred,
+      });
 
-      // 1 · the inferred order, dashed and faint.
+      // 1 · the inferred order, dashed and faint. D2-08's straight-line fallback, used only when
+      // no road-graph route was reconstructed.
       instance.addLayer({
         id: 'trace-path',
         type: 'line',
@@ -179,6 +240,52 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
           'line-width': 2,
           'line-opacity': 0.75,
           'line-dasharray': [2, 2],
+        },
+      });
+
+      // 1b · the reconstructed route (D3-01). **Two layers, and the difference between them is the
+      // point of the feature.** `route-inferred` is dashed, thin and translucent: a plausible road
+      // path nobody watched. `route-observed` is solid, thick and opaque: movement that is on
+      // video. They are separate layers over separate sources so no future edit can merge them
+      // into one line by changing a single style expression.
+      instance.addLayer({
+        id: 'route-inferred',
+        type: 'line',
+        source: ROUTE_INFERRED_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ROUTE_LINE_STYLE.inferred.colour,
+          'line-width': ROUTE_LINE_STYLE.inferred.width,
+          'line-opacity': ROUTE_LINE_STYLE.inferred.opacity,
+          'line-dasharray': [...ROUTE_LINE_STYLE.inferred.dash],
+        },
+      });
+      instance.addLayer({
+        id: 'route-observed',
+        type: 'line',
+        source: ROUTE_OBSERVED_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ROUTE_LINE_STYLE.observed.colour,
+          'line-width': ROUTE_LINE_STYLE.observed.width,
+          'line-opacity': ROUTE_LINE_STYLE.observed.opacity,
+        },
+      });
+
+      // 1c · a solid ring on every camera that held the vehicle in one unbroken tracking session.
+      // An observed dwell has no extent — the vehicle moved inside one field of view and where it
+      // moved is not measured — so it gets a ring rather than a line. Solid, because it is still
+      // evidence; drawing a line would invent the one thing we do not know.
+      instance.addLayer({
+        id: 'route-dwell',
+        type: 'circle',
+        source: POINT_SOURCE,
+        filter: ['in', ['get', 'seq'], ['literal', routeData.current.dwellAtSeq]],
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 12, 10, 16, 14, 20],
+          'circle-color': 'rgba(52,211,153,0.15)',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': ROUTE_LINE_STYLE.observed.colour,
         },
       });
 
@@ -227,7 +334,7 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
       });
 
       ready.current = true;
-      applyData(sightings);
+      applyData(sightings, route);
     });
 
     instance.on('mouseenter', 'trace-pins', () => {
@@ -236,6 +343,32 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
     instance.on('mouseleave', 'trace-pins', () => {
       instance.getCanvas().style.cursor = '';
     });
+
+    // Per-segment confidence on hover, on both route layers. A `Popup` rather than a title
+    // attribute because the canvas has no DOM nodes to hang one on.
+    const popup = new Popup({ closeButton: false, closeOnClick: false, offset: 10 });
+    for (const layer of ['route-inferred', 'route-observed'] as const) {
+      instance.on('mousemove', layer, (event: MapMouseEvent & { features?: unknown[] }) => {
+        const feature = event.features?.[0] as
+          { properties?: { label?: string; note?: string; observed?: boolean } } | undefined;
+        if (feature?.properties === undefined) return;
+        instance.getCanvas().style.cursor = 'pointer';
+        const heading = feature.properties.observed === true ? 'Observed' : 'Inferred';
+        popup
+          .setLngLat(event.lngLat)
+          .setHTML(
+            `<div style="max-width:22rem;font:11px/1.45 system-ui;color:#0b1220">` +
+              `<strong>${heading}</strong> · ${escapeHtml(feature.properties.label ?? '')}` +
+              `<br/><span style="color:#475569">${escapeHtml(feature.properties.note ?? '')}</span>` +
+              `</div>`,
+          )
+          .addTo(instance);
+      });
+      instance.on('mouseleave', layer, () => {
+        instance.getCanvas().style.cursor = '';
+        popup.remove();
+      });
+    }
     instance.on('click', 'trace-pins', (event: MapMouseEvent & { features?: unknown[] }) => {
       const feature = event.features?.[0] as { properties?: { seq?: number } } | undefined;
       const seq = feature?.properties?.seq;
@@ -258,7 +391,18 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
 
   // Data updates go straight to the source, never through React state — the registry's rule.
   useEffect(() => {
-    applyData(sightings);
+    applyData(sightings, route);
+
+    const instance = map.current;
+    // The dwell ring is a filter over the sighting source, so it has to be re-applied whenever the
+    // route changes; the source data alone does not carry it.
+    if (instance !== null && ready.current && instance.getLayer('route-dwell') !== undefined) {
+      instance.setFilter('route-dwell', [
+        'in',
+        ['get', 'seq'],
+        ['literal', toRouteGeometry(route).dwellAtSeq],
+      ]);
+    }
 
     // Refit only when the *route* changes, not when the selection moves, or every click would
     // yank the viewport back out.
@@ -266,8 +410,10 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
     if (key === fitted.current) return;
     fitted.current = key;
 
-    const instance = map.current;
-    const box = traceBounds(sightings);
+    // Fit to the road path when there is one: a reconstructed route can leave the box the pins
+    // alone describe, and a route cropped at the viewport edge is the one part of it a reader
+    // would assume was not there.
+    const box = routeBounds(toRouteGeometry(route)) ?? traceBounds(sightings);
     if (instance === null || box === null) return;
     instance.fitBounds(
       [
@@ -278,7 +424,7 @@ export function TraceMap({ sightings, selectedSeq, onSelect }: TraceMapProps) {
       // the maximum zoom on it.
       { padding: 80, maxZoom: 14, duration: 500 },
     );
-  }, [sightings, applyData]);
+  }, [sightings, route, applyData]);
 
   // Selection: highlight, and bring the sighting into view without changing the zoom.
   useEffect(() => {
