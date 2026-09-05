@@ -781,10 +781,21 @@ describe('the alert stream', () => {
     expect(body.disclaimer).toMatch(/no live VAHAN/i);
     for (const alert of body.data) expect(alert.reason.watchlistRecord.live).toBe(false);
 
-    const stats = await app.inject({
+    // Was `auth('auditor')`. D3-04 moved the queue's read endpoints off `READ_ROLES` — which is
+    // every signed-in role — and onto `alerts:view`, which the shared RBAC table has never granted
+    // an auditor: "the audit function examines what was done, not the footage itself". The
+    // navigation already hid this screen from them; the server was the side that disagreed.
+    const auditorStats = await app.inject({
       method: 'GET',
       url: '/api/v1/alerts/stats',
       headers: auth('auditor'),
+    });
+    expect(auditorStats.statusCode).toBe(403);
+
+    const stats = await app.inject({
+      method: 'GET',
+      url: '/api/v1/alerts/stats',
+      headers: auth('supervisor'),
     });
     expect(stats.statusCode).toBe(200);
     const s = stats.json<{ total: number; totalSightings: number; dedupeRatio: number }>();

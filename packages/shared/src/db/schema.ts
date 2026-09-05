@@ -523,6 +523,11 @@ export const auditLog = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     ts: ts('ts').notNull().defaultNow(),
     actorId: uuid('actor_id').references(() => users.id, { onDelete: 'set null' }),
+    // 0018. Captured at write time and inside the hash, because `actor_id` is ON DELETE SET NULL —
+    // without these, removing a user erases who wrote every entry they ever wrote. NULL for both
+    // means a system actor (the alert engine), not a deleted one.
+    actorBadgeNo: text('actor_badge_no'),
+    actorRole: text('actor_role'),
 
     action: text('action').notNull(),
     targetType: text('target_type').notNull(),
@@ -538,11 +543,18 @@ export const auditLog = pgTable(
 
     prevHash: text('prev_hash').notNull(),
     hash: text('hash').notNull().unique(),
+
+    // 0018. Insertion order, GENERATED ALWAYS so nothing can supply one. `audit_log_prev_hash_uidx`
+    // (also 0018) makes the chain unforkable, which is what lets this double as chain order.
+    seq: bigint('seq', { mode: 'number' }).generatedAlwaysAsIdentity(),
   },
   (t) => [
     index('audit_log_ts_idx').on(t.ts.desc()),
     index('audit_log_actor_idx').on(t.actorId),
     index('audit_log_target_idx').on(t.targetType, t.targetId),
+    index('audit_log_action_idx').on(t.action),
+    uniqueIndex('audit_log_seq_uidx').on(t.seq),
+    uniqueIndex('audit_log_prev_hash_uidx').on(t.prevHash),
   ],
 );
 

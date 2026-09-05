@@ -10,14 +10,20 @@
  * An empty trace is **not** an error and is never reported as one. A registration nobody has seen,
  * and a query the plate grammar refuses to read as a registration at all, are answers; the payload
  * carries `emptyReason` and the screen renders a state.
+ *
+ * **No purpose, no request** (D3-04). The API rejects a trace with no stated purpose and it is the
+ * authoritative side; this check exists so the officer sees a field waiting for an answer rather
+ * than a 400 they have to interpret. Arriving from an alert's "trace this vehicle" link is exactly
+ * this state, deliberately: a link can carry a registration, but only a person can state a reason.
  */
 import { getSession } from '@/src/lib/session';
 import { apiClient } from '@/src/lib/api/client';
-import { toTraceApiQuery, type TraceQueryState } from '@/src/lib/trace/query';
+import { purposeIsStated, toTraceApiQuery, type TraceQueryState } from '@/src/lib/trace/query';
 import type { TraceState } from './types';
 
 export async function runTrace(state: TraceQueryState): Promise<TraceState> {
   if (state.plate === '') return { trace: null, error: null, elapsedMs: 0 };
+  if (!purposeIsStated(state)) return { trace: null, error: null, elapsedMs: 0 };
 
   const session = await getSession();
   if (session === null) {

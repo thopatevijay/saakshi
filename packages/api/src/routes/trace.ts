@@ -18,10 +18,12 @@
  */
 import { z } from 'zod';
 import type { App } from '../server.js';
-import { authenticate, requireRole, userRoles } from '../auth.js';
+import { authenticate, requireRole, userRoles, type Principal } from '../auth.js';
 import { can } from '@saakshi/shared';
 import type { Db } from '../db/client.js';
 import { ErrorResponse } from './camera-contracts.js';
+import { CaseReference, PurposeStatement } from './audit-contracts.js';
+import { writeAudit } from '../audit.js';
 import { LINK_METHODS } from '../services/identity.js';
 import {
   MAX_TRACE_SIGHTINGS,
@@ -48,6 +50,13 @@ const csvUuids = z
 
 export const TraceQuery = z.object({
   plate: z.string().trim().min(1).max(24),
+  /**
+   * Purpose binding (D3-04). Required, enforced here rather than in the UI, and written into the
+   * audit chain with the officer who stated it. A trace with no stated reason is a 400.
+   */
+  purpose: PurposeStatement,
+  /** Optional on a trace; an export is where a case reference becomes mandatory. */
+  case_ref: CaseReference.optional(),
   from: z.iso.datetime().optional(),
   to: z.iso.datetime().optional(),
   camera_ids: csvUuids.optional(),
@@ -314,9 +323,23 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
   const service = options.service ?? new TraceService(options.db, undefined, options.presign);
   const routes = new RouteService(options.db, options.osrm ?? new NullOsrmClient());
 
+  /**
+   * Runs the trace, **records that it was run** (D3-04), and reconstructs the route (D3-01).
+   *
+   * The audit row is written for every form of the endpoint, including the CSV and the PDF, because
+   * a trace that leaves the building is more consequential than one that is only looked at — and it
+   * carries the stated purpose, the officer, the parameters and how many sightings came back, so an
+   * auditor can later ask why this registration was searched without needing anyone's recollection.
+   *
+   * The write is awaited before the result is returned. An audit row that is merely *scheduled* is
+   * an audit row that a crash loses, and the whole claim is that the record exists. It is also
+   * awaited *before* reconstruction: the search is the auditable act, and it happened whether or
+   * not OSRM could draw a line through it.
+   */
   const run = async (
     query: z.infer<typeof TraceQuery>,
-    requestedBy: string | null = null,
+    principal: Principal | undefined,
+    action: 'trace.run' | 'trace.export.csv' | 'trace.export.pdf',
   ): Promise<TracedRoute> => {
     const result = await service.trace(query.plate, {
       minConfidence: query.min_confidence,
@@ -326,11 +349,33 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
       ...(query.to !== undefined ? { to: new Date(query.to) } : {}),
       ...(query.camera_ids !== undefined ? { cameraIds: query.camera_ids } : {}),
     });
+
+    await writeAudit(options.db, principal, {
+      action,
+      targetType: 'vehicle',
+      targetId: result.normalized === '' ? result.query : result.normalized,
+      purpose: query.purpose,
+      caseRef: query.case_ref ?? null,
+      params: {
+        plate: query.plate,
+        normalized: result.normalized,
+        from: query.from ?? null,
+        to: query.to ?? null,
+        cameraIds: query.camera_ids ?? [],
+        minConfidence: query.min_confidence,
+        maxDistance: query.max_distance,
+        limit: query.limit,
+        searched: result.searched,
+        emptyReason: result.emptyReason,
+      },
+      resultCount: result.sightings.length,
+    });
+
     // Fewer than two sightings is not a degenerate route, it is *no* route: there is no pair to
     // reconstruct between. Returning `null` rather than an empty reconstruction keeps the UI from
     // rendering a summary of nothing.
     if (!query.reconstruct || result.sightings.length < 2) return { ...result, route: null };
-    const route = await routes.reconstruct(result, { requestedBy });
+    const route = await routes.reconstruct(result, { requestedBy: principal?.sub ?? null });
     return { ...result, route };
   };
 
@@ -355,7 +400,7 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
         },
       },
     },
-    async (request): Promise<TracedRoute> => run(request.query, request.principal?.sub ?? null),
+    async (request): Promise<TracedRoute> => run(request.query, request.principal, 'trace.run'),
   );
 
   app.get(
@@ -373,7 +418,7 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
       },
     },
     async (request, reply): Promise<void> => {
-      const result = await run(request.query);
+      const result = await run(request.query, request.principal, 'trace.export.csv');
       const stamp = new Date().toISOString().slice(0, 10);
       const name = safeFileName(result.normalized === '' ? result.query : result.normalized);
       // `reply.send` rather than a returned value: the response schema map declares only errors, so
@@ -398,7 +443,7 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
       },
     },
     async (request, reply): Promise<void> => {
-      const result = await run(request.query);
+      const result = await run(request.query, request.principal, 'trace.export.pdf');
       const stamp = new Date().toISOString().slice(0, 10);
       const name = safeFileName(result.normalized === '' ? result.query : result.normalized);
       await reply

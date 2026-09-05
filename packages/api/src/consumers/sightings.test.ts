@@ -633,7 +633,7 @@ describe('D2-10 — plate normalisation is on the write path', () => {
     // Half two — the half that was broken. Same plate, same run, through the real endpoint.
     const res = await app.inject({
       method: 'GET',
-      url: `/api/v1/trace?plate=${ALERTING_PLATE}&camera_ids=${cameraUuids().join(',')}`,
+      url: `/api/v1/trace?plate=${ALERTING_PLATE}&purpose=D2-10%20write-path%20regression&camera_ids=${cameraUuids().join(',')}`,
       headers: {
         authorization: `Bearer ${app.jwt.sign({
           sub: operatorSub,
