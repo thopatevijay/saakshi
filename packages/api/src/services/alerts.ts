@@ -64,6 +64,8 @@ import type { Db, DbLike } from '../db/client.js';
 import type { Principal } from '../auth.js';
 import { writeAudit } from '../audit.js';
 import { evidenceStoreFromEnv, type EvidenceStore } from './evidence.js';
+import { presignerFor } from './crop-url.js';
+import type { CropPresigner } from './trace.js';
 import type { WatchlistHit, WatchlistRegistry } from '../watchlist/index.js';
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -244,6 +246,18 @@ export function identificationStrength(
   if (combined >= 0.55) return 'probable';
   if (combined >= 0.3) return 'possible';
   return 'weak';
+}
+
+/**
+ * `file://` out of `file:///Users/…/100-plate.jpg` — the scheme only, never the path (D2-11).
+ *
+ * The caveat has to say *why* a crop could not be signed, and the scheme is the whole answer. The
+ * path is not: a `file://` crop URI is an absolute path on the analytics worker's disk, and putting
+ * one in an alert payload that leaves the building leaks the layout of a police server for nothing.
+ */
+function uriScheme(uri: string): string {
+  const end = uri.indexOf('://');
+  return end === -1 ? 'no scheme' : `${uri.slice(0, end + 3)}…`;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -559,6 +573,11 @@ export class AlertEngine {
   private readonly db: Db;
   private readonly registry: WatchlistRegistry;
   private readonly evidence: EvidenceStore | null;
+  /**
+   * The same guard the trace path uses (D2-11). Never `presignGet` directly: a `crop_uri` that is
+   * not an object in *this* bucket must yield `null`, not a signed link that 400s.
+   */
+  private readonly presignCrop: CropPresigner;
   private readonly cameras = new Map<string, CameraContext>();
 
   constructor(options: AlertEngineOptions) {
@@ -567,6 +586,7 @@ export class AlertEngine {
     this.policy = options.policy ?? loadAlertPolicy();
     this.bus = options.bus ?? new AlertBus();
     this.evidence = options.evidence === undefined ? evidenceStoreFromEnv() : options.evidence;
+    this.presignCrop = presignerFor(this.evidence, this.policy.evidence.cropUrlExpiresInS);
     this.gate = new DeliveryGate(this.policy, options.now ?? Date.now);
   }
 
@@ -875,13 +895,7 @@ export class AlertEngine {
     sighting: SightingContext,
   ): AlertReason {
     const cropUri = sighting.cropUri;
-    const cropUrl =
-      cropUri === null || this.evidence === null
-        ? null
-        : this.evidence.presignGet(
-            cropUri.replace(/^s3:\/\/[^/]+\//, ''),
-            this.policy.evidence.cropUrlExpiresInS,
-          );
+    const cropUrl = cropUri === null ? null : this.presignCrop(cropUri);
 
     const caveats: string[] = [];
 
@@ -938,10 +952,18 @@ export class AlertEngine {
       caveats.push('no location on file for this camera — it cannot be placed on the map.');
     }
     if (cropUrl === null) {
+      // Three distinct reasons, and they must stay distinguishable (D2-11): "no crop was taken",
+      // "there is no store to sign against", and "there is a crop URI but it is not an object in
+      // this bucket". The third is what a `file://` crop from D2-01's local store looks like, and
+      // conflating it with the second is how a reader concludes MinIO is down when it is not.
       caveats.push(
         cropUri === null
           ? 'no crop URL — no crop was stored for this sighting; only about 1 sighting in 30 is a best shot.'
-          : 'no crop URL — no evidence store is configured, so the crop cannot be signed for viewing.',
+          : this.evidence === null
+            ? 'no crop URL — no evidence store is configured, so the crop cannot be signed for viewing.'
+            : `no crop URL — the stored crop URI is not an object in this evidence store ` +
+              `(${uriScheme(cropUri)}), so it cannot be signed. A link that cannot be served is ` +
+              'never emitted.',
       );
     }
     if (!sighting.isBestShot) {

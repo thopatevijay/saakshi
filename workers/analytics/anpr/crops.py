@@ -1,4 +1,12 @@
-"""Where a best-shot plate crop is kept, and the URI that goes in the `plate_reads` row.
+"""Where a best-shot plate crop is kept locally, and the URI that goes in the `plate_reads` row.
+
+**D2-11 update — this is now the fallback, not the destination.** With `--evidence` the same crop is
+also published to the `evidence` Valkey stream as an `EvidenceRecord` with `kind: "plate"`, and
+`packages/api/src/consumers/evidence.ts` uploads it to MinIO and overwrites `plate_reads.crop_uri`
+with `s3://<bucket>/evidence/<camera>/<yyyy-mm-dd>/<sighting_id>-plate.jpg`. That is the copy the API
+can presign. The `file://` URI this module returns is what survives when there is no object store: it
+cannot be signed, the API's guard returns `null` for it, and the UI renders "no crop stored" — which
+is true, and is better than a link that 400s.
 
 **The evidence store itself is D2-02's ticket**, not this one: MinIO, signed URLs, retention and the
 storage-per-1000-sightings measurement all belong there. What this ticket must not do is invent a

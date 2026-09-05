@@ -95,9 +95,49 @@ export interface StoreEvidenceOptions {
   stats: EvidenceConsumerStats;
 }
 
+interface PlateReadRef extends SightingRef {
+  /** `plate_reads.id`. The update targets the row by primary key, never by the matching tuple. */
+  readId: string;
+}
+
+/**
+ * The `plate_reads` row a **plate** crop belongs to, or `null` if it has not landed yet (D2-11).
+ *
+ * The join is the same `(camera_id, track_id, frame_pts_ms)` tuple the vehicle path uses, and it is
+ * exact for a reason worth stating: the ANPR engine emits its one voted read for a track *on the
+ * frame the vote fires*, and `pipeline.py` attaches it to that frame's sighting payload. So the
+ * frame that produced the plate crop is the frame that owns the `plate_reads` row — a plate crop
+ * can never attach to a different read of the same vehicle, or to a different vehicle.
+ *
+ * Looked up **before** the upload, exactly as `findSighting` is: an object with nothing pointing at
+ * it is an orphan inflating the bucket's count against the read count, and D2-02's whole retention
+ * story rests on those two being comparable.
+ */
+export async function findPlateRead(
+  db: Db,
+  cameraId: string,
+  trackId: number,
+  framePtsMs: number,
+): Promise<PlateReadRef | null> {
+  const rows = await db.execute<{ read_id: string; id: string; ts: string }>(
+    sql`select p.id::text as read_id, s.id::text as id, s.ts::text as ts
+          from plate_reads p
+          join sightings s on s.id = p.sighting_id and s.ts = p.sighting_ts
+         where s.camera_id = ${cameraId}::uuid
+           and s.track_id = ${trackId}
+           and s.frame_pts_ms = ${framePtsMs}
+         order by p.created_at
+         limit 1`,
+  );
+  const row = rows[0];
+  return row === undefined ? null : { readId: row.read_id, id: row.id, ts: row.ts };
+}
+
 /** One record: find the row, upload the crop, write the attributes back. Returns the object key. */
 export async function storeEvidence(options: StoreEvidenceOptions): Promise<string | null> {
   const { db, store, record, cameraUuid, stats } = options;
+
+  if (record.kind === 'plate') return storePlateCrop(options);
 
   const sighting = await findSighting(db, cameraUuid, record.trackId, record.framePtsMs);
   if (sighting === null) {
@@ -140,6 +180,60 @@ export async function storeEvidence(options: StoreEvidenceOptions): Promise<stri
   stats.stored += 1;
   stats.bytesStored += body.byteLength;
   if (record.attributesLowConfidence) stats.lowConfidenceColors += 1;
+  return key;
+}
+
+/**
+ * A **plate** crop: the same bucket, the same key convention, the same presign semantics — only the
+ * row it lands on differs (D2-11).
+ *
+ * D2-01's `LocalCropStore` wrote plate crops to the analytics worker's own disk and put a `file://`
+ * path in `plate_reads.crop_uri`; its own `--crop-dir` help said *"D2-02 replaces this with MinIO"*,
+ * and D2-02 migrated vehicle crops only. D2-GATE (#23) found the join: an alert carrying that
+ * `file://` URI produced a signed link that returned **HTTP 400**.
+ *
+ * This is deliberately *not* a second uploader. It is the existing one, told which row to write —
+ * because two uploaders is exactly how the defect happened. `EvidenceRecord.kind` and
+ * `evidenceKey`'s `kind` argument were both put there by D2-02 for this; nothing wired them.
+ *
+ * The vehicle-attribute fields on a plate record (`vehicleColor` and friends) are inert here and
+ * are never written to the sighting row: a plate crop carries no colour read, and letting it
+ * overwrite the vehicle crop's attributes would lose a measurement to a record that never made one.
+ */
+async function storePlateCrop(options: StoreEvidenceOptions): Promise<string | null> {
+  const { db, store, record, cameraUuid, stats } = options;
+
+  const read = await findPlateRead(db, cameraUuid, record.trackId, record.framePtsMs);
+  if (read === null) {
+    stats.unmatched += 1;
+    return null;
+  }
+
+  const key = evidenceKey({
+    cameraExternalId: record.cameraId,
+    ts: read.ts,
+    sightingId: read.id,
+    kind: 'plate',
+  });
+  const body = Buffer.from(record.cropBase64, 'base64');
+  try {
+    await store.putObject(key, body, record.contentType);
+  } catch {
+    stats.uploadFailures += 1;
+    return null;
+  }
+
+  // `s3://<bucket>/<key>`, never a signed URL — same reason as the vehicle path above. This
+  // overwrites whatever the worker's local store put here, which is the point: a `file://` path on
+  // a machine the API cannot read is not evidence anyone can open.
+  await db.execute(
+    sql`update plate_reads
+           set crop_uri = ${`s3://${store.bucket}/${key}`}
+         where id = ${read.readId}::uuid`,
+  );
+
+  stats.stored += 1;
+  stats.bytesStored += body.byteLength;
   return key;
 }
 

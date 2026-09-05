@@ -50,7 +50,7 @@ from .bus import SightingSink
 from .capabilities import CameraCapabilities, inference_size
 from .backoff import backoff_delay_ms
 from .detect import Detection
-from .evidence import EvidenceSink, to_record
+from .evidence import EvidenceSink, to_plate_record, to_record
 from .motion import MotionGate, SceneCutDetector, thumbnail
 from .thresholds import DEFAULTS, AnalyticsThresholds
 from .track import SessionTracker
@@ -94,6 +94,9 @@ class CameraStats:
     best_shot_bytes: int = 0
     #: Voted plate reads emitted for this camera — one per vehicle track that produced one (D2-01).
     plate_reads: int = 0
+    #: Plate crops published to the `evidence` stream for upload to the object store (D2-11).
+    plate_crops: int = 0
+    plate_crop_bytes: int = 0
     scene_cuts: int = 0
     sessions: int = 1
     benign_warnings: int = 0
@@ -593,6 +596,7 @@ class CameraPipeline:
                 frame_pts_ms=frame_pts_ms,
             )
             self.stats.plate_reads += len(plate_reads)
+            self._emit_plate_evidence()
 
         for item in tracked:
             bbox = {
@@ -691,6 +695,22 @@ class CameraPipeline:
             self.evidence_sink.publish(to_record(shot))
             self.stats.best_shots += 1
             self.stats.best_shot_bytes += len(shot.crop_jpeg)
+
+    def _emit_plate_evidence(self) -> None:
+        """The ANPR best-shot plate crops emitted on this frame, onto the same stream (D2-11).
+
+        Drained here rather than pushed from the engine so the ANPR stage keeps knowing nothing
+        about a broker. One record per *voted track*, not per sighting: the live 8-camera run
+        produced 21 of these against 1,106 vehicle best shots, so the stream's `MAXLEN ~ 2000` is
+        untouched by it.
+        """
+        if self.evidence_sink is None or self.anpr is None:
+            return
+        for evidence in self.anpr.take_plate_evidence():
+            record = to_plate_record(evidence)
+            self.evidence_sink.publish(record)
+            self.stats.plate_crops += 1
+            self.stats.plate_crop_bytes += int(record["cropBytes"])
 
     def _finish(
         self,

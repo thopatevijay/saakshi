@@ -40,7 +40,52 @@ log = logging.getLogger("saakshi.analytics.anpr")
 
 Frame = np.ndarray
 
-__all__ = ["AnprEngine", "AnprStats", "PlateReadPayload", "crop_with_padding"]
+__all__ = [
+    "AnprEngine",
+    "AnprStats",
+    "PlateEvidence",
+    "PlateReadPayload",
+    "crop_with_padding",
+]
+
+
+@dataclass
+class PlateEvidence:
+    """One best-shot plate crop on its way to the object store (D2-11).
+
+    **Why this leaves the engine as pixels and not as a URI.** The analytics worker holds no MinIO
+    credentials — deliberately, and stated in `workers/analytics/evidence.py`: the credentials live
+    in exactly one place, the API, so a compromised worker cannot write to the evidence bucket. The
+    only channel for the pixels is therefore the `evidence` Valkey stream that D2-02 already runs
+    vehicle crops through, and `EvidenceRecord.kind` has been `'vehicle' | 'plate'` since D2-02
+    precisely so this half could be wired without a second stream or a second uploader.
+
+    The worker also cannot *name* the object: the key is
+    `evidence/<camera>/<yyyy-mm-dd>/<sighting_id>-plate.jpg` and Postgres generates the sighting id
+    on insert, downstream of the bus. So the record carries the matching tuple
+    `(camera_id, track_id, frame_pts_ms)` and the consumer does the naming — exactly as it already
+    does for vehicle crops.
+    """
+
+    camera_external_id: str
+    track_id: int
+    #: The **emitting frame's** ts and PTS, not the best shot's. That is the frame the voted read is
+    #: attached to in `pipeline.py`, so it is the frame whose sighting owns the `plate_reads` row.
+    ts: str
+    frame_pts_ms: int
+    vehicle_class: str
+    #: The plate detector's confidence in the box this crop came from.
+    det_confidence: float
+    #: The plate box in the frame's own coordinates.
+    bbox: dict[str, float]
+    #: `area x sharpness x frontality`, in (0, 1].
+    score: float
+    #: Laplacian variance of the plate crop. Comparable within a camera, not across cameras.
+    focus: float
+    #: Frames of this track examined before the vote fired.
+    observations: int
+    #: The padded plate crop, BGR. Encoded to JPEG at the wire boundary, never here.
+    crop: Frame
 
 
 @dataclass
@@ -121,11 +166,16 @@ class AnprEngine:
         thresholds: AnprThresholds = ANPR_DEFAULTS,
         *,
         every_frame: bool = False,
+        collect_evidence: bool = False,
     ) -> None:
         self.plate_detector = plate_detector
         self.ocr = ocr
         self.crop_store = crop_store if crop_store is not None else NullCropStore()
         self.thresholds = thresholds
+        #: Whether to hold each emitted plate crop for the `evidence` stream (D2-11). Off by default
+        #: so `bench.py` and `eval_anpr` — which measure throughput and accuracy, not storage — do
+        #: not pay for a buffer nobody drains. `run.py` turns it on with `--evidence`.
+        self.collect_evidence = collect_evidence
         #: AC 1's control arm. With `every_frame=True` the buffer is bypassed and **every** examined
         #: frame is OCR'd, which is the strategy the ticket says is both slower and less accurate.
         #: It exists so that claim is measured rather than repeated.
@@ -133,7 +183,22 @@ class AnprEngine:
         self.stats = AnprStats()
         self._buffers: dict[tuple[str, int], BestShotBuffer] = {}
         self._every_frame_reads: dict[tuple[str, int], list[OcrRead]] = {}
+        self._plate_evidence: list[PlateEvidence] = []
         self._lock = threading.Lock()
+
+    # ── D2-11 · plate crops on their way to the object store ────────────────────────────────────
+
+    def take_plate_evidence(self) -> list[PlateEvidence]:
+        """Drains the plate crops emitted since the last call. Empty unless `collect_evidence`.
+
+        Drained rather than pushed so the engine keeps knowing nothing about a broker — the same
+        separation `attributes.py` has, and the reason `evidence.py` can stay the only module that
+        knows the wire format.
+        """
+        with self._lock:
+            drained = self._plate_evidence
+            self._plate_evidence = []
+        return drained
 
     # ── the per-frame entry point ───────────────────────────────────────────────────────────────
 
@@ -192,7 +257,9 @@ class AnprEngine:
 
             if not buffer.ready(self.thresholds.max_examine_per_track):
                 continue
-            payload = self._emit(key, buffer, camera_external_id, ts, item.track_id)
+            payload = self._emit(
+                key, buffer, camera_external_id, ts, item.track_id, frame_pts_ms=frame_pts_ms
+            )
             buffer.emitted = True
             if payload is not None:
                 emitted[item.track_id] = payload
@@ -266,8 +333,7 @@ class AnprEngine:
         score = best_shot_score(box.w, box.h, plate_crop, self.thresholds)
         # Offsets are folded in so the stored candidate's geometry is the *frame's*, not the
         # vehicle crop's — a bbox that only makes sense relative to a temporary crop is a bbox
-        # nobody downstream can use.
-        del offset_x, offset_y
+        # nobody downstream can use, and D2-11's evidence record is downstream.
         return PlateCandidate(
             score=score,
             crop=plate_crop,
@@ -277,6 +343,9 @@ class AnprEngine:
             frame_pts_ms=frame_pts_ms,
             ts=ts,
             sharpness_var=variance,
+            frame_x=float(offset_x) + box.x,
+            frame_y=float(offset_y) + box.y,
+            vehicle_class=str(item.vehicle_class),
         )
 
     def _read_candidate(self, candidate: PlateCandidate) -> OcrRead | None:
@@ -309,6 +378,7 @@ class AnprEngine:
         camera_external_id: str,
         ts: str,
         track_id: int,
+        frame_pts_ms: int | None = None,
     ) -> PlateReadPayload | None:
         if self.every_frame:
             reads = self._every_frame_reads.pop(key, [])
@@ -332,9 +402,58 @@ class AnprEngine:
             crop_uri = self.crop_store.put(best.crop, crop_key(camera_external_id, day, track_id))
             if crop_uri is not None:
                 self.stats.crops_written += 1
+            if self.collect_evidence:
+                self._hold_plate_evidence(
+                    best,
+                    buffer,
+                    camera_external_id=camera_external_id,
+                    ts=ts,
+                    track_id=track_id,
+                    frame_pts_ms=frame_pts_ms if frame_pts_ms is not None else best.frame_pts_ms,
+                )
 
         self.stats.votes_emitted += 1
         return build_payload(voted, crop_uri)
+
+    def _hold_plate_evidence(
+        self,
+        best: PlateCandidate,
+        buffer: BestShotBuffer,
+        *,
+        camera_external_id: str,
+        ts: str,
+        track_id: int,
+        frame_pts_ms: int,
+    ) -> None:
+        """Holds the best shot for the `evidence` stream, keyed to the **emitting** frame (D2-11).
+
+        `ts` and `frame_pts_ms` are the frame the vote fires on, not the frame the crop came from:
+        `pipeline.py` attaches the voted read to *this* frame's sighting payload, so this is the
+        tuple the evidence consumer must match on to find the `plate_reads` row. Using the best
+        shot's own PTS would name a sighting that carries no plate read, and the crop would be
+        counted `unmatched` forever.
+        """
+        with self._lock:
+            self._plate_evidence.append(
+                PlateEvidence(
+                    camera_external_id=camera_external_id,
+                    track_id=track_id,
+                    ts=ts,
+                    frame_pts_ms=frame_pts_ms,
+                    vehicle_class=best.vehicle_class,
+                    det_confidence=float(best.detect_confidence),
+                    bbox={
+                        "x": round(best.frame_x, 2),
+                        "y": round(best.frame_y, 2),
+                        "w": round(best.plate_width, 2),
+                        "h": round(best.plate_height, 2),
+                    },
+                    score=float(best.score),
+                    focus=float(best.sharpness_var),
+                    observations=max(1, buffer.examined),
+                    crop=best.crop,
+                )
+            )
 
 
 def build_payload(voted: VotedPlate, crop_uri: str | None) -> PlateReadPayload:

@@ -94,6 +94,49 @@ def to_record(shot: object) -> dict:
     }
 
 
+def to_plate_record(evidence: object) -> dict:
+    """One ANPR `PlateEvidence` as the wire record, with `kind: "plate"` (D2-11).
+
+    The **same** stream, the same `EvidenceRecord` shape and the same consumer as a vehicle crop —
+    `kind` has been `'vehicle' | 'plate'` since D2-02 and `evidenceKey()` has taken a `kind` for
+    just as long. Only the row the consumer writes back to differs: `plate_reads.crop_uri` rather
+    than the sighting's attribute columns. Two uploaders is what produced the defect this fixes.
+
+    **The vehicle-attribute fields are `unknown`, not invented.** A plate crop has had no colour
+    classifier run over it, so `vehicleColor` is `"unknown"` with confidence `0.0` and the
+    low-confidence flag set — the schema requires the fields, and the honest value for a
+    measurement nobody made is the one that says so. The consumer's plate branch never writes them
+    anywhere; asserting that is what stops a plate crop erasing a vehicle crop's real colour read.
+    """
+    from .anpr.engine import PlateEvidence  # noqa: PLC0415 — avoids a cycle; engine stays I/O-free
+    from .attributes import encode_jpeg  # noqa: PLC0415 — same reason as `to_record` above
+
+    assert isinstance(evidence, PlateEvidence)
+    crop_jpeg = encode_jpeg(evidence.crop)
+    return {
+        "cameraId": evidence.camera_external_id,
+        "trackId": evidence.track_id,
+        "ts": evidence.ts,
+        "framePtsMs": evidence.frame_pts_ms,
+        "kind": "plate",
+        "class": evidence.vehicle_class,
+        "detConfidence": round(float(evidence.det_confidence), 3),
+        "bbox": evidence.bbox,
+        "bestShotScore": round(min(1.0, max(0.0, float(evidence.score))), 4),
+        "focus": round(float(evidence.focus), 2),
+        "observations": evidence.observations,
+        "vehicleType": None,
+        "vehicleColor": "unknown",
+        "vehicleColorConfidence": 0.0,
+        "attributesLowConfidence": True,
+        "colorChromaShare": 0.0,
+        "colorRunnerUp": None,
+        "contentType": "image/jpeg",
+        "cropBase64": base64.b64encode(crop_jpeg).decode("ascii"),
+        "cropBytes": len(crop_jpeg),
+    }
+
+
 @dataclass
 class CollectingEvidenceSink:
     """Keeps everything, for tests and for the offline measurement runs."""
