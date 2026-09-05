@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import type { App } from '../server.js';
-import { authenticate, READ_ROLES, requireRole } from '../auth.js';
+import { authenticate, requireRole, userRoles } from '../auth.js';
+import { can } from '@saakshi/shared';
 import type { Db } from '../db/client.js';
 import { ErrorResponse } from './camera-contracts.js';
+import { CaseReference, PurposeStatement } from './audit-contracts.js';
+import { writeAudit } from '../audit.js';
 import { PlateSearchService, type PlateSearchResult } from '../services/plate-search.js';
 
 /**
@@ -37,6 +40,12 @@ const csvUuids = z
 
 export const PlateSearchQuery = z.object({
   q: z.string().trim().min(1).max(24),
+  /**
+   * Purpose binding (D3-04). Required and enforced here, not in the UI, and written into the audit
+   * chain against the officer who stated it. A plate search with no stated reason is a 400.
+   */
+  purpose: PurposeStatement,
+  case_ref: CaseReference.optional(),
   /** Weighted distance ceiling. 2 is the measured knee — see `docs/fuzzy-matching.md` §6. */
   max_distance: z.coerce.number().min(0).max(6).default(2),
   from: z.iso.datetime().optional(),
@@ -95,6 +104,16 @@ export interface PlateRouteOptions {
   service?: PlateSearchService;
 }
 
+/**
+ * Derived from `trace:run`, not from `READ_ROLES` (D3-04).
+ *
+ * A plate search *is* an investigative query — the same question a trace asks, one step earlier —
+ * and `READ_ROLES` includes the auditor, who by the shared RBAC table's own reasoning must not have
+ * one: "the audit function examines what was done, not the footage itself". Reading the role list
+ * off the capability keeps this endpoint and `/api/v1/trace` from drifting apart.
+ */
+export const PLATE_SEARCH_ROLES = userRoles.filter((role) => can(role, 'trace:run'));
+
 export function registerPlateRoutes(app: App, options: PlateRouteOptions): void {
   const service = options.service ?? new PlateSearchService(options.db);
 
@@ -102,7 +121,7 @@ export function registerPlateRoutes(app: App, options: PlateRouteOptions): void 
     '/api/v1/plates/search',
     {
       onRequest: [authenticate(options.db)],
-      preHandler: [requireRole(READ_ROLES)],
+      preHandler: [requireRole(PLATE_SEARCH_ROLES)],
       schema: {
         tags: ['plates'],
         summary: 'Confusion-aware fuzzy plate search over sightings, ranked with sighting refs',
@@ -125,6 +144,28 @@ export function registerPlateRoutes(app: App, options: PlateRouteOptions): void 
         ...(q.to !== undefined ? { to: new Date(q.to) } : {}),
         ...(q.camera_ids !== undefined ? { cameraIds: q.camera_ids } : {}),
       });
+
+      // Awaited, not fired and forgotten: a search that ran without leaving a record is the state
+      // this ticket exists to make unreachable (D3-04).
+      await writeAudit(options.db, request.principal, {
+        action: 'plate.search',
+        targetType: 'plate_query',
+        targetId: result.normalized === '' ? result.query : result.normalized,
+        purpose: q.purpose,
+        caseRef: q.case_ref ?? null,
+        params: {
+          q: q.q,
+          normalized: result.normalized,
+          maxDistance: q.max_distance,
+          limit: q.limit,
+          from: q.from ?? null,
+          to: q.to ?? null,
+          cameraIds: q.camera_ids ?? [],
+          searched: result.searched,
+        },
+        resultCount: result.candidates.length,
+      });
+
       return { ...result, disclaimer: DISCLAIMER };
     },
   );

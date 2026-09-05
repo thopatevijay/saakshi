@@ -26,3 +26,8 @@ models/
 .prp/
 .claude/settings.local.json
 .claude/worktrees/
+
+# Export bundles are evidence packages built on demand — reproducible from the database and
+# never a source of truth. `exports/.gitkeep` keeps the directory itself.
+exports/*
+!exports/.gitkeep
