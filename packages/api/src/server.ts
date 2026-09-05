@@ -23,6 +23,7 @@ import { registerDepartmentRoutes } from './routes/departments.js';
 import { registerSyncRoutes } from './routes/sync.js';
 import { registerTrustRoutes } from './routes/trust.js';
 import { registerAuthRoutes } from './routes/auth.js';
+import { registerWatchlistRoutes } from './routes/watchlist.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -122,6 +123,13 @@ export async function buildServer(options: ServerOptions): Promise<App> {
         { name: 'departments', description: 'Owning departments' },
         { name: 'sync', description: 'Catalogue ingest runs and their reports' },
         { name: 'trust', description: 'Trust scores, breakdowns and the estate distribution' },
+        {
+          name: 'watchlist',
+          description:
+            'Watchlist CRUD, CSV import, and lookup across the specified connectors. All ' +
+            'providers are mocks — there is no live VAHAN / SARTHI / eGujCop / AFIS / NAFIS ' +
+            'connectivity, and no biometric data is processed anywhere in SAAKSHI.',
+        },
         { name: 'health', description: 'Liveness' },
         { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
@@ -152,6 +160,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerSyncRoutes(app, { db });
     registerTrustRoutes(app, { db });
     registerAuthRoutes(app, { db });
+    registerWatchlistRoutes(app, { db });
   }
 
   return app;

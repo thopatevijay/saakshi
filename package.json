@@ -32,7 +32,8 @@
     "consume:sightings": "npm run consume:sightings --workspace @saakshi/api --",
     "consume:evidence": "npm run consume:evidence --workspace @saakshi/api --",
     "evidence:retention": "npm run evidence:retention --workspace @saakshi/api --",
-    "evidence:sign": "npm run evidence:sign --workspace @saakshi/api --"
+    "evidence:sign": "npm run evidence:sign --workspace @saakshi/api --",
+    "seed:watchlist": "npm run seed:watchlist --workspace @saakshi/api --"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
