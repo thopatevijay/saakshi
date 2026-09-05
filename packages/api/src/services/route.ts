@@ -90,6 +90,7 @@
 import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { Db, Tx } from '../db/client.js';
+import { analyseRoute, type AnomalyReport } from './anomaly.js';
 import type { OsrmClient, OsrmRoute } from './osrm.js';
 import type { TraceResult, TraceSighting } from './trace.js';
 
@@ -202,6 +203,17 @@ export interface RouteReconstruction {
   segments: RouteSegment[];
   summary: RouteSummary;
   coverage: RouteCoverage;
+  /**
+   * Impossible-transition detection over these same segments (D3-02).
+   *
+   * **Recomputed on a cache hit rather than stored in the cached answer**, deliberately. The policy
+   * behind it (`config/anomaly-policy.json`) is config, and the acceptance criterion is that
+   * changing the speed tolerance moves the boundary with no code change — a verdict frozen into a
+   * cached route would keep the old boundary until the cache happened to expire. The per-segment
+   * flag *is* written to `route_segments.anomaly`, so the SQL view of it matches whatever policy
+   * was in force when the route was last built.
+   */
+  anomalies: AnomalyReport;
   /** The distinction, in the words the legend renders. Not a footnote. */
   legend: { observed: string; inferred: string };
   cache: { key: string; fingerprint: string; hit: boolean; builtAt: string };
@@ -269,7 +281,11 @@ export class RouteService {
     if (persist) {
       const cached = await this.readCache(key, fingerprint);
       if (cached !== null) {
-        return { ...cached, buildMs: Date.now() - started };
+        return {
+          ...cached,
+          anomalies: analyseRoute(cached.segments, trace.sightings, canonicalPlate),
+          buildMs: Date.now() - started,
+        };
       }
     }
 
@@ -287,6 +303,7 @@ export class RouteService {
       segments,
       summary,
       coverage,
+      anomalies: analyseRoute(segments, trace.sightings, canonicalPlate),
       legend: { ...ROUTE_LEGEND },
       cache: { key, fingerprint, hit: false, builtAt: new Date().toISOString() },
       roadGraph: {
@@ -366,6 +383,9 @@ export class RouteService {
       segments,
       summary: route.summary,
       coverage: coverageOf(segments, []),
+      // Replaced by the caller with an analysis against the *current* policy. The stored flag is a
+      // materialisation for SQL, not the served verdict — see the note on `anomalies` above.
+      anomalies: analyseRoute(segments, [], route.canonical_plate),
       legend: { ...ROUTE_LEGEND },
       cache: {
         key,
@@ -435,6 +455,10 @@ async function writeCacheIn(
   if (routeId === undefined) return;
 
   const byId = new Map(trace.sightings.map((s) => [s.sightingId, s.ts]));
+  // D3-02's verdict, materialised per segment so `select anomaly, count(*) from route_segments`
+  // answers the same question the API does. The reasoning behind each flag is not stored — it is a
+  // function of the policy file, and a stored explanation would go stale the moment that changed.
+  const anomalyBySeq = new Map(result.anomalies.findings.map((f) => [f.seq, f.anomaly]));
   for (const segment of result.segments) {
     const path =
       segment.geometry === null
@@ -444,7 +468,8 @@ async function writeCacheIn(
         insert into route_segments
           (route_id, seq, from_sighting_id, from_sighting_ts, to_sighting_id, to_sighting_ts,
            observed, path, travel_time_s, inferred_confidence, from_camera_id, to_camera_id, kind,
-           elapsed_s, road_distance_m, straight_line_m, path_options, confidence_basis, note)
+           elapsed_s, road_distance_m, straight_line_m, path_options, confidence_basis, note,
+           anomaly)
         values (${routeId}::uuid, ${segment.seq},
                 ${segment.fromSightingId}::uuid, ${byId.get(segment.fromSightingId) ?? first.ts},
                 ${segment.toSightingId}::uuid, ${byId.get(segment.toSightingId) ?? last.ts},
@@ -457,7 +482,8 @@ async function writeCacheIn(
                 ${segment.straightLineKm === null ? null : Math.round(segment.straightLineKm * 1000)},
                 ${segment.pathOptions},
                 ${segment.confidenceBasis === null ? null : JSON.stringify(segment.confidenceBasis)}::jsonb,
-                ${segment.note})
+                ${segment.note},
+                ${anomalyBySeq.get(segment.seq) ?? 'none'}::route_anomaly)
     `);
   }
 }

@@ -230,9 +230,101 @@ const RouteSegment = z.object({
   note: z.string(),
 });
 
+/**
+ * Impossible-transition detection (D3-02), additive again.
+ *
+ * A finding is never an accusation and the payload is shaped so a UI cannot accidentally render one
+ * as if it were: `headline`, `why`, `alternativeExplanation` and `limitations` are all required, so
+ * the innocent explanation is as available as the guilty one and there is no shape in which only
+ * the verdict arrives. `feasible` means *not shown to be impossible*, and the copy says so.
+ */
+const AnomalyEvidenceSide = z.object({
+  sightingId: z.string(),
+  ts: z.string(),
+  cameraId: z.string(),
+  cameraName: z.string(),
+  plateNormalized: z.string(),
+  plateRawText: z.string(),
+  ocrConfidence: z.number(),
+  linkMethod: LinkMethod,
+  linkConfidence: z.number(),
+  grammarValid: z.boolean(),
+  cropUri: z.string().nullable(),
+  cropUrl: z.string().nullable(),
+});
+
+const CloningAlert = z.object({
+  kind: z.literal('cloned_plate_suspected'),
+  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  plate: z.string(),
+  /** Two named sides, not a list: the investigation view is a side-by-side comparison. */
+  evidence: z.object({ left: AnomalyEvidenceSide, right: AnomalyEvidenceSide }),
+  cropsIncomplete: z.boolean(),
+  headline: z.string(),
+  why: z.string(),
+  alternativeExplanation: z.string(),
+  limitations: z.string(),
+});
+
+const AnomalyFinding = z.object({
+  seq: z.number().int(),
+  fromSightingId: z.string(),
+  toSightingId: z.string(),
+  fromCameraName: z.string(),
+  toCameraName: z.string(),
+  feasibility: z.enum(['impossible', 'feasible', 'indeterminate']),
+  anomaly: z.enum(['none', 'impossible_transition']),
+  failedTests: z.array(z.enum(['minimum_average_speed', 'faster_than_free_flow'])),
+  elapsedSeconds: z.number(),
+  roadDistanceKm: z.number().nullable(),
+  expectedTravelTimeS: z.number().nullable(),
+  /** A LOWER bound: the vehicle averaged at least this. Never D2-08's `impliedSpeedKmh`. */
+  minimumAverageSpeedKmh: z.number().nullable(),
+  elapsedVsExpected: z.number().nullable(),
+  explanation: z.enum(['likely_misread', 'likely_cloned', 'undetermined']),
+  candidateAlternative: z
+    .object({
+      plate: z.string(),
+      /** Fractional and weighted (D2-04). Never bucketed, never rendered on its own. */
+      distance: z.number(),
+      tailChars: z.number().int(),
+      truncation: z.boolean(),
+      weakerEndpoint: z.enum(['from', 'to']),
+      note: z.string(),
+    })
+    .nullable(),
+  repeatedPairs: z.number().int(),
+  linkConfidence: z.number(),
+  headline: z.string(),
+  why: z.string(),
+  alternativeExplanation: z.string(),
+  limitations: z.string(),
+  alert: CloningAlert.nullable(),
+});
+
+const AnomalyReport = z.object({
+  plate: z.string(),
+  segmentsExamined: z.number().int(),
+  segmentsEvaluable: z.number().int(),
+  impossible: z.number().int(),
+  likelyMisread: z.number().int(),
+  likelyCloned: z.number().int(),
+  undetermined: z.number().int(),
+  alerts: z.number().int(),
+  findings: z.array(AnomalyFinding),
+  policy: z.object({
+    maxPlausibleKmh: z.number(),
+    graphSpeedTolerance: z.number(),
+    version: z.number().int(),
+  }),
+  disclaimer: z.string(),
+});
+
 export const RouteResponse = z.object({
   canonicalPlate: z.string(),
   segments: z.array(RouteSegment),
+  /** D3-02. Recomputed on every request, including a cache hit, so the policy is live config. */
+  anomalies: AnomalyReport,
   summary: z.object({
     segments: z.number().int(),
     observedSegments: z.number().int(),
