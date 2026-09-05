@@ -54,6 +54,34 @@ class EvidenceSink(Protocol):
     def close(self) -> None: ...
 
 
+def appearance_of(crop_jpeg: bytes) -> tuple[str, list[float]] | None:
+    """The re-ID appearance descriptor for a best-shot crop (D3-03), or `None` if it cannot be made.
+
+    Computed here, on the stream's way out, because this is the one place in the system that holds
+    the decoded best-shot crop: the worker has it in memory already, and the API — which does hold
+    the object-store credentials — would otherwise have to fetch the JPEG back out of MinIO to embed
+    it. About 0.4 ms per track session on the measured estate.
+
+    `None` on any failure, never an exception. A descriptor is an *optional enrichment*: the crop,
+    the colour read and the sighting row all still land without it, and losing the evidence path to
+    a re-ID problem would be a bad trade for a feature that ships disabled by default.
+    """
+    try:
+        import cv2  # noqa: PLC0415 — already a hard dependency; kept local to the failure boundary
+        import numpy as np  # noqa: PLC0415
+
+        from .reid import create_embedder  # noqa: PLC0415 — pulls the embedder only when used
+
+        image = cv2.imdecode(np.frombuffer(crop_jpeg, dtype=np.uint8), cv2.IMREAD_COLOR)
+        if image is None:
+            return None
+        embedder = create_embedder()
+        return embedder.embedder_id, [round(float(v), 6) for v in embedder.embed(image)]
+    except Exception:  # noqa: BLE001 — deliberate: never let an enrichment break the evidence path
+        log.warning("appearance descriptor failed for a %d-byte crop", len(crop_jpeg), exc_info=True)
+        return None
+
+
 def to_record(shot: object) -> dict:
     """One `BestShot` as the wire record.
 
@@ -63,7 +91,10 @@ def to_record(shot: object) -> dict:
     from .attributes import BestShot  # noqa: PLC0415 — avoids a cycle; attributes stays I/O-free
 
     assert isinstance(shot, BestShot)
+    appearance = appearance_of(shot.crop_jpeg)
     return {
+        "appearanceEmbedderId": None if appearance is None else appearance[0],
+        "appearance": None if appearance is None else appearance[1],
         "cameraId": shot.camera_id,
         "trackId": shot.track_id,
         "ts": shot.ts,

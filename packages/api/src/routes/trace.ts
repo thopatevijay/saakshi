@@ -34,6 +34,12 @@ import {
 import { traceCsv, tracePdf } from '../services/trace-export.js';
 import { NullOsrmClient, type OsrmClient } from '../services/osrm.js';
 import { RouteService, type RouteReconstruction } from '../services/route.js';
+import {
+  REID_DISCLAIMER,
+  REID_MEASURED_PRECISION,
+  reidConfigFromEnv,
+  type ReidConfig,
+} from '../services/reid.js';
 
 /** Derived from the shared RBAC table, so the API can never disagree with the navigation. */
 export const TRACE_ROLES = userRoles.filter((role) => can(role, 'trace:run'));
@@ -74,6 +80,12 @@ export const TraceQuery = z.object({
    * feature *on*. Logged against the existing uses on BL-01.
    */
   reconstruct: z.stringbool().default(false),
+  /**
+   * Include vehicle appearance (re-ID) links (D3-03). **Off by default, twice over:** off here, and
+   * off server-side unless `REID_ENABLED=true`. A trace is plate-only until an officer asks for the
+   * weaker standard, and `reid.enabled` in the response says whether the server honoured the ask.
+   */
+  include_reid: z.stringbool().default(false),
 });
 
 const LinkMethod = z.enum(LINK_METHODS);
@@ -291,6 +303,24 @@ export const TraceResponse = z.object({
   claims: z.object({ observed: z.string(), inferred: z.string() }),
   /** Present only when `reconstruct=true`. `null` otherwise — never an empty object. */
   route: RouteResponse.nullable(),
+  /**
+   * Vehicle appearance re-ID (D3-03). Always present, so a client can render the state honestly
+   * instead of inferring it from an absence.
+   *
+   * `requested` is what the caller asked for; `enabled` is what the server permits. They differ
+   * whenever someone asks for re-ID on a deployment where it is off — which is the default
+   * deployment, because held-out precision measured **0.761**, below the ticket's 0.9 bar. Reporting
+   * only one of the two would let a UI show "re-ID on" over a plate-only result.
+   */
+  reid: z.object({
+    requested: z.boolean(),
+    enabled: z.boolean(),
+    /** Sightings in this result reached by an appearance link rather than a plate read. */
+    links: z.number().int(),
+    /** Held-out precision on `fixtures/reid-eval`. Stated so nobody has to go and find it. */
+    measuredPrecision: z.number(),
+    disclaimer: z.string(),
+  }),
   emptyReason: z
     .enum([
       'query_not_searchable',
@@ -305,7 +335,10 @@ export const TraceResponse = z.object({
 export type TraceResponse = z.infer<typeof TraceResponse>;
 
 /** A trace, plus the reconstruction when one was asked for. `route` is `null` otherwise. */
-export type TracedRoute = TraceResult & { route: RouteReconstruction | null };
+export type TracedRoute = TraceResult & {
+  route: RouteReconstruction | null;
+  reid: TraceResponse['reid'];
+};
 
 export interface TraceRouteOptions {
   db: Db;
@@ -327,6 +360,11 @@ export interface TraceRouteOptions {
   presign?: CropPresigner;
   /** `RETENTION_EXPIRING_SOON_HOURS` (D3-05), for the per-sighting retention clock. */
   expiringSoonHours?: number;
+  /**
+   * Vehicle re-ID (D3-03). Injected so a test can enable it without touching `process.env`, and so
+   * the default — disabled — is visible at the call site rather than hidden in an env lookup.
+   */
+  reid?: ReidConfig;
 }
 
 export function registerTraceRoutes(app: App, options: TraceRouteOptions): void {
@@ -334,6 +372,7 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
     options.service ??
     new TraceService(options.db, undefined, options.presign, options.expiringSoonHours);
   const routes = new RouteService(options.db, options.osrm ?? new NullOsrmClient());
+  const reid = options.reid ?? reidConfigFromEnv();
 
   /**
    * Runs the trace, **records that it was run** (D3-04), and reconstructs the route (D3-01).
@@ -353,10 +392,14 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
     principal: Principal | undefined,
     action: 'trace.run' | 'trace.export.csv' | 'trace.export.pdf',
   ): Promise<TracedRoute> => {
+    // Two gates, and the AND is deliberate: the officer asks, and the deployment permits. Either
+    // one alone would be enough to surface a link measured at 0.761 precision.
+    const includeReid = query.include_reid && reid.enabled;
     const result = await service.trace(query.plate, {
       minConfidence: query.min_confidence,
       maxDistance: query.max_distance,
       limit: query.limit,
+      includeReid,
       ...(query.from !== undefined ? { from: new Date(query.from) } : {}),
       ...(query.to !== undefined ? { to: new Date(query.to) } : {}),
       ...(query.camera_ids !== undefined ? { cameraIds: query.camera_ids } : {}),
@@ -379,16 +422,30 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
         limit: query.limit,
         searched: result.searched,
         emptyReason: result.emptyReason,
+        // Which evidentiary standard this search was run under. An auditor reading the chain later
+        // must be able to tell a plate-only trace from one that admitted appearance links.
+        includeReidRequested: query.include_reid,
+        includeReidApplied: includeReid,
       },
       resultCount: result.sightings.length,
     });
 
+    const reidState = {
+      requested: query.include_reid,
+      enabled: reid.enabled,
+      links: result.coverage.otherLinks,
+      measuredPrecision: REID_MEASURED_PRECISION,
+      disclaimer: REID_DISCLAIMER,
+    };
+
     // Fewer than two sightings is not a degenerate route, it is *no* route: there is no pair to
     // reconstruct between. Returning `null` rather than an empty reconstruction keeps the UI from
     // rendering a summary of nothing.
-    if (!query.reconstruct || result.sightings.length < 2) return { ...result, route: null };
+    if (!query.reconstruct || result.sightings.length < 2) {
+      return { ...result, route: null, reid: reidState };
+    }
     const route = await routes.reconstruct(result, { requestedBy: principal?.sub ?? null });
-    return { ...result, route };
+    return { ...result, route, reid: reidState };
   };
 
   app.get(

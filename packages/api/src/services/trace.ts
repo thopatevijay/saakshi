@@ -229,6 +229,21 @@ export interface TraceOptions {
   minConfidence?: number;
   maxDistance?: number;
   limit?: number;
+  /**
+   * Include vehicle appearance (re-ID) links (D3-03). **Default `false`.**
+   *
+   * Off, a trace is plate-only: only sightings whose plate was actually read, and a stored
+   * `reid_bridge` link is ignored even where one exists. That is the stricter evidentiary standard
+   * and it is the default because re-ID measured **0.761** precision on this estate, below the
+   * ticket's 0.9 bar (`docs/reid.md`). The officer chooses; the system does not choose for them.
+   *
+   * On, two things change together — and they have to change together. A bridged sighting is one
+   * whose plate was *unreadable*, so it carries no `plate_reads` row matching this identity and
+   * `hydrate()`'s join cannot see it at all: surfacing the link method without also surfacing the
+   * sighting would label rows that were already visible and silently omit every row the feature
+   * exists to add.
+   */
+  includeReid?: boolean;
 }
 
 const CLAIMS = {
@@ -326,9 +341,28 @@ export class TraceService {
       return { ...base, identity, emptyReason: reason, tookMs: elapsed(started) };
     }
 
+    const includeReid = options.includeReid === true;
     const byPlate = new Map(identity.plates.map((p) => [p.plateNormalized, p]));
-    const rows = await this.hydrate([...byPlate.keys()], options, limit);
-    const stored = await loadStoredLinks(this.db, identity.canonicalPlate);
+    const plateRows = await this.hydrate([...byPlate.keys()], options, limit);
+    const reidRows = includeReid
+      ? await this.hydrateReid(identity.canonicalPlate, options, limit, plateRows)
+      : [];
+    // One list, re-merged on the ordering key that has been THE ordering key since D2-08: `ts` is
+    // the PTS-derived wall clock. Never `ingested_at`, and never "plate rows first".
+    const rows = [...plateRows, ...reidRows].sort(
+      (a, b) =>
+        Date.parse(a.ts) - Date.parse(b.ts) ||
+        Number(a.frame_pts_ms) - Number(b.frame_pts_ms) ||
+        a.sighting_id.localeCompare(b.sighting_id),
+    );
+
+    const allStored = await loadStoredLinks(this.db, identity.canonicalPlate);
+    // With re-ID off, a stored appearance link is not merely hidden from the count — it is not
+    // applied at all. Otherwise "plate-only" would still relabel a plate-read sighting as
+    // `reid_bridge`, and the officer who chose the stricter standard would not have got it.
+    const stored = includeReid
+      ? allStored
+      : new Map([...allStored].filter(([, link]) => link.linkMethod !== 'reid_bridge'));
 
     // Sightings the confidence floor removed *before* hydration, because their plate's best read
     // could not clear it. Counted here rather than left invisible: an operator who raises the floor
@@ -343,8 +377,11 @@ export class TraceService {
       .reduce((n, c) => n + c.sightingCount, 0);
     const sightings: TraceSighting[] = [];
     for (const row of rows) {
-      const plate = byPlate.get(row.plate);
-      if (plate === undefined) continue;
+      const plate = byPlate.get(row.plate) ?? null;
+      // A row with no matching plate read is only admissible when something recorded a link for it
+      // — that recorded link is the entire claim, and without one there is nothing tying the
+      // sighting to this identity.
+      if (plate === null && !stored.has(row.sighting_id)) continue;
       const sighting = this.toSighting(row, plate, stored, sightings.length + 1);
       if (sighting.linkConfidence < minConfidence) {
         dropped += 1;
@@ -479,9 +516,74 @@ export class TraceService {
     `);
   }
 
+  /**
+   * The sightings this identity reaches through a recorded **appearance** link (D3-03), which
+   * `hydrate()` structurally cannot see.
+   *
+   * `hydrate()` starts `from plate_reads pr ... where pr.normalized_text in (plates)`. A sighting
+   * whose plate was unreadable has no such row — and that population *is* the feature: re-ID exists
+   * to reach the holes ANPR leaves. So this query starts from `identity_sightings` instead and
+   * **left** joins `plate_reads`, keeping the same column list so both feed one `toSighting`.
+   *
+   * Only `link_method = 'reid_bridge'`. A stored plate link on a sighting that already has a plate
+   * read is `hydrate()`'s business, and fetching it twice would double a row in the timeline.
+   */
+  private async hydrateReid(
+    canonicalPlate: string,
+    options: TraceOptions,
+    limit: number,
+    already: readonly TraceRow[],
+  ): Promise<TraceRow[]> {
+    if (canonicalPlate === '') return [];
+    const seen = new Set(already.map((row) => row.sighting_id));
+    const rows = await this.db.execute<TraceRow>(sql`
+      select * from (
+        select distinct on (s.id, s.ts)
+               s.id::text as sighting_id,
+               s.ts,
+               s.frame_pts_ms::text as frame_pts_ms,
+               s.track_id,
+               s.camera_id::text as camera_id,
+               c.external_id as camera_external_id,
+               c.name as camera_name,
+               c.district,
+               c.retention_days,
+               case when c.location is null then null else st_y(c.location::geometry) end as lat,
+               case when c.location is null then null else st_x(c.location::geometry) end as lon,
+               s.class::text as class,
+               s.det_confidence::text as det_confidence,
+               s.vehicle_color,
+               s.vehicle_color_confidence::text as vehicle_color_confidence,
+               s.attributes_low_confidence,
+               s.is_best_shot,
+               s.crop_uri as sighting_crop_uri,
+               pr.crop_uri as plate_crop_uri,
+               -- Empty string, never the identity's plate: writing the canonical plate here would
+               -- render a registration against a vehicle nobody read one from.
+               '' as plate,
+               coalesce(pr.raw_text, '') as raw_text,
+               '0' as ocr_confidence,
+               coalesce(pr.vote_count, 0) as vote_count
+          from identity_sightings isg
+          join vehicle_identities vi on vi.id = isg.identity_id
+          join sightings s on s.id = isg.sighting_id and s.ts = isg.sighting_ts
+          join cameras c on c.id = s.camera_id
+          left join plate_reads pr on pr.sighting_id = s.id and pr.sighting_ts = s.ts
+         where vi.canonical_plate = ${canonicalPlate}
+           and isg.link_method = 'reid_bridge'
+           ${traceWindowClause(options)}
+         order by s.id, s.ts, pr.confidence desc nulls last, pr.id
+      ) bridged
+      order by bridged.ts asc, bridged.frame_pts_ms asc, bridged.sighting_id asc
+      limit ${limit}
+    `);
+    return rows.filter((row) => !seen.has(row.sighting_id));
+  }
+
   private toSighting(
     row: TraceRow,
-    plate: LinkedPlate,
+    /** `null` for a sighting reached by a recorded link rather than by its own plate read (D3-03). */
+    plate: LinkedPlate | null,
     stored: Map<string, { linkMethod: LinkMethod; linkConfidence: number }>,
     seq: number,
   ): TraceSighting {
@@ -489,10 +591,11 @@ export class TraceService {
     const override = stored.get(row.sighting_id);
     // A recorded link wins over a derived one: something else asserted it deliberately, and
     // silently overwriting that with a plate score would hide a weaker claim behind a stronger one.
-    const linkMethod = override?.linkMethod ?? plate.linkMethod;
+    const linkMethod = override?.linkMethod ?? plate?.linkMethod ?? 'plate_exact';
     const linkConfidence =
-      override?.linkConfidence ?? sightingLinkConfidence(plate.matchStrength, ocrConfidence);
-    const derived = override === undefined;
+      override?.linkConfidence ??
+      (plate === null ? 0 : sightingLinkConfidence(plate.matchStrength, ocrConfidence));
+    const derived = override === undefined && plate !== null;
     const cropUri = row.plate_crop_uri ?? row.sighting_crop_uri;
 
     return {
@@ -525,11 +628,13 @@ export class TraceService {
       voteCount: row.vote_count,
       linkMethod,
       linkConfidence,
-      matchDistance: derived ? plate.distance : null,
-      matchStrength: derived ? plate.matchStrength : null,
-      explanation: derived
-        ? plate.explanation
-        : `link recorded in identity_sightings as ${linkMethod}, confidence ${linkConfidence.toFixed(2)}`,
+      matchDistance: derived && plate !== null ? plate.distance : null,
+      matchStrength: derived && plate !== null ? plate.matchStrength : null,
+      explanation:
+        derived && plate !== null
+          ? plate.explanation
+          : `link recorded in identity_sightings as ${linkMethod}, confidence ${linkConfidence.toFixed(2)}` +
+            (plate === null ? ' — this sighting carries no readable plate of its own' : ''),
       basis: 'observed',
       retention: describeRetention({
         footageAt: row.ts,

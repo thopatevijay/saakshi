@@ -177,10 +177,49 @@ export async function storeEvidence(options: StoreEvidenceOptions): Promise<stri
            and ts = ${sighting.ts}::timestamptz`,
   );
 
+  await storeAppearance(db, record, sighting, cameraUuid);
+
   stats.stored += 1;
   stats.bytesStored += body.byteLength;
   if (record.attributesLowConfidence) stats.lowConfidenceColors += 1;
   return key;
+}
+
+/**
+ * The vehicle appearance descriptor (D3-03), when the worker produced one.
+ *
+ * Its own statement, after the attribute write and outside its transaction-of-one, because it is an
+ * *enrichment*: a re-ID descriptor that fails to land must never cost the crop, the colour read or
+ * the `is_best_shot` flag, all of which are evidence in their own right. A feature that ships
+ * disabled by default does not get to break the path that ships enabled.
+ *
+ * `ON CONFLICT DO UPDATE` because a replayed stream entry is normal — the consumer group redelivers
+ * on restart — and rewriting the same vector is idempotent.
+ */
+async function storeAppearance(
+  db: Db,
+  record: EvidenceRecord,
+  sighting: SightingRef,
+  cameraUuid: string,
+): Promise<void> {
+  const { appearance, appearanceEmbedderId } = record;
+  if (appearance === null || appearanceEmbedderId === null || appearance.length === 0) return;
+  try {
+    await db.execute(
+      sql`insert into sighting_appearance
+            (sighting_id, sighting_ts, camera_id, embedder_id, dim, embedding, best_shot_score)
+          values (${sighting.id}::uuid, ${sighting.ts}::timestamptz, ${cameraUuid}::uuid,
+                  ${appearanceEmbedderId}, ${appearance.length},
+                  ${`{${appearance.join(',')}}`}::real[], ${record.bestShotScore})
+          on conflict (sighting_id, embedder_id) do update
+            set embedding = excluded.embedding,
+                dim = excluded.dim,
+                best_shot_score = excluded.best_shot_score`,
+    );
+  } catch {
+    // Counted nowhere on purpose: the descriptor is reproducible from the crop, which is in the
+    // bucket. Losing one costs a re-embedding run, not evidence.
+  }
 }
 
 /**
