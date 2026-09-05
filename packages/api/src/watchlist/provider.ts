@@ -127,8 +127,15 @@ export const WatchlistHit = z.object({
 
   severity: AlertSeverity,
   matchType: z.enum(['exact', 'fuzzy']),
-  /** Edit distance under the active matcher's metric. `0` for an exact match. */
-  matchDistance: z.number().int().nonnegative(),
+  /**
+   * Edit distance under the active matcher's metric. `0` for an exact match.
+   *
+   * **Not an integer.** `PlateMatcher.distance` was always declared `number`; the wire contract said
+   * `.int()` because the only shipped metric was `levenshtein()`. D2-04's confusion-aware metric is
+   * continuous — `GJ35U07 → GJ35U0779` is 0.70, not 2 — and under `.int()` the response failed
+   * serialisation rather than rounding, which is the correct failure but the wrong constraint.
+   */
+  matchDistance: z.number().nonnegative(),
   /** Match strength in `[0,1]`. `1` for exact. Not OCR confidence — that is the caller's. */
   matchConfidence: z.number().min(0).max(1),
   /** Human-readable, for the alert's why-payload. */

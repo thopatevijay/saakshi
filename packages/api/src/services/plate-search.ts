@@ -702,7 +702,10 @@ export class PlateSearchService {
 
     const groups = await this.candidates(plan, options);
     const scored = groups
-      .map((row) => ({ row, result: weightedDistance(plan.normalized, row.plate, this.config, this.table) }))
+      .map((row) => ({
+        row,
+        result: weightedDistance(plan.normalized, row.plate, this.config, this.table),
+      }))
       .filter((row) => row.result.distance <= options.maxDistance)
       .sort(
         (a, b) =>
@@ -739,7 +742,10 @@ export class PlateSearchService {
     };
   }
 
-  private async candidates(plan: PlateSearchPlan, options: PlateSearchOptions): Promise<GroupRow[]> {
+  private async candidates(
+    plan: PlateSearchPlan,
+    options: PlateSearchOptions,
+  ): Promise<GroupRow[]> {
     await this.db.execute(sql`select set_limit(${this.similarityThreshold}::real)`);
     return this.db.execute<GroupRow>(sql`
       select pr.normalized_text as plate,

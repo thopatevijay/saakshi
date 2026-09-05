@@ -59,7 +59,10 @@ let service: PlateSearchService;
 let cameraA = '';
 let cameraB = '';
 
-const opts = (maxDistance: number, limit = 50): { maxDistance: number; limit: number; at: Date } => ({
+const opts = (
+  maxDistance: number,
+  limit = 50,
+): { maxDistance: number; limit: number; at: Date } => ({
   maxDistance,
   limit,
   at: AT,
@@ -152,9 +155,7 @@ describe('AC 8 — the confusion matrix is config, not code', () => {
       ['E', 'F'],
       ['0', 'D'],
     ]) {
-      const pair = config.pairs.find(
-        (p) => (p.a === a && p.b === b) || (p.a === b && p.b === a),
-      );
+      const pair = config.pairs.find((p) => (p.a === a && p.b === b) || (p.a === b && p.b === a));
       expect(pair, `${a}↔${b} must be in the matrix`).toBeDefined();
       expect(pair?.source).toBe('measured');
       expect(pair?.cost).toBe(config.costs.measured);
@@ -166,8 +167,10 @@ describe('AC 8 — the confusion matrix is config, not code', () => {
     const file = path.join(dir, 'plate-confusions.json');
     const before = weightedDistance('GJ01AB1Z34', 'GJ01AB1234', config).distance;
 
-    const edited = structuredClone(config) as ConfusionConfig;
-    const zPair = edited.pairs.find((p) => (p.a === '2' && p.b === 'Z') || (p.a === 'Z' && p.b === '2'));
+    const edited = structuredClone(config);
+    const zPair = edited.pairs.find(
+      (p) => (p.a === '2' && p.b === 'Z') || (p.a === 'Z' && p.b === '2'),
+    );
     if (zPair !== undefined) zPair.cost = 0.05;
     writeFileSync(file, JSON.stringify(edited));
 
@@ -284,8 +287,7 @@ describe('AC 4 — two-character confusions are found within maxDistance = 2', (
         const first = [...table.keys()].find((k) => k.charAt(0) === plate.charAt(i));
         const second = [...table.keys()].find((k) => k.charAt(0) === plate.charAt(i + 1));
         if (first === undefined || second === undefined) continue;
-        const query =
-          plate.slice(0, i) + first.charAt(1) + second.charAt(1) + plate.slice(i + 2);
+        const query = plate.slice(0, i) + first.charAt(1) + second.charAt(1) + plate.slice(i + 2);
         if (query !== plate) cases.push({ query, truth: plate });
       }
     }
@@ -355,7 +357,10 @@ describe('AC 5 — truly unrelated plates are not returned', () => {
     if (!reachable) return;
     for (const q of ['KA05MZ9911', 'TN22CX4477', 'DL8CAF5030', 'AP09BQ7781', 'UP32DN4410']) {
       const hits = await matcher.match(q, opts(2));
-      expect(hits.map((h) => h.plateNormalized), `${q} matched something`).toEqual([]);
+      expect(
+        hits.map((h) => h.plateNormalized),
+        `${q} matched something`,
+      ).toEqual([]);
     }
   });
 
@@ -448,7 +453,11 @@ describe('AC 6 — time-window and camera filters compose with fuzzy search', ()
     // 250,000 rows into it, so a count assertion that reads the whole estate is a flake waiting to
     // happen. Scoping it also exercises the two filters composing, which is the AC.
     const cameras = [cameraA, cameraB];
-    const all = await service.search('GJ01AB1234', { maxDistance: 0, limit: 10, cameraIds: cameras });
+    const all = await service.search('GJ01AB1234', {
+      maxDistance: 0,
+      limit: 10,
+      cameraIds: cameras,
+    });
     const windowed = await service.search('GJ01AB1234', {
       maxDistance: 0,
       limit: 10,

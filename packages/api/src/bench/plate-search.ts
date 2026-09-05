@@ -190,7 +190,9 @@ async function main(): Promise<void> {
   );
   const sub = operator[0]?.id;
   if (sub === undefined) {
-    throw new Error('no active operator user — run `npm run db:migrate` so migration 0009 seeds one');
+    throw new Error(
+      'no active operator user — run `npm run db:migrate` so migration 0009 seeds one',
+    );
   }
   const token = app.jwt.sign({ sub, badgeNo: 'BENCH-0001', role: 'operator', departmentId: null });
 
