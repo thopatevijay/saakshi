@@ -62,7 +62,9 @@ async function seedSighting(cameraId: string, ts: string): Promise<{ id: string;
   return row;
 }
 
-async function alertsFor(cameraId?: string): Promise<
+async function alertsFor(
+  cameraId?: string,
+): Promise<
   { id: string; camera_id: string; sighting_count: number; ts: string; last_seen_at: string }[]
 > {
   return db.execute(sql`
@@ -83,7 +85,9 @@ beforeAll(async () => {
     await rawSql`select 1`;
     reachable = true;
   } catch {
-    console.warn('[alerts-dedupe] database unreachable — skipping. Run `make up && npm run db:migrate`.');
+    console.warn(
+      '[alerts-dedupe] database unreachable — skipping. Run `make up && npm run db:migrate`.',
+    );
     return;
   }
 
@@ -182,7 +186,9 @@ describe('AC 2 — the same vehicle at the same camera 20 times in 5 minutes is 
     const boundary = Math.ceil(Date.parse('2026-07-02T09:03:00.000Z') / windowMs) * windowMs;
     const before = new Date(boundary - 60_000).toISOString();
     const after = new Date(boundary + 60_000).toISOString();
-    expect(Math.floor(Date.parse(before) / windowMs)).not.toBe(Math.floor(Date.parse(after) / windowMs));
+    expect(Math.floor(Date.parse(before) / windowMs)).not.toBe(
+      Math.floor(Date.parse(after) / windowMs),
+    );
 
     let created = 0;
     for (const ts of [before, after]) {

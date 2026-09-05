@@ -257,10 +257,12 @@ describe('AC 4 — severity comes from the watchlist category, and config alone 
   it('assigns from the shipped policy', () => {
     const policy = loadAlertPolicy(POLICY_PATH);
     expect(severityFor(policy, input).final).toBe('high');
-    expect(severityFor(policy, { ...input, category: 'wanted_person', entrySeverity: 'critical' }).final).toBe(
-      'critical',
-    );
-    expect(severityFor(policy, { ...input, category: 'missing_person', entrySeverity: 'low' }).final).toBe('low');
+    expect(
+      severityFor(policy, { ...input, category: 'wanted_person', entrySeverity: 'critical' }).final,
+    ).toBe('critical');
+    expect(
+      severityFor(policy, { ...input, category: 'missing_person', entrySeverity: 'low' }).final,
+    ).toBe('low');
   });
 
   it('preserves the ticket ordering as a strict rank, which four severity levels cannot carry', () => {
@@ -383,7 +385,8 @@ describe('AC 5 — every alert carries a complete why-payload', () => {
     expect(response.statusCode).toBe(200);
     const body = response.json<AlertRecord>();
     expect(body.reason.identification.combinedConfidence).toBeCloseTo(
-      body.reason.identification.adjustedPlateConfidence * body.reason.identification.matchConfidence,
+      body.reason.identification.adjustedPlateConfidence *
+        body.reason.identification.matchConfidence,
       5,
     );
     expect(REQUIRED_WHY_FIELDS.every((f) => get(body.reason, f) !== null)).toBe(true);
@@ -619,7 +622,9 @@ describe('AC 8 — the delivery cap holds and the overflow is digested, not drop
 
     // The next minute starts a fresh allowance — a cap that never resets is an outage.
     clock += 60_000;
-    expect(gate.admit({ id: 'x', severity: 'low', category: 'suspect', cameraId: 'cam' })).toBe(true);
+    expect(gate.admit({ id: 'x', severity: 'low', category: 'suspect', cameraId: 'cam' })).toBe(
+      true,
+    );
   });
 });
 
