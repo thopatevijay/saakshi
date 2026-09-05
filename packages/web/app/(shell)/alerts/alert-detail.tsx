@@ -49,7 +49,7 @@ export interface AlertDetailProps {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">{label}</dt>
+      <dt className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">{label}</dt>
       <dd className="mt-0.5 truncate text-xs text-slate-200">{children}</dd>
     </div>
   );
@@ -88,7 +88,7 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
         {/* ── the crop ──────────────────────────────────────────────────────────────────── */}
         <div>
-          <h3 className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+          <h3 className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
             Evidence crop
           </h3>
           <div className="mt-2 flex min-h-40 items-center justify-center rounded-md border border-slate-800 bg-slate-950 p-2">
@@ -104,16 +104,16 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
             ) : (
               <p
                 data-testid="alert-detail-crop-placeholder"
-                className="px-4 text-center text-xs leading-relaxed text-slate-500"
+                className="px-4 text-center text-xs leading-relaxed text-slate-400"
               >
                 {crop.reason}
               </p>
             )}
           </div>
-          <p className="mt-2 break-all text-[10px] text-slate-600">
+          <p className="mt-2 break-all text-[10px] text-slate-400">
             {evidence.cropUri ?? 'crop_uri is null on this sighting'}
           </p>
-          <p className="text-[10px] text-slate-600">
+          <p className="text-[10px] text-slate-400">
             {evidence.isBestShot
               ? 'this sighting is the track’s best shot'
               : 'not the track’s best shot — a clearer crop may exist'}
@@ -168,7 +168,7 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
             <Field label="Weighted distance">
               {formatDistance(alert.matchDistance)}
               {distanceWasRounded(alert.matchDistance) ? (
-                <span className="text-slate-500"> (rounded from {alert.matchDistance})</span>
+                <span className="text-slate-400"> (rounded from {alert.matchDistance})</span>
               ) : null}
             </Field>
             <Field label="Completeness">{formatScore(identification.completeness)}</Field>
@@ -182,7 +182,7 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
 
           {/* ── severity derivation ─────────────────────────────────────────────────────── */}
           <div>
-            <h3 className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+            <h3 className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
               How this severity was reached
             </h3>
             <p data-testid="alert-severity-basis" className="mt-1 text-xs text-slate-300">
@@ -199,7 +199,7 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
 
           {/* ── the matched record, with its provenance ─────────────────────────────────── */}
           <div>
-            <h3 className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
+            <h3 className="text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
               Matched watchlist record
             </h3>
             <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4">
@@ -273,7 +273,7 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
                 Trace this vehicle →
               </a>
             ) : (
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-slate-400">
                 Vehicle tracing needs the <code>trace:run</code> capability, which this role does
                 not have.
               </span>
@@ -284,7 +284,7 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
             >
               Camera detail →
             </a>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-slate-400">
               Alert <span className="font-mono">{alert.id}</span>
             </p>
           </div>

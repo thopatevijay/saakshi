@@ -33,7 +33,7 @@
  * row below, which is the exact failure AC 1 forbids, arriving from inside instead of from the
  * stream.
  */
-import { useState, type KeyboardEvent } from 'react';
+import { useState } from 'react';
 import { canTransition, type AlertRecord, type AlertStatus } from '@saakshi/shared';
 import {
   CATEGORY_LABEL,
@@ -53,8 +53,15 @@ import {
 /** Must match the row's rendered height exactly — `queue.ts` `windowFor` does the arithmetic. */
 export const ROW_HEIGHT = 104;
 
+/**
+ * 11 px is a floor, not a style choice.
+ *
+ * Category and match type are two of the five facts AC 3 requires to be *legible* without a click,
+ * and `verify-alerts.mjs` refuses anything under 11 px for exactly that reason. The first draft of
+ * this row set them at 10 px and the stopwatch check failed on it — which is the check working.
+ */
 const CHIP =
-  'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase';
+  'inline-flex items-center rounded border px-1.5 py-0.5 text-[11px] leading-tight font-semibold tracking-wide uppercase';
 const ACTION =
   'rounded-md border px-2 py-1 text-[11px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-30 disabled:cursor-not-allowed';
 
@@ -67,7 +74,6 @@ export interface AlertRowProps {
   onFocusRow: () => void;
   onToggleExpand: () => void;
   onTransition: (to: AlertStatus, note?: string) => void;
-  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   /** Opens the reason field. Held by the screen so `d` from the keyboard opens the same field. */
   dismissing: boolean;
   onDismissOpen: (open: boolean) => void;
@@ -82,7 +88,6 @@ export function AlertRow({
   onFocusRow,
   onToggleExpand,
   onTransition,
-  onKeyDown,
   dismissing,
   onDismissOpen,
 }: AlertRowProps) {
@@ -118,7 +123,6 @@ export function AlertRow({
       aria-expanded={expanded}
       aria-label={`${severity.label} ${CATEGORY_LABEL[alert.category]} alert, read ${identification.observedPlate}, ${verdict.headline}, ${alert.reason.camera.name}, ${formatClock(alert.lastSeenAt)}`}
       onFocus={onFocusRow}
-      onKeyDown={onKeyDown}
       style={{ height: `${String(ROW_HEIGHT)}px` }}
       className={`grid grid-cols-[4px_5rem_minmax(11rem,1.4fr)_minmax(9rem,1fr)_6.5rem_9rem_7rem_auto] items-center gap-3 border-b border-slate-800 pr-3 outline-none transition-colors ${
         focused ? 'bg-slate-800/70 ring-2 ring-inset ring-sky-400' : 'hover:bg-slate-900/70'
@@ -148,9 +152,12 @@ export function AlertRow({
           />
         ) : null}
         {crop.kind === 'image' ? null : (
+          /* 10 px slate-300, not 9 px slate-500. On this estate `crop_uri` is null on all 28,438
+             sightings, so this placeholder is what an operator reads on *every* row — the
+             most-read text on the screen. Lighthouse measured the first draft at 4.23:1. */
           <span
             data-testid="alert-crop-placeholder"
-            className="px-1 text-[9px] leading-tight text-slate-500"
+            className="px-1 text-[10px] leading-tight text-slate-300"
           >
             {crop.kind === 'none'
               ? 'no crop stored'
@@ -192,7 +199,7 @@ export function AlertRow({
         <p data-testid="alert-camera" className="truncate text-sm text-slate-200">
           {alert.reason.camera.name}
         </p>
-        <p className="truncate text-[11px] text-slate-500">
+        <p className="truncate text-[11px] text-slate-400">
           {alert.reason.camera.externalId}
           {' · '}
           {/* An unmeasured trust score is never a zero and never a grey bar (D1-06, D2-06). */}
@@ -200,7 +207,7 @@ export function AlertRow({
             ? 'trust never probed'
             : `trust ${String(Math.round(alert.reason.camera.trustScore))}`}
         </p>
-        <p className="truncate text-[11px] text-slate-500">
+        <p className="truncate text-[11px] text-slate-400">
           {alert.reason.camera.location === null
             ? 'no location on file'
             : (alert.reason.camera.district ?? 'located')}
@@ -212,7 +219,7 @@ export function AlertRow({
         <p data-testid="alert-time" className="text-sm text-slate-200 tabular-nums">
           {formatClock(alert.lastSeenAt)}
         </p>
-        <p className="text-[11px] text-slate-500 tabular-nums">{formatAge(alert.lastSeenAt)} ago</p>
+        <p className="text-[11px] text-slate-400 tabular-nums">{formatAge(alert.lastSeenAt)} ago</p>
         {alert.sightingCount > 1 ? (
           <p className="text-[11px] font-semibold text-amber-300 tabular-nums">
             ×{alert.sightingCount} sightings
@@ -302,7 +309,7 @@ export function AlertRow({
               title="Acknowledge (a)"
               className={`${ACTION} border-sky-800 text-sky-200 hover:bg-sky-950/50 focus-visible:outline-sky-400`}
             >
-              Ack <kbd className="text-slate-500">a</kbd>
+              Ack <kbd className="text-slate-400">a</kbd>
             </button>
             <button
               type="button"
@@ -314,7 +321,7 @@ export function AlertRow({
               title="Dismiss — needs a reason (d)"
               className={`${ACTION} border-rose-800 text-rose-200 hover:bg-rose-950/50 focus-visible:outline-rose-400`}
             >
-              Dismiss <kbd className="text-slate-500">d</kbd>
+              Dismiss <kbd className="text-slate-400">d</kbd>
             </button>
             <button
               type="button"
@@ -326,7 +333,7 @@ export function AlertRow({
               title="Escalate (e)"
               className={`${ACTION} border-violet-800 text-violet-200 hover:bg-violet-950/50 focus-visible:outline-violet-400`}
             >
-              Escalate <kbd className="text-slate-500">e</kbd>
+              Escalate <kbd className="text-slate-400">e</kbd>
             </button>
           </div>
         )}
@@ -337,7 +344,7 @@ export function AlertRow({
           aria-expanded={expanded}
           className="rounded-md border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
         >
-          {expanded ? 'Hide evidence' : 'Evidence'} <kbd className="text-slate-500">↵</kbd>
+          {expanded ? 'Hide evidence' : 'Evidence'} <kbd className="text-slate-400">↵</kbd>
         </button>
       </div>
     </div>

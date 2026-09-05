@@ -338,14 +338,21 @@ export function AlertsScreen({
     [act, dismissingId, mayAct, queue.alerts, queue.cursorId, scrollCursorIntoView],
   );
 
-  /** Focus follows the cursor, so the browser's own focus ring is the visible indicator. */
+  /**
+   * Focus follows the cursor, so the browser's own focus ring is the visible indicator.
+   *
+   * It also **comes back** when the dismiss-reason field closes. That is the AC's phrase taken
+   * literally — *without leaving the row*: after a dismissal the reason input is unmounted, focus
+   * would otherwise fall to `<body>`, and the next `j` would go nowhere. An operator working the
+   * queue by keyboard would silently lose their place after every dismissal.
+   */
   useEffect(() => {
-    if (queue.cursorId === null) return;
+    if (queue.cursorId === null || dismissingId !== null) return;
     const node = viewport.current?.querySelector<HTMLElement>(
       `[data-alert-id="${queue.cursorId}"]`,
     );
     if (node !== null && node !== undefined && document.activeElement !== node) node.focus();
-  }, [queue.cursorId]);
+  }, [queue.cursorId, dismissingId, busyId]);
 
   /* ── the window ─────────────────────────────────────────────────────────────────────────── */
 
@@ -387,7 +394,7 @@ export function AlertsScreen({
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-100">Alert queue</h1>
-        <p className="flex items-center gap-2 text-xs text-slate-500">
+        <p className="flex items-center gap-2 text-xs text-slate-400">
           <span
             data-testid="stream-status"
             data-state={stream}
@@ -458,9 +465,28 @@ export function AlertsScreen({
         </p>
       )}
 
-      {/* ── the unobtrusive new-alert indicator: no layout jump, no modal ─────────────────── */}
-      <div className="h-8">
-        {queue.pending.length === 0 ? null : (
+      {/*
+        ── the unobtrusive new-alert indicator ─────────────────────────────────────────────
+
+        A fixed-height band that always holds *something*: the keyboard legend by default, the
+        "N new" pill when the stream has buffered alerts. Reserving the height is what makes the
+        indicator unobtrusive — the queue below it never moves when an alert arrives, which is the
+        first half of AC 1. A pill that appeared out of nothing would push every row down by its own
+        height, which is precisely the row-shift the criterion forbids.
+      */}
+      <div className="flex h-8 items-center">
+        {queue.pending.length === 0 ? (
+          <p className="text-[11px] text-slate-400">
+            <kbd className="rounded border border-slate-700 px-1">j</kbd>/
+            <kbd className="rounded border border-slate-700 px-1">k</kbd> move ·{' '}
+            <kbd className="rounded border border-slate-700 px-1">a</kbd> acknowledge ·{' '}
+            <kbd className="rounded border border-slate-700 px-1">d</kbd> dismiss (asks why) ·{' '}
+            <kbd className="rounded border border-slate-700 px-1">e</kbd> escalate ·{' '}
+            <kbd className="rounded border border-slate-700 px-1">↵</kbd> evidence ·{' '}
+            <kbd className="rounded border border-slate-700 px-1">esc</kbd> close
+            {mayAct ? '' : ' — this role may read the queue but not action it'}
+          </p>
+        ) : (
           <button
             type="button"
             data-testid="new-alerts-pill"
@@ -488,26 +514,26 @@ export function AlertsScreen({
         />
       ) : (
         <>
-          {/* Keyboard help, visible rather than hidden behind a `?` nobody presses. */}
-          <p className="text-[11px] text-slate-500">
-            <kbd className="rounded border border-slate-700 px-1">j</kbd>/
-            <kbd className="rounded border border-slate-700 px-1">k</kbd> move ·{' '}
-            <kbd className="rounded border border-slate-700 px-1">a</kbd> acknowledge ·{' '}
-            <kbd className="rounded border border-slate-700 px-1">d</kbd> dismiss (asks why) ·{' '}
-            <kbd className="rounded border border-slate-700 px-1">e</kbd> escalate ·{' '}
-            <kbd className="rounded border border-slate-700 px-1">↵</kbd> evidence ·{' '}
-            <kbd className="rounded border border-slate-700 px-1">esc</kbd> close
-            {mayAct ? '' : ' — this role may read the queue but not action it'}
-          </p>
+          {/*
+            The keyboard lives on the **viewport**, not on the rows.
 
+            A row-level handler only fires once a row already has focus, so `j` does nothing on a
+            queue an operator has just opened — which is precisely the moment they press it. The
+            viewport is focusable, row key events bubble up to it, and the dismiss-reason field
+            stops propagation so typing `d` into a reason cannot dismiss the row underneath.
+          */}
           <div
             ref={viewport}
             data-testid="alert-viewport"
+            tabIndex={0}
+            role="group"
+            aria-label="Alert queue — j and k move, a acknowledges, d dismisses, e escalates"
+            onKeyDown={onKeyDown}
             onScroll={(event) => {
               setScrollTop(event.currentTarget.scrollTop);
             }}
             style={{ height: `${String(VIEWPORT_HEIGHT)}px` }}
-            className="overflow-y-auto rounded-lg border border-slate-800 bg-slate-900/30"
+            className="overflow-y-auto rounded-lg border border-slate-800 bg-slate-900/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
           >
             <div style={{ height: `${String(win.totalHeight)}px` }} className="relative">
               <div style={{ height: `${String(win.padTop)}px` }} aria-hidden="true" />
@@ -537,7 +563,6 @@ export function AlertsScreen({
                       onTransition={(to, note) => {
                         act(alert.id, to, note);
                       }}
-                      onKeyDown={onKeyDown}
                     />
                     {queue.expandedId === alert.id ? (
                       <div ref={detail}>
@@ -559,7 +584,7 @@ export function AlertsScreen({
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <div className="flex items-center justify-between text-[11px] text-slate-400">
             <span data-testid="alert-count">
               {queue.alerts.length} alert{queue.alerts.length === 1 ? '' : 's'} ·{' '}
               {win.end - win.start} rendered

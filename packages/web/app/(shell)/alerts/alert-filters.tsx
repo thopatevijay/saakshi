@@ -20,7 +20,7 @@ import type { FilterOptions } from './types';
 
 const FIELD =
   'rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-400';
-const LABEL = 'text-[10px] font-semibold tracking-wide text-slate-500 uppercase';
+const LABEL = 'text-[10px] font-semibold tracking-wide text-slate-400 uppercase';
 
 /** `datetime-local` wants `YYYY-MM-DDTHH:mm` in *local* time; the state holds a UTC instant. */
 function toLocalInput(iso: string | null): string {

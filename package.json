@@ -36,7 +36,9 @@
     "evidence:retention": "npm run evidence:retention --workspace @saakshi/api --",
     "evidence:sign": "npm run evidence:sign --workspace @saakshi/api --",
     "seed:watchlist": "npm run seed:watchlist --workspace @saakshi/api --",
-    "measure:trace-linking": "npm run measure:trace-linking --workspace @saakshi/api --"
+    "measure:trace-linking": "npm run measure:trace-linking --workspace @saakshi/api --",
+    "bench:alert-ui": "npm run bench:alert-ui --workspace @saakshi/web --",
+    "demo:alerts": "npm run demo:alerts --workspace @saakshi/api --"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

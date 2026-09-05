@@ -213,6 +213,58 @@ async function seed(): Promise<void> {
   out('open it:  /alerts');
 }
 
+/**
+ * `--live <camera>` — raise **one** alert now, so a running queue receives it over SSE.
+ *
+ * This is how "a new alert appears live without a refresh" is demonstrated and recorded. It replays
+ * the measured read `GJ35U07` — the truncated form of the `cam07` ground-truth registration
+ * `GJ35U0779`, at the confidence D2-01 recorded — against a real sighting on the camera named. The
+ * dedupe key is `entryId:cameraId`, so each camera yields exactly one new alert and a second run on
+ * the same camera correctly bumps the existing one instead of raising a duplicate.
+ *
+ * The `NOTIFY` the engine emits is what carries it across processes: this script is not the API, so
+ * without the cross-process fan-out `alerts.ts` sets up, an operator's stream would stay empty.
+ */
+async function live(externalId: string): Promise<void> {
+  const batch = await loadSeedCsv(SEED_CSV_PATH);
+  await upsertWatchlistEntries(db, batch.valid);
+
+  const engine = new AlertEngine({
+    db,
+    registry: createWatchlistRegistry({ db, matcher: new ConfusionPlateMatcher(db) }),
+  });
+
+  const rows = await db.execute<{ camera_id: string; sighting_id: string; ts: string }>(sql`
+    select c.id::text as camera_id, s.id::text as sighting_id,
+           to_char(s.ts at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as ts
+      from cameras c join sightings s on s.camera_id = c.id
+     where c.external_id = ${externalId} and c.deleted_at is null
+     order by s.ts desc, s.id
+     limit 1
+  `);
+  const row = rows[0];
+  if (row === undefined)
+    throw new Error(`camera ${externalId} has no sighting to attach a read to`);
+
+  const outcome = await engine.correlate({
+    sightingId: row.sighting_id,
+    sightingTs: row.ts,
+    cameraId: row.camera_id,
+    rawText: 'GJ35U07',
+    confidence: 0.6,
+  });
+
+  if (outcome.alerts.length === 0) {
+    throw new Error(`no alert raised on ${externalId} (${outcome.skipped ?? 'no hit'})`);
+  }
+  for (const alert of outcome.alerts) {
+    out(
+      `raised ${alert.severity} ${alert.matchType} alert on ${externalId} — ` +
+        `${alert.id} (${outcome.created === 0 ? 'deduped onto an existing alert' : 'new'})`,
+    );
+  }
+}
+
 async function remove(): Promise<void> {
   const chosen = await chooseSightings();
   const ids = chosen.map((c) => c.sightingId);
@@ -226,10 +278,11 @@ async function remove(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const mode = process.argv.includes('--remove') ? 'remove' : 'seed';
+  const liveFlag = process.argv.indexOf('--live');
   try {
     await rawSql`select 1`;
-    if (mode === 'remove') await remove();
+    if (liveFlag !== -1) await live(process.argv[liveFlag + 1] ?? 'cam01');
+    else if (process.argv.includes('--remove')) await remove();
     else await seed();
   } finally {
     await rawSql.end();
