@@ -150,11 +150,7 @@ export function replace(state: QueueState, alerts: AlertRecord[], sort: AlertSor
  * `mayAct` is the RBAC answer — `auditor` may read the queue and may not move anything in it, and
  * offering a button that returns 403 teaches an operator to distrust the screen.
  */
-export function transitionAllowed(
-  alert: AlertRecord,
-  to: AlertStatus,
-  mayAct: boolean,
-): boolean {
+export function transitionAllowed(alert: AlertRecord, to: AlertStatus, mayAct: boolean): boolean {
   return mayAct && canTransition(alert.status, to);
 }
 

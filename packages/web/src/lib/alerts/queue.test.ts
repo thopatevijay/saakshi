@@ -109,10 +109,14 @@ describe('AC 1 — a live alert never moves the row under the cursor', () => {
 
   it('de-duplicates a redelivery: the same id twice is one buffered row', () => {
     const first = receive(emptyQueue([]), alert('a'), { sort: 'severity', idle: false });
-    const second = receive(first, { ...alert('a'), sightingCount: 4 }, {
-      sort: 'severity',
-      idle: false,
-    });
+    const second = receive(
+      first,
+      { ...alert('a'), sightingCount: 4 },
+      {
+        sort: 'severity',
+        idle: false,
+      },
+    );
     expect(second.pending).toHaveLength(1);
     expect(second.pending[0]?.sightingCount).toBe(4);
   });

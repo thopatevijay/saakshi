@@ -103,7 +103,9 @@ async function chooseSightings(): Promise<Chosen[]> {
      order by c.external_id
   `);
   if (cams.length === 0) {
-    throw new Error('no camera in this database has any sighting — nothing real to attach a read to');
+    throw new Error(
+      'no camera in this database has any sighting — nothing real to attach a read to',
+    );
   }
 
   const chosen: Chosen[] = [];
