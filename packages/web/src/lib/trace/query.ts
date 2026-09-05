@@ -121,10 +121,14 @@ export function traceHref(input: {
 }
 
 /** The query string the trace API takes, built from screen state. */
-export function toTraceApiQuery(state: TraceQueryState): {
+export function toTraceApiQuery(
+  state: TraceQueryState,
+  options: { reconstruct?: boolean } = {},
+): {
   plate: string;
   min_confidence: number;
   max_distance: number;
+  reconstruct: string;
   from?: string;
   to?: string;
 } {
@@ -132,6 +136,15 @@ export function toTraceApiQuery(state: TraceQueryState): {
     plate: state.plate,
     min_confidence: state.minConfidence,
     max_distance: state.maxDistance,
+    // D3-01. Always on from the *screen*: the observed-vs-inferred distinction is not a user
+    // preference, and a trace screen with a mode that draws one undifferentiated line is the
+    // failure the whole feature exists to prevent. Off by default everywhere else, because the CSV
+    // and PDF exports render D2-08's gap list and would otherwise pay for an OSRM query per hop
+    // to produce a route nothing in them prints.
+    //
+    // A **string**, not a boolean: the API parses it with `z.stringbool()` and the generated
+    // OpenAPI type is `string`, so the wire value is what this function has to speak.
+    reconstruct: options.reconstruct === true ? 'true' : 'false',
     ...(state.from !== null ? { from: state.from } : {}),
     ...(state.to !== null ? { to: state.to } : {}),
   };

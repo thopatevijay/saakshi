@@ -2805,6 +2805,7 @@ export interface paths {
                     min_confidence?: number;
                     max_distance?: number;
                     limit?: number;
+                    reconstruct?: string;
                 };
                 header?: never;
                 path?: never;
@@ -2934,6 +2935,84 @@ export interface paths {
                                 observed: string;
                                 inferred: string;
                             };
+                            route: {
+                                canonicalPlate: string;
+                                segments: {
+                                    seq: number;
+                                    fromSeq: number;
+                                    toSeq: number;
+                                    fromSightingId: string;
+                                    toSightingId: string;
+                                    fromCameraId: string;
+                                    toCameraId: string;
+                                    fromCameraName: string;
+                                    toCameraName: string;
+                                    /** @enum {string} */
+                                    kind: "observed_dwell" | "inferred_path" | "inferred_revisit" | "inferred_unroutable";
+                                    observed: boolean;
+                                    /** @enum {string} */
+                                    basis: "observed" | "inferred";
+                                    sameCamera: boolean;
+                                    elapsedSeconds: number;
+                                    straightLineKm: number | null;
+                                    roadDistanceKm: number | null;
+                                    expectedTravelTimeS: number | null;
+                                    elapsedVsExpected: number | null;
+                                    minimumAverageSpeedKmh: number | null;
+                                    pathOptions: number | null;
+                                    inferredConfidence: number | null;
+                                    confidenceBasis: {
+                                        timing: number;
+                                        uniqueness: number;
+                                        endpoints: number;
+                                    } | null;
+                                    geometry: {
+                                        /** @enum {string} */
+                                        type: "LineString";
+                                        coordinates: (number)[][];
+                                    } | null;
+                                    note: string;
+                                }[];
+                                summary: {
+                                    segments: number;
+                                    observedSegments: number;
+                                    inferredSegments: number;
+                                    unmeasuredSegments: number;
+                                    cameras: number;
+                                    camerasPlaced: number;
+                                    firstSeen: string | null;
+                                    lastSeen: string | null;
+                                    elapsedSeconds: number;
+                                    totalKm: number;
+                                    observedKm: number;
+                                    inferredKm: number;
+                                    meanInferredConfidence: number | null;
+                                    weakestSegmentSeq: number | null;
+                                };
+                                coverage: {
+                                    segmentsRouted: number;
+                                    segmentsUnroutable: number;
+                                    segmentsUnplaced: number;
+                                    osrmQueries: number;
+                                    osrmFailures: number;
+                                };
+                                legend: {
+                                    observed: string;
+                                    inferred: string;
+                                };
+                                cache: {
+                                    key: string;
+                                    fingerprint: string;
+                                    hit: boolean;
+                                    builtAt: string;
+                                };
+                                roadGraph: {
+                                    available: boolean;
+                                    baseUrl: string;
+                                    modelVersion: string;
+                                };
+                                buildMs: number;
+                            } | null;
                             /** @enum {string|null} */
                             emptyReason: "query_not_searchable" | "no_matching_plate" | "no_sightings_in_window" | "below_min_confidence" | null;
                             disclaimer: string;
@@ -3020,6 +3099,7 @@ export interface paths {
                     min_confidence?: number;
                     max_distance?: number;
                     limit?: number;
+                    reconstruct?: string;
                 };
                 header?: never;
                 path?: never;
@@ -3062,6 +3142,7 @@ export interface paths {
                     min_confidence?: number;
                     max_distance?: number;
                     limit?: number;
+                    reconstruct?: string;
                 };
                 header?: never;
                 path?: never;
