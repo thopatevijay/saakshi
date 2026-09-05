@@ -24,6 +24,7 @@ import {
   toCameraListQuery,
   type RegistryFilters,
 } from '@/src/lib/registry/query';
+import { EMPTY_COVERAGE, type CoverageFeatureCollection } from '@/src/lib/registry/coverage';
 import type { Camera, CameraPage, ImportState, ManualAddState, SyncState } from './types';
 
 /**
@@ -87,6 +88,25 @@ async function fetchDetail(id: string) {
 /** Camera detail plus the full trust breakdown, for the drawer. `null` when it is gone. */
 export async function loadCameraDetail(id: string) {
   return fetchDetail(id);
+}
+
+/**
+ * Coverage cells for the map overlay (D3-06).
+ *
+ * Fetched lazily — only once the operator turns the overlay on — because it is a second round trip
+ * that most sessions never need, and the registry screen's first paint is a measured number nobody
+ * wants to spend on a layer that starts hidden.
+ *
+ * Returns an empty collection rather than throwing: a missing overlay must degrade to a map with no
+ * cells, never to an error page over a working registry.
+ */
+export async function loadCoverage(): Promise<CoverageFeatureCollection> {
+  const session = await getSession();
+  if (session === null) return EMPTY_COVERAGE;
+
+  const { data, error } = await apiClient(session.token).GET('/api/v1/coverage/overlay');
+  if (error !== undefined || data === undefined) return EMPTY_COVERAGE;
+  return data;
 }
 
 // ── Onboarding path 1 · bulk import ─────────────────────────────────────────────────────────────

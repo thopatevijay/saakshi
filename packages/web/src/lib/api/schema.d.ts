@@ -1523,6 +1523,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/coverage/overlay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Camera coverage cells as GeoJSON, tagged trusted or untrusted
+         * @description Reads `camera_coverage`, which `npm run report:gap-analysis` populates. Cameras without coordinates have a row with null geometry and do not appear here — they are unassessable, not uncovered.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            type: "FeatureCollection";
+                            features: {
+                                /** @enum {string} */
+                                type: "Feature";
+                                id: string;
+                                geometry: {
+                                    type: string;
+                                    coordinates: unknown;
+                                } & {
+                                    [key: string]: unknown;
+                                };
+                                properties: {
+                                    id: string;
+                                    externalId: string;
+                                    /** @enum {string} */
+                                    state: "trusted" | "untrusted" | "uncovered";
+                                    band: string;
+                                    rangeM: number;
+                                };
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;

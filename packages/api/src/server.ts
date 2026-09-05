@@ -22,6 +22,7 @@ import { registerCameraRoutes } from './routes/cameras.js';
 import { registerDepartmentRoutes } from './routes/departments.js';
 import { registerSyncRoutes } from './routes/sync.js';
 import { registerTrustRoutes } from './routes/trust.js';
+import { registerCoverageRoutes } from './routes/coverage.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerWatchlistRoutes } from './routes/watchlist.js';
 import { registerPlateRoutes } from './routes/plates.js';
@@ -249,6 +250,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerDepartmentRoutes(app, { db });
     registerSyncRoutes(app, { db });
     registerTrustRoutes(app, { db });
+    registerCoverageRoutes(app, { db });
     registerAuthRoutes(app, { db });
     registerWatchlistRoutes(app, { db });
     registerPlateRoutes(app, { db });

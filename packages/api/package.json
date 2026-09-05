@@ -30,6 +30,7 @@
     "export:verify": "tsx src/jobs/export-verify.ts",
     "demo:provider-swap": "tsx src/demo/provider-swap.ts",
     "reid:bridge": "tsx src/jobs/reid-bridge-cli.ts",
+    "report:gap-analysis": "tsx src/jobs/gap-analysis-cli.ts",
     "analyze:anomalies": "tsx src/jobs/analyze-anomalies.ts"
   },
   "dependencies": {

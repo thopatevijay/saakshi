@@ -45,6 +45,7 @@ import {
 } from '@/src/lib/registry/geojson';
 import type { BandKey } from '@/src/lib/registry/trust';
 import { MapLegend } from './map-legend';
+import { CoverageLegend } from './coverage-legend';
 import { LayerToggles, type DepartmentOption } from './layer-toggles';
 import { FilterPanel } from './filter-panel';
 import { UnplacedTray } from './unplaced-tray';
@@ -53,7 +54,8 @@ import { ImportDialog } from './import-dialog';
 import { ManualAddDialog } from './manual-add-dialog';
 import { RegistryToolbar } from './registry-toolbar';
 import { RegistryTable } from './registry-table';
-import { loadCameraDetail, loadCameras } from './actions';
+import { loadCameraDetail, loadCameras, loadCoverage } from './actions';
+import { EMPTY_COVERAGE, type CoverageFeatureCollection } from '@/src/lib/registry/coverage';
 import type { Camera } from './types';
 
 /** `ssr: false` because MapLibre needs a DOM and a WebGL context, neither of which Node has. */
@@ -107,6 +109,11 @@ export function RegistryScreen({
   const [dialog, setDialog] = useState<'import' | 'manual' | null>(null);
   const [detail, setDetail] = useState<CameraDetailPayload | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // D3-06's coverage overlay. Off by default and fetched on first enable: it is a second round
+  // trip, and the registry's first paint is a measured number.
+  const [coverageOn, setCoverageOn] = useState(false);
+  const [coverage, setCoverage] = useState<CoverageFeatureCollection>(EMPTY_COVERAGE);
+  const [coverageLoading, setCoverageLoading] = useState(false);
   const [pending, startTransition] = useTransition();
 
   // ── URL, without a server round trip ──────────────────────────────────────────────────────────
@@ -157,6 +164,25 @@ export function RegistryScreen({
       live = false;
     };
   }, [selected, notify]);
+
+  // The "already asked" flag is a **ref, not state**, and that is load-bearing. The first draft
+  // guarded on a `coverageLoading` state value that the effect itself set: setting it re-ran the
+  // effect, whose cleanup flipped `live` to false, so the in-flight response was discarded — and
+  // the re-run then bailed on the very flag that had just been set. The overlay never loaded and
+  // the map reported zero cells against an API that was returning fifty.
+  const coverageRequested = useRef(false);
+  useEffect(() => {
+    if (!coverageOn || coverageRequested.current) return;
+    coverageRequested.current = true;
+    setCoverageLoading(true);
+    void loadCoverage().then((result) => {
+      setCoverage(result);
+      setCoverageLoading(false);
+      if (result.features.length === 0) {
+        notify('No coverage cells yet — run `npm run report:gap-analysis`.', 'error');
+      }
+    });
+  }, [coverageOn, notify]);
 
   // ── Derived ───────────────────────────────────────────────────────────────────────────────────
   const mappable = cameras as unknown as MappableCamera[];
@@ -268,6 +294,15 @@ export function RegistryScreen({
           <hr className="border-slate-800" />
           <MapLegend counts={bandCounts} hidden={layers.band} onToggle={onToggleBand} />
           <hr className="border-slate-800" />
+          <CoverageLegend
+            data={coverageOn ? coverage : EMPTY_COVERAGE}
+            enabled={coverageOn}
+            loading={coverageOn && coverageLoading}
+            onToggle={() => {
+              setCoverageOn((on) => !on);
+            }}
+          />
+          <hr className="border-slate-800" />
           <LayerToggles
             layers={layers}
             counts={layerCounts}
@@ -306,6 +341,7 @@ export function RegistryScreen({
               <div className="h-[calc(100dvh-17rem)] min-h-[28rem]">
                 <RegistryMap
                   data={features}
+                  coverage={coverageOn ? coverage : EMPTY_COVERAGE}
                   selected={selected}
                   onSelect={setSelected}
                   onViewportChange={onViewportChange}
