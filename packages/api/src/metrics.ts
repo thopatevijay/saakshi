@@ -62,6 +62,8 @@ const processUp = new Gauge({
   registers: [registry],
 });
 
+// Referenced only by prom-client's registry, which calls its `collect` hook on every scrape. The
+// binding is `void`-consumed below so the linter can see that "never read" is the point.
 const processUptimeSeconds = new Gauge({
   name: 'saakshi_process_uptime_seconds',
   help: 'Seconds since this process started.',
@@ -75,17 +77,44 @@ const processUptimeSeconds = new Gauge({
 const uptimeTarget = new Gauge({
   name: 'saakshi_uptime_target_ratio',
   help: 'The uptime target SAAKSHI is measured against (PROJECT.md: >99%). A constant threshold line, never a measurement — the measurement is avg_over_time(up[...]).',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
+void processUptimeSeconds;
+
 let componentName = 'api';
+
+/**
+ * The label set naming the process that took a platform or estate measurement.
+ *
+ * Every *unlabelled* prom-client gauge is published as `0` the moment it is constructed, before
+ * anything sets it. This module is shared by the API and the sightings consumer, so an unlabelled
+ * `saakshi_db_reachable` meant the consumer — which measures no such thing — exported a permanent
+ * `0` and fired `SaakshiDatabaseUnreachable` against a perfectly healthy database. Found by running
+ * it, not by reading it. A labelled gauge has no default child, so it publishes nothing at all
+ * until the process that actually measures it sets it.
+ */
+function component(): { component: string } {
+  return { component: componentName };
+}
 
 /** Names this process in every process-scoped metric, and stamps the build info gauge. */
 export function identifyComponent(component: string, version: string): void {
   componentName = component;
   buildInfo.set({ component, version }, 1);
   processUp.set({ component }, 1);
-  uptimeTarget.set(UPTIME_TARGET_RATIO);
+}
+
+/**
+ * Publishes the stated uptime target as a constant threshold series.
+ *
+ * Called by the API and by nothing else. The target is a property of the SYSTEM, not of a process,
+ * so every process publishing its own copy would put two identical lines on one panel and invite
+ * somebody to sum them.
+ */
+export function declareUptimeTarget(): void {
+  uptimeTarget.set(component(), UPTIME_TARGET_RATIO);
 }
 
 /** Node runtime metrics. Opt-in so a test registry stays small and deterministic. */
@@ -123,12 +152,14 @@ const httpDuration = new Histogram({
 const dbReachable = new Gauge({
   name: 'saakshi_db_reachable',
   help: '1 when the last metrics refresh reached PostgreSQL, 0 when it did not.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
 const dbPoolMax = new Gauge({
   name: 'saakshi_db_pool_max',
   help: 'Configured connection ceiling for this API instance (DATABASE_POOL_MAX).',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
@@ -142,6 +173,7 @@ const dbBackends = new Gauge({
 const busReachable = new Gauge({
   name: 'saakshi_bus_reachable',
   help: '1 when the last metrics refresh reached Valkey, 0 when it did not.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
@@ -296,6 +328,20 @@ const cameraSightingsStored = new Gauge({
 
 // ── Estate: aggregates ──────────────────────────────────────────────────────────────────────────
 
+const cameraRetentionState = new Gauge({
+  name: 'saakshi_camera_retention_state',
+  help: "Always 1, on the camera's declared retention state. `unknown` means the registry carries no retention period for it — that is UNASSESSABLE, not zero days, and it is its own state precisely so it can never be read as coverage.",
+  labelNames: ['camera', 'state'] as const,
+  registers: [registry],
+});
+
+const estateRetention = new Gauge({
+  name: 'saakshi_estate_retention_cameras',
+  help: 'Cameras by declared retention state. On the Sentinel sandbox this reads 0 declared / 30 unknown: the catalogue supplies {id, name} and nothing about retention, so the honest estate answer is that retention cannot be assessed at all.',
+  labelNames: ['state'] as const,
+  registers: [registry],
+});
+
 const estateCameras = new Gauge({
   name: 'saakshi_estate_cameras',
   help: 'Registry cameras by catalogue status (presence in the upstream catalogue).',
@@ -313,6 +359,7 @@ const estateCamerasByBand = new Gauge({
 const estateCameraUptimeRatio = new Gauge({
   name: 'saakshi_estate_camera_uptime_ratio',
   help: 'Fraction of probed cameras whose newest health check was connectable. Estate availability as observed, not as targeted.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
@@ -321,12 +368,14 @@ const estateCameraUptimeRatio = new Gauge({
 const plateReadsStored = new Gauge({
   name: 'saakshi_plate_reads_stored',
   help: 'Plate read rows stored.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
 const plateReadsPerMin = new Gauge({
   name: 'saakshi_plate_reads_per_min',
   help: 'Plate reads written over the last 5 minutes, per minute. ANPR is the only mandatory analytic, so this is the mandatory throughput number.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
@@ -354,12 +403,14 @@ const evidenceObjectsStored = new Gauge({
 const auditChainEntries = new Gauge({
   name: 'saakshi_audit_chain_entries',
   help: 'Entries in the tamper-evident audit chain (D3-04).',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
 const auditChainForks = new Gauge({
   name: 'saakshi_audit_chain_forks',
   help: 'Distinct prev_hash values claimed by more than one entry. Anything above 0 means the chain forked and the verify endpoint will report it.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
@@ -368,41 +419,49 @@ const auditChainForks = new Gauge({
 const relayCachedObjects = new Gauge({
   name: 'saakshi_relay_cached_objects',
   help: 'Objects held in the HLS relay cache.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 const relayCachedBytes = new Gauge({
   name: 'saakshi_relay_cached_bytes',
   help: 'Bytes held in the HLS relay cache.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 const relayHits = new Gauge({
   name: 'saakshi_relay_hits',
   help: 'Relay reads served from cache. Each hit is one request the department gateway never saw.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 const relayMisses = new Gauge({
   name: 'saakshi_relay_misses',
   help: 'Relay reads that had to go upstream.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 const relayUpstreamRequests = new Gauge({
   name: 'saakshi_relay_upstream_requests',
   help: 'Requests the relay has made to the department gateway.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 const relayInFlight = new Gauge({
   name: 'saakshi_relay_in_flight',
   help: 'Upstream fetches running now.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 const relayQueued = new Gauge({
   name: 'saakshi_relay_queued',
   help: 'Upstream fetches waiting for a concurrency slot.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 const relayUpstreamMeanMs = new Gauge({
   name: 'saakshi_relay_upstream_mean_ms',
   help: 'Rolling mean upstream wall time. D3-07 measured a 6-second HLS segment arriving in 22-49 s.',
+  labelNames: ['component'] as const,
   registers: [registry],
 });
 
@@ -496,6 +555,7 @@ type EstateRow = {
   status: string;
   catalogue_status: string;
   declared_fps: string | null;
+  retention_days: number | null;
   trust_score: string | null;
   band: string | null;
   connectable: boolean | null;
@@ -583,6 +643,7 @@ const ESTATE_SQL = (bands: BandThresholds) => sql`
     c.status::text                              as status,
     c.catalogue_status::text                    as catalogue_status,
     c.declared_fps::text                        as declared_fps,
+    c.retention_days,
     c.trust_score::text                         as trust_score,
     case
       when c.trust_score is null then null
@@ -637,9 +698,12 @@ export async function refreshEstateMetrics(db: Db, bands: BandThresholds): Promi
   cameraHealthAge.reset();
   cameraStatus.reset();
   estateCameras.reset();
+  cameraRetentionState.reset();
+  estateRetention.reset();
   estateCamerasByBand.reset();
 
   const byCatalogue = new Map<string, number>();
+  const byRetention = new Map<string, number>();
   const byBand = new Map<string, number>();
   let probed = 0;
   let connectableCount = 0;
@@ -648,6 +712,14 @@ export async function refreshEstateMetrics(db: Db, bands: BandThresholds): Promi
     const camera = row.external_id;
     cameraStatus.set({ camera, status: row.status }, 1);
     byCatalogue.set(row.catalogue_status, (byCatalogue.get(row.catalogue_status) ?? 0) + 1);
+
+    // Retention. `unknown` is its OWN state and is never folded into a zero: a camera whose
+    // retention period the registry does not know is unassessable, not uncovered, and the
+    // difference decides whether an evidence request can be honoured. On the Sentinel sandbox
+    // this reads 0 declared / 30 unknown.
+    const retention = row.retention_days === null ? 'unknown' : 'declared';
+    cameraRetentionState.set({ camera, state: retention }, 1);
+    byRetention.set(retention, (byRetention.get(retention) ?? 0) + 1);
 
     const declared = num(row.declared_fps);
     if (declared !== null) cameraDeclaredFps.set({ camera }, declared);
@@ -701,8 +773,13 @@ export async function refreshEstateMetrics(db: Db, bands: BandThresholds): Promi
   }
 
   for (const [key, n] of byCatalogue) estateCameras.set({ catalogue_status: key }, n);
+  // Both states are always published, including a zero, so "0 declared" is a visible measurement
+  // rather than a missing panel.
+  for (const state of ['declared', 'unknown']) {
+    estateRetention.set({ state }, byRetention.get(state) ?? 0);
+  }
   for (const [key, n] of byBand) estateCamerasByBand.set({ band: key }, n);
-  estateCameraUptimeRatio.set(probed === 0 ? 0 : connectableCount / probed);
+  estateCameraUptimeRatio.set(component(), probed === 0 ? 0 : connectableCount / probed);
 }
 
 /** Sighting volume and rate per camera, plus the stored plate/alert/audit/evidence totals. */
@@ -735,8 +812,8 @@ export async function refreshPipelineMetrics(db: Db): Promise<void> {
   `);
   const plateRow = plates[0];
   if (plateRow !== undefined) {
-    plateReadsStored.set(Number(plateRow.stored));
-    plateReadsPerMin.set(Number(plateRow.recent) / 5);
+    plateReadsStored.set(component(), Number(plateRow.stored));
+    plateReadsPerMin.set(component(), Number(plateRow.recent) / 5);
   }
 
   const alertRows = await db.execute<{ status: string; severity: string; n: string }>(sql`
@@ -794,8 +871,8 @@ export async function refreshPipelineMetrics(db: Db): Promise<void> {
   `);
   const auditRow = audit[0];
   if (auditRow !== undefined) {
-    auditChainEntries.set(Number(auditRow.entries));
-    auditChainForks.set(Number(auditRow.forks));
+    auditChainEntries.set(component(), Number(auditRow.entries));
+    auditChainForks.set(component(), Number(auditRow.forks));
   }
 
   const backends = await db.execute<CountRow>(sql`
@@ -860,15 +937,15 @@ export async function refreshBusMetrics(inspector: BusInspector, streams: string
 }
 
 export function setBusReachable(reachable: boolean): void {
-  busReachable.set(reachable ? 1 : 0);
+  busReachable.set(component(), reachable ? 1 : 0);
 }
 
 export function setDbReachable(reachable: boolean): void {
-  dbReachable.set(reachable ? 1 : 0);
+  dbReachable.set(component(), reachable ? 1 : 0);
 }
 
 export function setDbPoolMax(max: number): void {
-  dbPoolMax.set(max);
+  dbPoolMax.set(component(), max);
 }
 
 // ── Relay ───────────────────────────────────────────────────────────────────────────────────────
@@ -885,14 +962,14 @@ export interface RelayStatsLike {
 }
 
 export function recordRelayStats(stats: RelayStatsLike): void {
-  relayCachedObjects.set(stats.cachedObjects);
-  relayCachedBytes.set(stats.cachedBytes);
-  relayHits.set(stats.hits);
-  relayMisses.set(stats.misses);
-  relayUpstreamRequests.set(stats.upstreamRequests);
-  relayInFlight.set(stats.inFlight);
-  relayQueued.set(stats.queued);
-  relayUpstreamMeanMs.set(stats.meanUpstreamMs);
+  relayCachedObjects.set(component(), stats.cachedObjects);
+  relayCachedBytes.set(component(), stats.cachedBytes);
+  relayHits.set(component(), stats.hits);
+  relayMisses.set(component(), stats.misses);
+  relayUpstreamRequests.set(component(), stats.upstreamRequests);
+  relayInFlight.set(component(), stats.inFlight);
+  relayQueued.set(component(), stats.queued);
+  relayUpstreamMeanMs.set(component(), stats.meanUpstreamMs);
 }
 
 // ── HTTP instrumentation ────────────────────────────────────────────────────────────────────────

@@ -2,10 +2,7 @@
   "uid": "saakshi-pipeline",
   "title": "SAAKSHI \u00b7 Pipeline Throughput",
   "description": "Declared vs measured vs effective frame rate, gateway starvation, motion gating, ANPR throughput and the bus.",
-  "tags": [
-    "saakshi",
-    "pipeline"
-  ],
+  "tags": ["saakshi", "pipeline"],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
@@ -19,7 +16,7 @@
   "graphTooltip": 1,
   "panels": [
     {
-      "id": 31,
+      "id": 33,
       "type": "text",
       "title": "Declared vs measured vs effective \u2014 the finding this system exists to make visible",
       "gridPos": {
@@ -34,7 +31,7 @@
       }
     },
     {
-      "id": 37,
+      "id": 39,
       "type": "timeseries",
       "title": "The three rates, per camera",
       "description": "The single most valuable panel on this board. A measured line far below its declared line is a camera that lies about itself; an effective line far below its measured line is a gateway that throttles us. Those are different problems with different owners, and one fps number cannot tell them apart.",
@@ -70,10 +67,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -92,7 +86,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "G"
+          "refId": "I"
         },
         {
           "datasource": {
@@ -105,7 +99,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "H"
+          "refId": "J"
         },
         {
           "datasource": {
@@ -118,7 +112,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "I"
+          "refId": "K"
         },
         {
           "datasource": {
@@ -131,7 +125,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "J"
+          "refId": "L"
         },
         {
           "datasource": {
@@ -144,12 +138,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "K"
+          "refId": "M"
         }
       ]
     },
     {
-      "id": 39,
+      "id": 41,
       "type": "stat",
       "title": "Throttle factor (measured / effective)",
       "description": "How many times more content the streams carry than we receive. ~1 on local MediaMTX; ~10 through the government gateway.",
@@ -189,9 +183,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -212,12 +204,12 @@
           "range": false,
           "instant": true,
           "format": "time_series",
-          "refId": "M"
+          "refId": "O"
         }
       ]
     },
     {
-      "id": 41,
+      "id": 43,
       "type": "stat",
       "title": "Upstream-bound share of wall time",
       "description": "A slow gateway looks exactly like a broken worker, and one latency number cannot tell them apart. This is the fraction of wall time our threads spent blocked inside decode() \u2014 the gateway's time, not ours. Measured at 92% over a 22-minute soak on the sandbox, with ZERO reconnects. Above ~70% there is nothing to fix in this pipeline.",
@@ -257,9 +249,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -280,12 +270,12 @@
           "range": false,
           "instant": true,
           "format": "time_series",
-          "refId": "O"
+          "refId": "Q"
         }
       ]
     },
     {
-      "id": 43,
+      "id": 45,
       "type": "timeseries",
       "title": "Starvation ratio per camera",
       "description": "Per camera: seconds blocked upstream over total seconds. Near 1 = the gateway is starving that camera. Near 0 with a low frame rate = our loop is the bottleneck.",
@@ -323,10 +313,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -345,12 +332,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "Q"
+          "refId": "S"
         }
       ]
     },
     {
-      "id": 45,
+      "id": 47,
       "type": "timeseries",
       "title": "Seconds since the last frame",
       "description": "Individual healthy stalls of 54.6 s have been measured on this estate with zero reconnects, which is why the starvation alert sits at 120 s and the camera-down alert is built on session state instead.",
@@ -386,10 +373,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -408,12 +392,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "S"
+          "refId": "U"
         }
       ]
     },
     {
-      "id": 49,
+      "id": 51,
       "type": "timeseries",
       "title": "Frames decoded and inferences run",
       "description": "The gap between the first two is the motion gate doing its job.",
@@ -449,10 +433,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -471,7 +452,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "U"
+          "refId": "W"
         },
         {
           "datasource": {
@@ -484,7 +465,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "V"
+          "refId": "X"
         },
         {
           "datasource": {
@@ -497,12 +478,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "W"
+          "refId": "Y"
         }
       ]
     },
     {
-      "id": 51,
+      "id": 53,
       "type": "timeseries",
       "title": "Motion-gate skip ratio",
       "description": "Fraction of considered frames never inferred. Measured 32.5% on live traffic cameras and 59.9% on a synthetic mix \u2014 that is the compute the gate saves, and it is a sizing-model input, not a cosmetic number.",
@@ -540,10 +521,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -562,12 +540,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "Y"
+          "refId": "A"
         }
       ]
     },
     {
-      "id": 54,
+      "id": 56,
       "type": "timeseries",
       "title": "Read rate against each camera's OWN baseline",
       "description": "Per-camera yield spreads 500x in one city at one hour \u2014 33,548 sightings on cam04 against 67 on cam03 over the same 22 minutes, and cam03 was not broken: it decoded 5,582 frames cleanly at 23.16 fps and simply sees almost no vehicles. The read-rate collapse alert therefore compares each camera against its own 24-hour median, never against an estate-wide floor.",
@@ -603,10 +581,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -625,7 +600,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "A"
+          "refId": "C"
         },
         {
           "datasource": {
@@ -638,12 +613,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "B"
+          "refId": "D"
         }
       ]
     },
     {
-      "id": 57,
+      "id": 59,
       "type": "timeseries",
       "title": "ANPR reads per minute",
       "description": "ANPR is the only mandatory analytic, so this is the mandatory throughput number. Two series because the live one disappears when the consumer exits and the stored one does not.",
@@ -679,10 +654,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -701,7 +673,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "D"
+          "refId": "F"
         },
         {
           "datasource": {
@@ -714,12 +686,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "E"
+          "refId": "G"
         }
       ]
     },
     {
-      "id": 59,
+      "id": 61,
       "type": "heatmap",
       "title": "Plate read confidence distribution",
       "description": "A DISTRIBUTION, NOT AN ACCURACY CLAIM. Confidence is what the OCR reports about itself; measured precision and recall \u2014 including where they fail, at night, on two-wheelers and at oblique angles \u2014 live in docs/anpr-accuracy.md.",
@@ -763,12 +735,12 @@
           "range": true,
           "instant": false,
           "format": "heatmap",
-          "refId": "G"
+          "refId": "I"
         }
       ]
     },
     {
-      "id": 61,
+      "id": 63,
       "type": "timeseries",
       "title": "Detector latency",
       "description": "Device-side only. Measured 18.91 ms p50 / 47.02 ms p95 for YOLO11n on Apple Silicon MPS across eight concurrent cameras. Kept apart from wall-clock fps because on a throttled gateway they answer different questions.",
@@ -804,10 +776,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -826,12 +795,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "I"
+          "refId": "K"
         }
       ]
     },
     {
-      "id": 65,
+      "id": 67,
       "type": "timeseries",
       "title": "Bus depth and lag",
       "description": "Lag rises when nothing is draining the stream; pending rises when something is attached but stuck. The alert needs both to tell those apart.",
@@ -867,10 +836,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -889,7 +855,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "K"
+          "refId": "M"
         },
         {
           "datasource": {
@@ -902,7 +868,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "L"
+          "refId": "N"
         },
         {
           "datasource": {
@@ -915,12 +881,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "M"
+          "refId": "O"
         }
       ]
     },
     {
-      "id": 71,
+      "id": 73,
       "type": "timeseries",
       "title": "Video-wall relay against the department gateway",
       "description": "Every cache hit is a request the department gateway never saw. D3-07 measured a 6-second HLS segment arriving in 22\u201349 s, so the relay is the difference between nine tiles and nine copies of the stream.",
@@ -956,10 +922,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -978,7 +941,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "O"
+          "refId": "Q"
         },
         {
           "datasource": {
@@ -991,7 +954,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "P"
+          "refId": "R"
         },
         {
           "datasource": {
@@ -1004,7 +967,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "Q"
+          "refId": "S"
         },
         {
           "datasource": {
@@ -1017,7 +980,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "R"
+          "refId": "T"
         },
         {
           "datasource": {
@@ -1030,12 +993,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "S"
+          "refId": "U"
         }
       ]
     },
     {
-      "id": 75,
+      "id": 77,
       "type": "timeseries",
       "title": "Database backends and object-store writes",
       "description": "Backends measured server-side from pg_stat_activity, because the number that exhausts max_connections is the server's, not the client pool's.",
@@ -1071,10 +1034,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -1093,7 +1053,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "U"
+          "refId": "W"
         },
         {
           "datasource": {
@@ -1106,7 +1066,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "V"
+          "refId": "X"
         },
         {
           "datasource": {
@@ -1119,7 +1079,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "W"
+          "refId": "Y"
         }
       ]
     }

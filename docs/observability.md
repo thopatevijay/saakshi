@@ -35,6 +35,7 @@ not be saved anyway. **Dashboards are files in this repo.** Edit
 | Datasource | `ops/grafana/provisioning/datasources/prometheus.yml` | fixed `uid`, so committed panels resolve |
 | Dashboard provider | `ops/grafana/provisioning/dashboards/saakshi.yml` | |
 | Dashboards | `ops/grafana/dashboards/{estate-health,pipeline-throughput,alerting}.json` | |
+| Deck screenshots | `docs/screenshots/d3-10-{estate-health,pipeline-throughput,alerting}.png` | |
 | API exporter | `packages/api/src/metrics.ts`, wired by `packages/api/src/routes/metrics.ts` | |
 | Worker exporters | `workers/analytics/metrics.py`, `workers/prober/metrics.py` | |
 
@@ -121,6 +122,43 @@ saakshi_camera_sightings_baseline_per_min{camera="cam04"}
 > a `percentile_cont` over 24 hours of `sightings`, refreshed every 5 minutes. That is fine for 30
 > cameras and wrong for 80,000. Logged to BL-01.
 
+### 2.4 `unknown` retention is not zero retention
+
+`cameras.retention_days` is `NULL` for **all 30** sandbox cameras: the catalogue supplies `{id,
+name}` and nothing else. So the honest estate answer today is **0 declared / 30 unknown**, and
+`unknown` is exported as its **own state**, never folded into a zero:
+
+```
+saakshi_estate_retention_cameras{state="declared"} 0
+saakshi_estate_retention_cameras{state="unknown"}  30
+```
+
+The difference decides whether an evidence request can be honoured. A camera whose retention period
+nobody knows is *unassessable*, not *uncovered*, and a panel that drew it as 0 days of coverage
+would be asserting something nobody measured.
+
+D3-05 (#28) adds a `preservation_requests` table whose rows carry the `audit_log.hash` of the D3-04
+chain entry that authorised them. Once that is merged, `available` / `expiring_soon` / `expired`
+become three further states on this same gauge and the same panel. This ticket exports only what
+its own branch can measure.
+
+### 2.5 An unlabelled gauge is a gauge every process publishes
+
+Every *unlabelled* `prom-client` gauge is published as `0` the moment it is **constructed**, before
+anything sets it. `packages/api/src/metrics.ts` is shared by the API and the sightings consumer, so
+an unlabelled `saakshi_db_reachable` meant the consumer — which measures no such thing — exported a
+permanent `0` and fired `SaakshiDatabaseUnreachable` against a perfectly healthy database. Observed
+on 2026-09-05; found by running it, not by reading it.
+
+Every platform and estate gauge therefore carries a `component` label naming the process that took
+the measurement. A labelled gauge has no default child, so it publishes nothing at all until that
+process sets it. The consumer's own metrics are built by a lazy `consumerMetrics()` factory for the
+same reason, from the other direction.
+
+The same class of bug has a cosmetic cousin: `saakshi_uptime_target_ratio` is a property of the
+*system*, not of a process, so it is published by the API alone — otherwise two identical threshold
+lines land on one panel and invite somebody to sum them.
+
 ---
 
 ## 3. The panel that matters most: declared vs measured vs effective
@@ -187,6 +225,23 @@ row being committed. The gap between the two is what correlation costs.
 **Read it next to the starvation panel before quoting it as a system latency.** On a throttled
 gateway most of the wall time is the gateway.
 
+### PTS-anchored latency can legitimately be NEGATIVE
+
+Measured on 2026-09-05 against local MediaMTX: `saakshi_pts_to_ingest_latency_seconds_sum` was
+**−156.3 s over 96 observations**, about −1.6 s each. That is not a clock bug and not a defect in
+this exporter.
+
+The worker anchors its stream epoch on the **first** frame of a session — `wall_now − pts` — and a
+gateway that replays a buffered GOP on connect delivers the next several frames faster than real
+time. Every one of those frames therefore carries a nominal presentation time slightly *ahead* of
+the wall clock, and a row written "before" its own frame time is the arithmetic saying exactly that.
+It settles within a session and is largest right after a connect or a reconnect.
+
+It is left uncorrected on purpose. Clamping it at zero would hide the one signal that says the
+gateway is bursting rather than streaming, which is the same phenomenon D1-03 warned about when it
+said an arrival-time tracker computes impossible velocities after every reconnect. Quote the
+positive steady-state figure; do not quote a mean taken across a reconnect.
+
 ---
 
 ## 5. Uptime, honestly
@@ -198,6 +253,13 @@ we observed and puts the two side by side:
 avg_over_time(up{job="saakshi-api"}[$__range]) * 100   # observed, over the dashboard's own range
 saakshi_uptime_target_ratio * 100                      # the stated target, a constant
 ```
+
+**Measured on 2026-09-05: 73.5% over the hour.** That is nowhere near the 99% target, and the panel
+renders it in red rather than rounding it away. It is honest and it is also *not* a product claim:
+that hour contained five deliberate restarts of the API while this ticket was being built, and the
+first twenty minutes of it had no exporter at all. The number a submission may quote is one measured
+over a stable window on a deployed instance, and D4-01 owns taking it. What this ticket delivers is
+the instrument, and an instrument that could only ever read 99% would not be one.
 
 The observed figure is only as meaningful as its window: over a ten-minute range, one missed scrape
 is 2.5%. The Estate Health board states the window on the panel, and **if the observed number is
@@ -240,6 +302,8 @@ a default metric is never mistaken for a domain measurement.
 | `saakshi_camera_luma_mean{camera}`, `saakshi_camera_tamper_score{camera}` | gauge | |
 | `saakshi_camera_health_age_seconds{camera}` | gauge | a full sweep is 23.6 min, so a healthy estate legitimately spans that |
 | `saakshi_camera_status{camera,status}` | gauge | registry health — **independent** of `catalogue_status`, which is presence |
+| `saakshi_camera_retention_state{camera,state}` | gauge | `declared` or `unknown` — see §2.4 |
+| `saakshi_estate_retention_cameras{state}` | gauge | both states always published, so "0 declared" is a measurement rather than a gap |
 | `saakshi_camera_sightings_per_min{camera}` | gauge | last 5 minutes |
 | `saakshi_camera_sightings_baseline_per_min{camera}` | gauge | the camera's own 24 h median — see §2.3 |
 | `saakshi_camera_sightings_stored{camera}` | gauge | monotonic; use `deriv()` |
@@ -321,6 +385,22 @@ password is a local development value, like the MinIO one; a deployment override
 | `SaakshiDatabaseUnreachable` | `saakshi_db_reachable == 0` | 2m | |
 | `SaakshiAuditChainForked` | `forks > 0` | — | no `for:`; there is no acceptable non-zero value |
 | `SaakshiRelayQueueDeep` | `queued > 20` | 5m | |
+
+### What was actually observed on 2026-09-05
+
+| | |
+|---|---|
+| feed killed | `16:03:29Z` — the MediaMTX publisher stopped, four cameras lost their session |
+| `SaakshiCameraDown` pending | `16:03:29Z`, all four cameras |
+| `SaakshiCameraDown` **firing** | `16:08:29Z`, exactly the rule's `for: 5m` later |
+| targets healthy | 6 of 6 `up` (api, consumer, analytics, prober, mediamtx, prometheus) |
+| `/metrics` families | 634 `saakshi_` lines from the API alone |
+| PTS → alert | 14 observations, **p50 50 ms · p95 95 ms**, stored max 37.3 ms |
+| upstream-bound share | **95.9%** on this run (D1-09 measured 92% on the sandbox) |
+| observed API uptime | **73.5%** over the hour — see §5; the panel says so rather than hiding it |
+
+`SaakshiReadRateCollapse` and `SaakshiCameraStarved` also went pending on the same event, which is
+the correct behaviour: three rules describing one outage from three angles.
 
 ### Proving the camera-down rule
 

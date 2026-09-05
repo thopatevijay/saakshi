@@ -2,10 +2,7 @@
   "uid": "saakshi-estate-health",
   "title": "SAAKSHI \u00b7 Estate Health",
   "description": "Per-camera connectivity, trust and health across the estate, plus observed uptime against the stated >99% target.",
-  "tags": [
-    "saakshi",
-    "estate"
-  ],
+  "tags": ["saakshi", "estate"],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
@@ -70,9 +67,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -101,7 +96,7 @@
       "id": 5,
       "type": "stat",
       "title": "Stated target",
-      "description": "PROJECT.md's stated benchmark. A constant, exported so the panel next to it can be compared against something written down rather than remembered.",
+      "description": "PROJECT.md's stated benchmark. A constant, exported so the panel next to it can be compared against something written down rather than remembered. Wrapped in max() so a stale series from a process that has restarted can never draw the threshold twice.",
       "datasource": {
         "type": "prometheus",
         "uid": "saakshi-prometheus"
@@ -130,9 +125,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -148,7 +141,7 @@
             "uid": "saakshi-prometheus"
           },
           "editorMode": "code",
-          "expr": "saakshi_uptime_target_ratio * 100",
+          "expr": "max(saakshi_uptime_target_ratio) * 100",
           "legendFormat": "target",
           "range": false,
           "instant": true,
@@ -198,9 +191,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -257,9 +248,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -320,9 +309,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -386,10 +373,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -446,9 +430,7 @@
         "displayMode": "gradient",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -504,9 +486,7 @@
         "displayMode": "gradient",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -567,10 +547,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -691,10 +668,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -778,7 +752,63 @@
       ]
     },
     {
-      "id": 28,
+      "id": 27,
+      "type": "bargauge",
+      "title": "Declared retention coverage",
+      "description": "`unknown` is ITS OWN STATE and is never folded into a zero. A camera whose retention period the registry does not know is unassessable, not uncovered, and the difference decides whether an evidence request can be honoured. On the Sentinel sandbox this reads 0 declared / 30 unknown: the catalogue supplies {id, name} and nothing about retention, so the honest estate answer is that retention cannot be assessed at all. Once D3-05's preservation_requests table is merged, available / expiring_soon / expired become three further states on the same panel.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 8,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_estate_retention_cameras",
+          "legendFormat": "{{state}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 30,
       "type": "timeseries",
       "title": "Image-quality signals",
       "description": "Blur is deliberately not on the same axis: it spans five orders of magnitude across this estate (0.011 to 5794) and must not be scaled linearly beside anything.",
@@ -787,9 +817,9 @@
         "uid": "saakshi-prometheus"
       },
       "gridPos": {
-        "x": 0,
+        "x": 8,
         "y": 29,
-        "w": 12,
+        "w": 8,
         "h": 6
       },
       "fieldConfig": {
@@ -814,10 +844,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -836,7 +863,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "A"
+          "refId": "C"
         },
         {
           "datasource": {
@@ -849,12 +876,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "B"
+          "refId": "D"
         }
       ]
     },
     {
-      "id": 30,
+      "id": 32,
       "type": "timeseries",
       "title": "Blur score (log-scale spread is the point)",
       "description": "Variance of Laplacian. Measured range across 30 real cameras: 0.011 to 5794.088.",
@@ -863,9 +890,9 @@
         "uid": "saakshi-prometheus"
       },
       "gridPos": {
-        "x": 12,
+        "x": 16,
         "y": 29,
-        "w": 12,
+        "w": 8,
         "h": 6
       },
       "fieldConfig": {
@@ -890,10 +917,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -912,7 +936,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "D"
+          "refId": "F"
         }
       ]
     }

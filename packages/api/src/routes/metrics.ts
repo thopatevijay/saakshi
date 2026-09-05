@@ -19,6 +19,7 @@ import type { Db } from '../db/client.js';
 import type { Env } from '../env.js';
 import { loadWeights } from '../services/trust.js';
 import {
+  declareUptimeTarget,
   dueForRefresh,
   identifyComponent,
   observeHttp,
@@ -61,6 +62,7 @@ export function registerMetricsRoutes(app: App, options: MetricsRouteOptions): v
   const bands = loadWeights().bands;
 
   identifyComponent('api', '0.1.0');
+  declareUptimeTarget();
   setDbPoolMax(env.DATABASE_POOL_MAX);
 
   app.addHook('onRequest', (request, _reply, done) => {

@@ -96,6 +96,13 @@ function toNumber(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+/** ioredis hands back `Buffer | string | number | null` per field; only a string is a group name. */
+function toText(value: unknown, fallback: string): string {
+  if (typeof value === 'string') return value;
+  if (Buffer.isBuffer(value)) return value.toString('utf8');
+  return fallback;
+}
+
 /** `ERR no such key` — a stream nobody has published to yet. Zero entries, not an error. */
 function isMissingStream(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
@@ -132,7 +139,7 @@ export function createValkeyInspector(url: string): BusInspectorHandle {
       return reply.map((entry) => {
         const fields = fieldsOf(entry);
         return {
-          name: String(fields.get('name') ?? 'unknown'),
+          name: toText(fields.get('name'), 'unknown'),
           pending: toNumber(fields.get('pending')),
           // `lag` is null when Valkey cannot compute it (entries trimmed away beneath the group's
           // cursor). Reported as 0 rather than invented, and the pending gauge still tells the

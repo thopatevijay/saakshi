@@ -128,7 +128,7 @@ describe('GET /metrics', () => {
     expect(res.body).toContain('# TYPE saakshi_build_info gauge');
   });
 
-  it('is hidden from the OpenAPI document — it is text, not part of the typed client', async () => {
+  it('is hidden from the OpenAPI document — it is text, not part of the typed client', () => {
     const spec = app.swagger() as { paths: Record<string, unknown> };
 
     expect(Object.keys(spec.paths)).not.toContain('/metrics');
@@ -139,7 +139,7 @@ describe('GET /metrics', () => {
     const body = (await app.inject({ method: 'GET', url: '/metrics' })).body;
 
     expect(UPTIME_TARGET_RATIO).toBe(0.99);
-    expect(body).toMatch(/^saakshi_uptime_target_ratio 0\.99$/m);
+    expect(body).toMatch(/^saakshi_uptime_target_ratio\{component="api"\} 0\.99$/m);
   });
 
   it('records every served request in the HTTP counter, labelled by route template', async () => {
@@ -261,13 +261,13 @@ describe('bus and relay gauges', () => {
   it('reports stream length, group lag and consumer count without joining a group', async () => {
     const calls: string[] = [];
     const inspector: BusInspector = {
-      async streamLength(stream) {
+      streamLength(stream) {
         calls.push(`length:${stream}`);
-        return 4242;
+        return Promise.resolve(4242);
       },
-      async groups(stream) {
+      groups(stream) {
         calls.push(`groups:${stream}`);
-        return [{ name: 'sightings-writer', pending: 7, lag: 13, consumers: 1 }];
+        return Promise.resolve([{ name: 'sightings-writer', pending: 7, lag: 13, consumers: 1 }]);
       },
     };
 
@@ -286,9 +286,9 @@ describe('bus and relay gauges', () => {
 
   it('says the bus is unreachable rather than reporting a zero-length stream', async () => {
     setBusReachable(false);
-    expect(await renderMetrics()).toMatch(/^saakshi_bus_reachable 0$/m);
+    expect(await renderMetrics()).toMatch(/^saakshi_bus_reachable\{component="api"\} 0$/m);
     setBusReachable(true);
-    expect(await renderMetrics()).toMatch(/^saakshi_bus_reachable 1$/m);
+    expect(await renderMetrics()).toMatch(/^saakshi_bus_reachable\{component="api"\} 1$/m);
   });
 
   it("exports the relay's own counters rather than re-instrumenting it", async () => {
@@ -304,14 +304,52 @@ describe('bus and relay gauges', () => {
     });
     const body = await renderMetrics();
 
-    expect(body).toMatch(/^saakshi_relay_hits 90$/m);
-    expect(body).toMatch(/^saakshi_relay_upstream_requests 10$/m);
+    expect(body).toMatch(/^saakshi_relay_hits\{component="api"\} 90$/m);
+    expect(body).toMatch(/^saakshi_relay_upstream_requests\{component="api"\} 10$/m);
     // 31 s for one HLS object is not a bug in this exporter — D3-07 measured 22-49 s per segment.
-    expect(body).toMatch(/^saakshi_relay_upstream_mean_ms 31000$/m);
+    expect(body).toMatch(/^saakshi_relay_upstream_mean_ms\{component="api"\} 31000$/m);
   });
 });
 
 describe('registry hygiene', () => {
+  it('publishes no platform gauge until the process that measures it sets one', async () => {
+    // An UNLABELLED prom-client gauge is published as 0 the moment it is constructed. This module
+    // is shared by the API and the sightings consumer, so an unlabelled saakshi_db_reachable made
+    // the consumer export a permanent 0 and fire SaakshiDatabaseUnreachable against a healthy
+    // database. Every such gauge now carries `component`, which has no default child.
+    const platform = (await registry.getMetricsAsJSON()).filter((m) =>
+      [
+        'saakshi_db_reachable',
+        'saakshi_db_pool_max',
+        'saakshi_bus_reachable',
+        'saakshi_estate_camera_uptime_ratio',
+        'saakshi_audit_chain_entries',
+        'saakshi_relay_hits',
+      ].includes(m.name),
+    );
+
+    expect(platform).toHaveLength(6);
+    for (const metric of platform) {
+      // Whatever samples exist must be attributed to a process. None may be anonymous.
+      for (const sample of (metric as { values: { labels: Record<string, unknown> }[] }).values) {
+        expect(sample.labels['component']).toBeDefined();
+      }
+    }
+  });
+
+  it('states the estate retention answer with unknown as its own state, never as a zero', async () => {
+    if (!reachable) return;
+    await refreshEstateMetrics(db, BANDS);
+    const body = await renderMetrics();
+
+    // Both states are always published, so "0 declared" is a visible measurement, not a gap.
+    expect(body).toMatch(/^saakshi_estate_retention_cameras\{state="declared"\} \d+$/m);
+    expect(body).toMatch(/^saakshi_estate_retention_cameras\{state="unknown"\} \d+$/m);
+    expect(body).toMatch(
+      new RegExp(`saakshi_camera_retention_state\\{camera="${UNSCORED}",state="unknown"\\} 1`),
+    );
+  });
+
   it('prefixes every metric it defines with saakshi_', async () => {
     const names = (await registry.getMetricsAsJSON()).map((m) => m.name);
 

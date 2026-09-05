@@ -2,10 +2,7 @@
   "uid": "saakshi-alerting",
   "title": "SAAKSHI \u00b7 Alerting",
   "description": "End-to-end PTS to alert latency, the rules that are firing, and the alert queue.",
-  "tags": [
-    "saakshi",
-    "alerting"
-  ],
+  "tags": ["saakshi", "alerting"],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
@@ -19,7 +16,7 @@
   "graphTooltip": 1,
   "panels": [
     {
-      "id": 76,
+      "id": 78,
       "type": "text",
       "title": "End to end, and what an alert is and is not",
       "gridPos": {
@@ -34,7 +31,7 @@
       }
     },
     {
-      "id": 80,
+      "id": 82,
       "type": "timeseries",
       "title": "PTS \u2192 alert latency",
       "description": "The deck's end-to-end figure. On a throttled gateway most of this is the gateway: 92% of the pipeline's wall time was measured blocked upstream, so read it next to the starvation panel on Pipeline Throughput before quoting it as a system latency.",
@@ -70,10 +67,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -92,7 +86,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "Z"
+          "refId": "B"
         },
         {
           "datasource": {
@@ -105,7 +99,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "A"
+          "refId": "C"
         },
         {
           "datasource": {
@@ -118,12 +112,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "B"
+          "refId": "D"
         }
       ]
     },
     {
-      "id": 82,
+      "id": 84,
       "type": "stat",
       "title": "Alerts raised (rate)",
       "description": "",
@@ -155,9 +149,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -178,12 +170,12 @@
           "range": false,
           "instant": true,
           "format": "time_series",
-          "refId": "D"
+          "refId": "F"
         }
       ]
     },
     {
-      "id": 84,
+      "id": 86,
       "type": "stat",
       "title": "PTS \u2192 ingest p95",
       "description": "The first half of the same journey: frame time to the row being committed. The gap to PTS \u2192 alert is what correlation costs.",
@@ -215,9 +207,7 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -238,12 +228,12 @@
           "range": false,
           "instant": true,
           "format": "time_series",
-          "refId": "F"
+          "refId": "H"
         }
       ]
     },
     {
-      "id": 86,
+      "id": 88,
       "type": "table",
       "title": "Firing and pending alert rules",
       "description": "Straight from Prometheus' own rule evaluation. 'pending' means the condition is true but the rule's `for:` window has not elapsed yet \u2014 a camera-down rule with `for: 5m` spends five minutes here before it fires.",
@@ -283,7 +273,7 @@
           "range": false,
           "instant": true,
           "format": "table",
-          "refId": "H"
+          "refId": "J"
         }
       ],
       "transformations": [
@@ -303,7 +293,7 @@
       ]
     },
     {
-      "id": 88,
+      "id": 90,
       "type": "timeseries",
       "title": "Alert rule states over time",
       "description": "Every rule in ops/prometheus/rules.yml carries the measurement its threshold was derived from, in a comment above it.",
@@ -339,10 +329,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -361,12 +348,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "J"
+          "refId": "L"
         }
       ]
     },
     {
-      "id": 90,
+      "id": 92,
       "type": "bargauge",
       "title": "Stored alerts by status",
       "description": "",
@@ -399,9 +386,7 @@
         "displayMode": "gradient",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -419,12 +404,12 @@
           "range": false,
           "instant": true,
           "format": "time_series",
-          "refId": "L"
+          "refId": "N"
         }
       ]
     },
     {
-      "id": 92,
+      "id": 94,
       "type": "bargauge",
       "title": "Stored alerts by severity",
       "description": "",
@@ -457,9 +442,7 @@
         "displayMode": "gradient",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -477,12 +460,12 @@
           "range": false,
           "instant": true,
           "format": "time_series",
-          "refId": "N"
+          "refId": "P"
         }
       ]
     },
     {
-      "id": 95,
+      "id": 97,
       "type": "timeseries",
       "title": "API latency against the stated 200 ms target",
       "description": "PROJECT.md states < 200 ms. The histogram has a bucket edge at exactly 0.2 s so the SLO is read off the data rather than interpolated between buckets.",
@@ -518,10 +501,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -540,7 +520,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "P"
+          "refId": "R"
         },
         {
           "datasource": {
@@ -553,12 +533,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "Q"
+          "refId": "S"
         }
       ]
     },
     {
-      "id": 99,
+      "id": 101,
       "type": "timeseries",
       "title": "Consumer drops and failures",
       "description": "Dropped and counted rather than redelivered forever \u2014 a malformed entry replayed in a loop is a stuck consumer. A sustained non-zero rate means detections are being lost.",
@@ -594,10 +574,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -616,7 +593,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "S"
+          "refId": "U"
         },
         {
           "datasource": {
@@ -629,7 +606,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "T"
+          "refId": "V"
         },
         {
           "datasource": {
@@ -642,12 +619,12 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "U"
+          "refId": "W"
         }
       ]
     },
     {
-      "id": 102,
+      "id": 104,
       "type": "timeseries",
       "title": "API errors",
       "description": "",
@@ -683,10 +660,7 @@
         "legend": {
           "displayMode": "table",
           "placement": "bottom",
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ]
+          "calcs": ["lastNotNull", "max"]
         },
         "tooltip": {
           "mode": "multi",
@@ -705,7 +679,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "W"
+          "refId": "Y"
         },
         {
           "datasource": {
@@ -718,7 +692,7 @@
           "range": true,
           "instant": false,
           "format": "time_series",
-          "refId": "X"
+          "refId": "Z"
         }
       ]
     }
