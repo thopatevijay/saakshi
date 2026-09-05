@@ -240,7 +240,20 @@ the historical one is not.
 append-only and hash-addressed, and a FK would let a cascade reach it. Verifying the pointer is a
 chain-verification concern, not a constraint.
 
-## 11 · Reproducing any of this
+## 11 · What it looks like
+
+![Evidence availability — five covering cameras on three retention regimes plus one undeclared](screenshots/d3-05-evidence-availability.jpg)
+
+![The preservation queue, the chain entry that authorised each request, and the estate distribution](screenshots/d3-05-preservation-queue.jpg)
+
+Captured against five temporary **placed** cameras seeded around Paldi Circle on 7 / 15 / 90 /
+undeclared windows, because the sandbox estate has no coordinates and no declared retention and the
+screen's covering table would otherwise be empty by construction. The fixtures were removed
+afterwards; the estate is `30 cameras, all NULL` again, and the audit-chain entries the demo
+appended remain, as they must. The `Could not be assessed · 30` tray in the first screenshot is the
+real estate, unmodified.
+
+## 12 · Reproducing any of this
 
 ```bash
 DATABASE_URL=… npm run test -w packages/api -- retention        # 46 tests: the clock and the endpoints
