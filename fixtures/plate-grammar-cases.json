@@ -1,0 +1,345 @@
+{
+  "_about": "D2-03 · the Indian plate grammar table. Drives packages/shared/src/plate/plate.test.ts. Spec and sources: docs/plate-grammar.md. Cases marked `source: live` are strings the D2-01 ANPR pipeline actually emitted on the Sentinel sandbox estate (docs/anpr-accuracy.md); cases marked `source: seed` are from D2-05's watchlist seed (fixtures/watchlist-seed.csv).",
+  "_contract": "normalise() output is [A-Z0-9], uppercase, separators stripped. watchlist_entries.plate_normalized is keyed on it (D2-05, #19). Do not change the character set.",
+
+  "valid": [
+    {
+      "input": "GJ01AB1234",
+      "normalized": "GJ01AB1234",
+      "format": "standard",
+      "note": "canonical: state, 2-digit RTO, 2-letter series, 4-digit number"
+    },
+    {
+      "input": " ind gj-01 ab 1234 ",
+      "normalized": "GJ01AB1234",
+      "format": "standard",
+      "note": "the ticket's normalisation example: IND country mark, spaces, hyphen, lowercase"
+    },
+    {
+      "input": "GJ-01-AB-1234",
+      "normalized": "GJ01AB1234",
+      "format": "standard",
+      "note": "hyphenated as printed on a challan"
+    },
+    {
+      "input": "GJ18Y9407",
+      "normalized": "GJ18Y9407",
+      "format": "standard",
+      "source": "seed",
+      "note": "1-letter series"
+    },
+    { "input": "GJ14BU4678", "normalized": "GJ14BU4678", "format": "standard", "source": "seed" },
+    { "input": "GJ14XU1699", "normalized": "GJ14XU1699", "format": "standard", "source": "seed" },
+    { "input": "GJ38U1617", "normalized": "GJ38U1617", "format": "standard", "source": "seed" },
+    { "input": "GJ13J7973", "normalized": "GJ13J7973", "format": "standard", "source": "seed" },
+    {
+      "input": "MH12BF2551",
+      "normalized": "MH12BF2551",
+      "format": "standard",
+      "source": "seed",
+      "note": "Maharashtra — the seed is not GJ-only"
+    },
+    { "input": "MH12RQ8990", "normalized": "MH12RQ8990", "format": "standard", "source": "seed" },
+    {
+      "input": "RJ39CA5180",
+      "normalized": "RJ39CA5180",
+      "format": "standard",
+      "source": "seed",
+      "note": "a real registration observed on cam21"
+    },
+    { "input": "MP09XY4321", "normalized": "MP09XY4321", "format": "standard", "source": "seed" },
+    {
+      "input": "DL1CAA1234",
+      "normalized": "DL1CAA1234",
+      "format": "standard",
+      "note": "Delhi's letter-suffixed RTO falls out of 1-digit RTO + 3-letter series with no special case"
+    },
+    { "input": "KA05MN0001", "normalized": "KA05MN0001", "format": "standard" },
+    { "input": "TN22BC9999", "normalized": "TN22BC9999", "format": "standard" },
+    { "input": "UP32AB0007", "normalized": "UP32AB0007", "format": "standard" },
+    { "input": "WB06F1234", "normalized": "WB06F1234", "format": "standard" },
+    { "input": "HR26DQ5551", "normalized": "HR26DQ5551", "format": "standard" },
+    {
+      "input": "KL07CD4567",
+      "normalized": "KL07CD4567",
+      "format": "standard",
+      "note": "series 'CD' is not the diplomatic marker — the state code decides the family"
+    },
+    { "input": "AP09BZ1111", "normalized": "AP09BZ1111", "format": "standard" },
+    { "input": "TS08UB5678", "normalized": "TS08UB5678", "format": "standard" },
+    {
+      "input": "TG08UB5678",
+      "normalized": "TG08UB5678",
+      "format": "standard",
+      "note": "Telangana's 2024 code, alongside the legacy TS"
+    },
+    { "input": "PB10AB1010", "normalized": "PB10AB1010", "format": "standard" },
+    { "input": "JK02AA1111", "normalized": "JK02AA1111", "format": "standard" },
+    {
+      "input": "LA01A1234",
+      "normalized": "LA01A1234",
+      "format": "standard",
+      "note": "Ladakh, allocated 2019"
+    },
+    {
+      "input": "OR09AB1234",
+      "normalized": "OR09AB1234",
+      "format": "standard",
+      "note": "Odisha's legacy code, still on the road"
+    },
+    {
+      "input": "22BH1234AA",
+      "normalized": "22BH1234AA",
+      "format": "bharat_series",
+      "note": "Bharat series, 2-letter series"
+    },
+    {
+      "input": "21BH0001A",
+      "normalized": "21BH0001A",
+      "format": "bharat_series",
+      "note": "Bharat series, 1-letter series"
+    },
+    {
+      "input": "06B123456A",
+      "normalized": "06B123456A",
+      "format": "military",
+      "note": "armed forces: year, vehicle class letter, 6-digit serial, check letter"
+    },
+    {
+      "input": "33CD0001",
+      "normalized": "33CD0001",
+      "format": "diplomatic",
+      "note": "corps diplomatique"
+    },
+    {
+      "input": "11UN0022",
+      "normalized": "11UN0022",
+      "format": "diplomatic",
+      "note": "United Nations mission"
+    },
+    {
+      "input": "GJ011234",
+      "normalized": "GJ011234",
+      "format": "legacy_no_series",
+      "note": "pre-series legacy registration, no series letters"
+    },
+    {
+      "input": "MH11234",
+      "normalized": "MH11234",
+      "format": "legacy_no_series",
+      "note": "legacy with a 1-digit RTO code"
+    }
+  ],
+
+  "invalid": [
+    {
+      "input": "757508300",
+      "reason": "no_letters",
+      "source": "live",
+      "confidence": 0.888,
+      "note": "THE case this grammar exists for: the phone number on a roadside advertising hoarding on cam05, and the highest-confidence plate read of the entire live run"
+    },
+    {
+      "input": "755508000",
+      "reason": "no_letters",
+      "source": "live",
+      "confidence": 0.575,
+      "note": "the same hoarding, read again two frames later"
+    },
+    {
+      "input": "44671",
+      "reason": "no_letters",
+      "source": "live",
+      "confidence": 0.732,
+      "note": "also seeded into the watchlist by D2-05 as a deliberate non-plate"
+    },
+    {
+      "input": "46101",
+      "reason": "no_letters",
+      "source": "live",
+      "confidence": 0.56,
+      "note": "D2-05 seeded non-plate"
+    },
+    { "input": "46111", "reason": "no_letters", "source": "live", "confidence": 0.514 },
+    { "input": "41111", "reason": "no_letters", "source": "live", "confidence": 0.584 },
+    { "input": "15144", "reason": "no_letters", "source": "live", "confidence": 0.429 },
+    {
+      "input": "A1110",
+      "reason": "no_state_code",
+      "source": "live",
+      "confidence": 0.323,
+      "note": "one letter then digits — the state code is two letters or nothing"
+    },
+    {
+      "input": "1118R",
+      "reason": "no_state_code",
+      "source": "live",
+      "confidence": 0.627,
+      "note": "D2-05 seeded non-plate; not Bharat series either — positions 2-3 are '18', not 'BH'"
+    },
+    {
+      "input": "71TT",
+      "reason": "no_state_code",
+      "source": "live",
+      "confidence": 0.355,
+      "note": "prefix-ineligible: military has no state code and no marker, so it cannot be claimed from four characters"
+    },
+    {
+      "input": "AAM412",
+      "reason": "unknown_state_code",
+      "source": "live",
+      "confidence": 0.503,
+      "note": "D2-05 seeded non-plate; 'AA' is not an RTO code"
+    },
+    {
+      "input": "GJ3266416",
+      "reason": "bad_series",
+      "source": "live",
+      "confidence": 0.449,
+      "note": "D2-05 seeded non-plate. Would launder into 'GJ32G6416' if digit->letter correction were allowed without an anchoring letter in the series slot"
+    },
+    { "input": "P41", "reason": "too_short", "source": "live", "confidence": 0.687 },
+    { "input": "7", "reason": "too_short", "source": "live", "confidence": 0.336 },
+    {
+      "input": "50011A",
+      "reason": "no_state_code",
+      "source": "live",
+      "note": "the pipeline's read of GJ12EC7928 — nothing in common with ground truth"
+    },
+    {
+      "input": "CIRCLE",
+      "reason": "no_digits",
+      "source": "live",
+      "note": "a road sign in the labelled set; a registration always contains digits"
+    },
+    {
+      "input": "ZZ01AB1234",
+      "reason": "unknown_state_code",
+      "note": "perfect shape, impossible state"
+    },
+    {
+      "input": "BH01AB1234",
+      "reason": "unknown_state_code",
+      "note": "'BH' is a Bharat-series marker, not a state code — it never leads a registration"
+    },
+    { "input": "GJ", "reason": "too_short", "note": "a state code alone claims nothing" },
+    { "input": "", "reason": "empty" },
+    { "input": "   --- ...   ", "reason": "empty", "note": "nothing survives normalisation" },
+    {
+      "input": "GJ01AB123456",
+      "reason": "too_long",
+      "note": "longer than any layout in the grammar"
+    }
+  ],
+
+  "partial": [
+    {
+      "input": "GJ35U07",
+      "missingChars": 2,
+      "format": "standard",
+      "source": "live",
+      "note": "the pipeline's read of GJ35U0779 — two trailing characters dropped. State, RTO and series are all correct and this is a usable identification"
+    },
+    {
+      "input": "GJ32DD10",
+      "missingChars": 2,
+      "format": "standard",
+      "source": "live",
+      "note": "the pipeline's read of GJ32D0107"
+    },
+    {
+      "input": "GJ01AB",
+      "missingChars": 4,
+      "format": "standard",
+      "note": "series complete, number absent"
+    },
+    { "input": "MH12BF", "missingChars": 4, "format": "standard" },
+    {
+      "input": "RJ39CA518",
+      "missingChars": 1,
+      "format": "standard",
+      "note": "one character short of the real cam21 plate"
+    },
+    {
+      "input": "GJ01A",
+      "missingChars": 4,
+      "format": "standard",
+      "note": "1-letter series, number absent"
+    },
+    {
+      "input": "22BH1234",
+      "missingChars": 1,
+      "format": "bharat_series",
+      "note": "the marker is complete, so the family is established"
+    }
+  ],
+
+  "corrections": [
+    {
+      "input": "GJO1AB1234",
+      "corrected": "GJ01AB1234",
+      "corrections": [{ "index": 2, "from": "O", "to": "0", "slot": "rto" }],
+      "note": "the ticket's worked example: a letter standing in a slot that only accepts digits is a structurally impossible read"
+    },
+    {
+      "input": "GJ01A81234",
+      "corrected": "GJ01AB1234",
+      "corrections": [{ "index": 5, "from": "8", "to": "B", "slot": "series" }],
+      "note": "the reverse direction, permitted because 'A' already anchors the series slot as alphabetic"
+    },
+    {
+      "input": "GJI4BU4678",
+      "corrected": "GJ14BU4678",
+      "corrections": [{ "index": 2, "from": "I", "to": "1", "slot": "rto" }],
+      "note": "I/1 in the RTO slot"
+    },
+    {
+      "input": "GJ14BU467B",
+      "corrected": "GJ14BU4678",
+      "corrections": [{ "index": 9, "from": "B", "to": "8", "slot": "number" }],
+      "note": "B/8 in the trailing number"
+    },
+    {
+      "input": "GJO1AB123A",
+      "corrected": "GJ01AB1234",
+      "corrections": [
+        { "index": 2, "from": "O", "to": "0", "slot": "rto" },
+        { "index": 9, "from": "A", "to": "4", "slot": "number" }
+      ],
+      "note": "two corrections, the documented maximum"
+    }
+  ],
+
+  "uncorrectable": [
+    {
+      "input": "GJ3266416",
+      "note": "digit in the series slot with no anchoring letter — would become GJ32G6416"
+    },
+    {
+      "input": "757508300",
+      "note": "would become TS75O8300 under a symmetric corrector: 7->T, 5->S in the state slot"
+    },
+    {
+      "input": "GJO1ABI23A",
+      "note": "a complete reading needs three corrections; above MAX_CORRECTIONS that is a guess, not a repair, so it degrades to a partial identification rather than becoming 'valid'"
+    }
+  ],
+
+  "liveReads": [
+    { "text": "757508300", "confidence": 0.888 },
+    { "text": "44671", "confidence": 0.732 },
+    { "text": "P41", "confidence": 0.687 },
+    { "text": "1118R", "confidence": 0.627 },
+    { "text": "41111", "confidence": 0.584 },
+    { "text": "755508000", "confidence": 0.575 },
+    { "text": "46101", "confidence": 0.56 },
+    { "text": "46111", "confidence": 0.514 },
+    { "text": "AAM412", "confidence": 0.503 },
+    { "text": "GJ3266416", "confidence": 0.449 },
+    { "text": "15144", "confidence": 0.429 },
+    { "text": "41111", "confidence": 0.36 },
+    { "text": "71TT", "confidence": 0.355 },
+    { "text": "7", "confidence": 0.336 },
+    { "text": "A1110", "confidence": 0.323 }
+  ]
+}

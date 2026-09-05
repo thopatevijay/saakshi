@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { AlertSeverity, SourceSystem, WatchlistCategory } from '@saakshi/shared';
+import {
+  AlertSeverity,
+  SourceSystem,
+  WatchlistCategory,
+  normalise as normalisePlate,
+} from '@saakshi/shared';
 
 /**
  * The watchlist integration contract.
@@ -204,12 +209,20 @@ export interface WatchlistProvider {
 /**
  * The normalised plate form this service keys on: uppercase, `A-Z0-9` only.
  *
- * Deliberately minimal. **D2-03 owns Indian-plate grammar, slot-aware correction and
- * `adjusted_confidence`**; this is only the total, idempotent, never-throws reduction that makes
- * two strings comparable, and it is the form `watchlist_entries.plate_normalized` is stored in. When
- * D2-03 lands, its normaliser produces the same character set and this stays compatible — a note to
- * that effect is on #17.
+ * **D2-03 now owns this.** Kept as a named delegating function so the watchlist module's call sites
+ * read as intent ("normalise for lookup") rather than as an import detail, but the implementation is
+ * the one shared function — `packages/shared/src/plate/normalise.ts` — so the worker, the API and
+ * D2-04's fuzzy index cannot drift apart. A test in `packages/shared/src/plate/plate.test.ts`
+ * asserts the two agree on every plate in `fixtures/watchlist-seed.csv`, so the 235 seeded rows need
+ * no re-normalisation.
+ *
+ * A function declaration rather than `export const … = normalise`: `seed.ts` and this module import
+ * each other, and a `const` binding is in its temporal dead zone when `seed.ts` runs.
+ *
+ * Grammar, slot-aware correction, `corrections[]` and `adjusted_confidence` live in
+ * `@saakshi/shared`'s `validate()` / `evaluatePlateRead()`. This is only the total, idempotent,
+ * never-throws reduction that makes two strings comparable.
  */
 export function normaliseForLookup(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return normalisePlate(raw);
 }

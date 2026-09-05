@@ -25,7 +25,14 @@ export type BoundingBox = z.infer<typeof BoundingBox>;
 export const PlateRead = z.object({
   id: z.uuid().optional(),
   rawText: z.string(),
-  /** Normalised to the Indian plate grammar by D2-03. Null when normalisation rejected the read. */
+  /**
+   * Canonical `[A-Z0-9]` form (D2-03's `normalise`), after slot-aware correction.
+   *
+   * **Null means *not evaluated yet*, never *rejected*** (D2-01's handoff on #17): the per-camera
+   * rejection rate is a trust signal that only survives if the two stay distinguishable. An
+   * ungrammatical read is stored here with `grammarValid: false` and a down-weighted confidence,
+   * never dropped.
+   */
   normalizedText: z.string().nullable(),
   confidence: z.number().min(0).max(1),
   isBestShot: z.boolean().default(false),
