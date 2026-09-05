@@ -4018,6 +4018,575 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/streams/{id}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a tile needs before it opens a connection: identity, trust, and playability */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            cameraId: string;
+                            externalId: string;
+                            name: string;
+                            departmentCode: string | null;
+                            district: string | null;
+                            catalogueStatus: string;
+                            status: string;
+                            trust: {
+                                /** @enum {string|null} */
+                                band: "trusted" | "degraded" | "untrusted" | "dead" | null;
+                                score: number | null;
+                                checkedAt: string | null;
+                                connectable: boolean | null;
+                                decodable: boolean | null;
+                                error: string | null;
+                                measuredFps: number | null;
+                                actualResolution: string | null;
+                                actualCodec: string | null;
+                                failingSignals: {
+                                    signal: string;
+                                    note: string;
+                                    points: number;
+                                    maxPoints: number;
+                                }[];
+                            };
+                            source: {
+                                width: number;
+                                height: number;
+                                /** @enum {string} */
+                                origin: "measured" | "declared";
+                            } | null;
+                            hls: {
+                                playlist: string;
+                            } | null;
+                            whep: {
+                                url: string;
+                                path: string;
+                            } | null;
+                            whepUnavailable: string | null;
+                            sightings: {
+                                total: number;
+                                latestPtsMs: number | null;
+                                latestTs: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/streams/{id}/index.m3u8": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The camera’s HLS playlist, relayed and rewritten to point back at this API */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/streams/{id}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One relayed segment or AES key. The target must be on the camera’s own origin. */
+        get: {
+            parameters: {
+                query: {
+                    u: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/streams/{id}/detections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detections in a presentation-timestamp window, for the tile overlay */
+        get: {
+            parameters: {
+                query: {
+                    fromPtsMs: number;
+                    toPtsMs: number;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            cameraId: string;
+                            fromPtsMs: number;
+                            toPtsMs: number;
+                            detections: {
+                                /** Format: uuid */
+                                id: string;
+                                ptsMs: number;
+                                ts: string;
+                                trackId: number;
+                                class: string;
+                                bbox: {
+                                    x: number;
+                                    y: number;
+                                    w: number;
+                                    h: number;
+                                };
+                                confidence: number;
+                                vehicleColor: string | null;
+                                plate: string | null;
+                                plateConfidence: number | null;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/streams/relay/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the relay is currently doing to the upstream gateway */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            cachedObjects: number;
+                            cachedBytes: number;
+                            hits: number;
+                            misses: number;
+                            upstreamRequests: number;
+                            inFlight: number;
+                            queued: number;
+                            meanUpstreamMs: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wall/layout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in operator’s saved video wall */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            layout: {
+                                /** @enum {string} */
+                                grid: "2x2" | "3x3" | "4x4";
+                                slots: (string | null)[];
+                                /** @default true */
+                                overlay: boolean;
+                                /**
+                                 * @default hls
+                                 * @enum {string}
+                                 */
+                                mode: "hls" | "whep";
+                            } | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        /** Replace the signed-in operator’s saved video wall */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        grid: "2x2" | "3x3" | "4x4";
+                        slots: (string | null)[];
+                        /** @default true */
+                        overlay?: boolean;
+                        /**
+                         * @default hls
+                         * @enum {string}
+                         */
+                        mode?: "hls" | "whep";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            layout: {
+                                /** @enum {string} */
+                                grid: "2x2" | "3x3" | "4x4";
+                                slots: (string | null)[];
+                                /** @default true */
+                                overlay: boolean;
+                                /**
+                                 * @default hls
+                                 * @enum {string}
+                                 */
+                                mode: "hls" | "whep";
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

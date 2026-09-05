@@ -26,6 +26,7 @@
  * and the band is a third thing again. A camera can be listed and dead, or delisted and serving.
  */
 import { useEffect } from 'react';
+import Link from 'next/link';
 import {
   BAND_STYLE,
   CATALOGUE_STATUS_CHIP,
@@ -196,14 +197,21 @@ export function CameraDrawer({
                 )}
               </div>
 
-              <button
-                type="button"
-                disabled
-                title="Live preview lands with the video wall (D3-07). Disabled rather than hidden, so the path is visible."
-                className="mt-1 w-full cursor-not-allowed rounded-md border border-slate-800 bg-slate-900/60 px-3 py-2 text-xs text-slate-500"
+              {/*
+                D1-08 left this disabled and said so: "replace the `disabled` button with the real
+                control". `verify-drawer.mjs` asserts the control is present, and it now carries the
+                camera through to the wall's single-camera view — which keeps the addressability
+                D1-08 asked for, since `/video-wall?camera=<uuid>` is a shareable link to one camera
+                exactly as `/registry?camera=<uuid>` is.
+              */}
+              <Link
+                href={`/video-wall?camera=${camera.id}`}
+                data-testid="camera-live-preview"
+                title="Open this camera on the video wall, with the low-latency option and the detection overlay."
+                className="mt-1 block w-full rounded-md border border-sky-800 bg-sky-950/50 px-3 py-2 text-center text-xs text-sky-200 hover:bg-sky-900/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
               >
-                Live preview · wired in D3-07
-              </button>
+                Live preview on the video wall
+              </Link>
             </section>
 
             {/* ── Declared vs measured ────────────────────────────────────────────────────── */}

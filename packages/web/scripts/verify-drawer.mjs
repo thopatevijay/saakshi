@@ -72,7 +72,14 @@ for (const externalId of ['cam09', 'cam22']) {
       })),
       hasHealth: document.body.textContent.includes('Latest health check'),
       hasDelta: document.body.textContent.includes('Declared vs measured'),
-      hasPreview: !!document.querySelector('[data-testid="camera-drawer"] button[disabled]'),
+      // D1-08 left this as a disabled button and its handoff told D3-07 to replace it with the
+      // real control. D3-07 did, so the assertion moved with it: what must be true is that the
+      // path from a camera to its live view exists and points at the wall, not that it is still
+      // switched off.
+      previewHref:
+        document
+          .querySelector('[data-testid="camera-drawer"] [data-testid="camera-live-preview"]')
+          ?.getAttribute('href') ?? null,
       pointsTotal: [...document.querySelectorAll('tfoot td')].map((td) => td.textContent.trim()),
       badges: [...document.querySelectorAll('[data-testid="camera-drawer"] span[title]')]
         .map((s) => s.textContent.trim()).filter((t) => t.includes('·')),
@@ -112,8 +119,8 @@ for (const externalId of ['cam09', 'cam22']) {
   );
   check(rendered.hasHealth, `${externalId}: the latest health check is rendered`);
   check(
-    rendered.hasPreview,
-    `${externalId}: the live-preview button is present and disabled (D3-07)`,
+    rendered.previewHref !== null && rendered.previewHref.startsWith('/video-wall?camera='),
+    `${externalId}: live preview links to the video wall for this camera (${String(rendered.previewHref)})`,
   );
 
   for (const item of rendered.excluded) {

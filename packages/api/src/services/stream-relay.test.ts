@@ -185,8 +185,6 @@ describe('contentTypeFor', () => {
 });
 
 describe('StreamRelay', () => {
-  const upstream = 'https://cctv.example.gov/cam01/index.m3u8';
-
   const relayWith = (fetchImpl: typeof fetch, over = {}) =>
     new StreamRelay({
       host: 'cctv.example.gov',
@@ -200,7 +198,7 @@ describe('StreamRelay', () => {
     new Response(body, { status: 200, headers: { 'content-type': contentType } });
 
   it('fetches a playlist once and serves every later request from cache', async () => {
-    const fetchImpl = vi.fn(async () => ok(SANDBOX_PLAYLIST)) as unknown as typeof fetch;
+    const fetchImpl = vi.fn(() => Promise.resolve(ok(SANDBOX_PLAYLIST))) as unknown as typeof fetch;
     const relay = relayWith(fetchImpl);
 
     const first = await relay.playlist(camera());
@@ -215,9 +213,9 @@ describe('StreamRelay', () => {
 
   it('sends the session cookie and a browser user-agent upstream, and neither comes back', async () => {
     const seen: RequestInit[] = [];
-    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+    const fetchImpl = vi.fn((_url: string, init: RequestInit) => {
       seen.push(init);
-      return ok(SANDBOX_PLAYLIST);
+      return Promise.resolve(ok(SANDBOX_PLAYLIST));
     }) as unknown as typeof fetch;
 
     const relay = relayWith(fetchImpl);
@@ -252,8 +250,8 @@ describe('StreamRelay', () => {
   });
 
   it('evicts least-recently-used objects rather than growing without bound', async () => {
-    const fetchImpl = vi.fn(async () =>
-      ok(Buffer.alloc(400), 'video/mp2t'),
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(ok(Buffer.alloc(400), 'video/mp2t')),
     ) as unknown as typeof fetch;
     const relay = relayWith(fetchImpl, { cacheBytes: 1000 });
 
@@ -266,8 +264,8 @@ describe('StreamRelay', () => {
   });
 
   it('reports an upstream failure as 502 — never the gateway’s own 401', async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response('login', { status: 401 }),
+    const fetchImpl = vi.fn(() =>
+      Promise.resolve(new Response('login', { status: 401 })),
     ) as unknown as typeof fetch;
 
     await expect(relayWith(fetchImpl).playlist(camera())).rejects.toMatchObject({ status: 502 });
@@ -275,9 +273,11 @@ describe('StreamRelay', () => {
 
   it('reads ahead of the segment it just served, within the concurrency budget', async () => {
     const requested: string[] = [];
-    const fetchImpl = vi.fn(async (url: string) => {
+    const fetchImpl = vi.fn((url: string) => {
       requested.push(url);
-      return url.endsWith('.m3u8') ? ok(SANDBOX_PLAYLIST) : ok(Buffer.alloc(8), 'video/mp2t');
+      return Promise.resolve(
+        url.endsWith('.m3u8') ? ok(SANDBOX_PLAYLIST) : ok(Buffer.alloc(8), 'video/mp2t'),
+      );
     }) as unknown as typeof fetch;
 
     const relay = relayWith(fetchImpl, { readAhead: 1 });
@@ -292,7 +292,7 @@ describe('StreamRelay', () => {
   });
 
   it('re-serves a cached playlist without re-rewriting it', async () => {
-    const fetchImpl = vi.fn(async () => ok(SANDBOX_PLAYLIST)) as unknown as typeof fetch;
+    const fetchImpl = vi.fn(() => Promise.resolve(ok(SANDBOX_PLAYLIST))) as unknown as typeof fetch;
     const relay = relayWith(fetchImpl);
     await relay.playlist(camera(), 'media');
     // A different mount path is a different rewrite, so it is a different cache entry.
