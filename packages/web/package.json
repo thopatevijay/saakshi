@@ -17,7 +17,8 @@
     "verify:wall": "node scripts/verify-wall.mjs",
     "record:wall": "node scripts/record-wall.mjs",
     "warm:wall": "node scripts/warm-wall.mjs",
-    "measure:latency": "node scripts/measure-latency.mjs"
+    "measure:latency": "node scripts/measure-latency.mjs",
+    "export:sizing": "tsx scripts/export-sizing.mts"
   },
   "dependencies": {
     "@saakshi/shared": "*",

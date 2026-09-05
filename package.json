@@ -42,7 +42,8 @@
     "demo:provider-swap": "npm run demo:provider-swap --workspace @saakshi/api --",
     "audit:verify": "npm run audit:verify --workspace @saakshi/api --",
     "export:bundle": "npm run export:bundle --workspace @saakshi/api --",
-    "export:verify": "npm run export:verify --workspace @saakshi/api --"
+    "export:verify": "npm run export:verify --workspace @saakshi/api --",
+    "export:sizing": "npm run export:sizing --workspace @saakshi/web --"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

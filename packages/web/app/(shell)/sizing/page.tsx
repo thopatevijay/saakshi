@@ -1,14 +1,25 @@
-import { EmptyState } from '@/src/components/states';
+/**
+ * `/sizing` — the infrastructure sizing and cost calculator (D3-08).
+ *
+ * A server component that renders one client island. There is deliberately nothing to fetch: the
+ * whole model is pure arithmetic over constants that ship in `@saakshi/shared`, so the screen works
+ * with the API down, works offline, and recomputes inside the keystroke that changed an input.
+ *
+ * Access is governed by `sizing:use` in the shared capability matrix, checked by middleware and by
+ * the shell layout before this renders.
+ */
+import { Calculator } from './calculator';
 
-/** Shell placeholder. The ticket puts every feature screen beyond the registry stub out of scope. */
+/**
+ * Dynamic, even though this page fetches nothing.
+ *
+ * `force-static` looks right here — the calculator is a client island over constants that ship in
+ * the bundle — but it renders the route without a request, so the shell layout's `cookies()` sees no
+ * session and redirects every visitor to `/login`. The page has no data to cache; the layout around
+ * it has a user to identify.
+ */
+export const dynamic = 'force-dynamic';
+
 export default function Page() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-semibold text-slate-100">Infrastructure sizing</h1>
-      <EmptyState
-        title="Not built yet"
-        description="The in-product sizing and cost calculator lands in D3-08. The shell, its navigation and its permissions are in place around it."
-      />
-    </div>
-  );
+  return <Calculator />;
 }

@@ -290,11 +290,16 @@ only (never publish to the gateway), and open only the cameras actively being pr
 | | Central video (Model 4) | Metadata at edge (ours) |
 |---|---|---|
 | 80,000 cameras @ 2 Mbps | **160 Gbps** sustained | — |
-| 80,000 cameras @ ~2 KB/s events | — | **≈1.3 Gbps** |
-| Ratio | | **~125× less backhaul** |
+| 80,000 cameras, one row per *frame* (what the PoC emits today) | — | **≈2.45 Gbps** — **~65×** |
+| 80,000 cameras, one row per *track* (the design at scale) | — | **≈56 Mbps** — **~2,850×** |
 
 Video stays where it is. Only events travel. Video is pulled on demand, per incident, over the
 existing feed path.
+
+Both metadata rows are computed, not asserted: the event rate is D1-09's measured sighting rate
+(112,817 sightings / 8 cameras / 1319.5 s), the per-track divisor is D2-01's measured 43.6 sightings
+per track, and the payload is the serialised `Sighting` schema at 358.3 B. Move any of them yourself
+at `/sizing`; the arithmetic and its sources are in `docs/sizing-model.md` (D3-08).
 
 ---
 
@@ -541,15 +546,45 @@ onboarding_responses (department_id, questionnaire jsonb, submitted_at)
 - [ ] Hosted platform URL + test login credentials
 - [ ] Public GitHub repository
 
-### First-pass sizing figures (to be refined, stated as first-pass in the deck)
+### Sizing figures — superseded by the measured model (D3-08)
 
-- Backhaul: 160 Gbps (central video) vs ~1.3 Gbps (metadata) — **~125×**
-- GPU: conservatively ~25 concurrent ANPR streams per L4/A10-class GPU. Not every camera needs
-  continuous ANPR — road-facing cameras are ~30% of the estate ⇒ ~24,000 × ANPR ⇒ **~960 GPUs**,
-  distributed over ~33 district nodes ⇒ **~29 GPUs per district node.** A real number, not a hand-wave.
-- Event storage: 80k × ~200 events/day × ~400 B ≈ 6.4 GB/day ≈ **2.3 TB/year** metadata.
-- Crops: store **only** best-shots and watchlist hits ⇒ 80k × ~40/day × 15 KB ≈ 48 GB/day ≈
-  **17 TB/year**, tiered hot/warm/cold.
+**These are no longer first-pass estimates.** `docs/sizing-model.md` is generated from
+`packages/shared/src/sizing/`, the same model the `/sizing` screen runs, and every constant in it
+carries a provenance tag — measured (with the ticket that measured it), vendor-listed, or assumed.
+Quote that document, not this summary, and never hand-write these numbers into the HLD or the deck.
+
+- **Backhaul: 160 Gbps (central video) vs 56 Mbps (metadata) — ~2,850×.** Video is 80,000 × 2 Mbps.
+  Metadata is 80,000 × 21,168 track summaries/day × 358.3 B, where the event rate comes from D1-09's
+  measured sighting rate divided by D2-01's measured 43.6 sightings per track, and the byte figure is
+  the serialised `Sighting` schema. Streaming a row per *frame* instead of per *track* gives 2.45 Gbps
+  and **~65×** — still decisive, and the honest floor.
+- **GPU: 8 concurrent ANPR streams per node measured, on one Apple Silicon laptop, with the node
+  92% blocked in `decode()`** (D1-09, D2-01). Extrapolated linearly to a saturated node that is
+  ~100 streams at the sandbox's ~4 effective fps, which cross-checks to within 6% of an independent
+  local-MediaMTX run. At 30% ANPR coverage of 80,000 cameras that is **~240 accelerators over 33
+  district nodes**. The ~25 streams/GPU figure for an L4/A10 is **vendor-listed, not ours** — there is
+  no NVIDIA GPU on this project — and against it the same estate needs ~960. Both rows are in the
+  generated document, tagged.
+- **Event storage: ~202 TB/year** at one row per track — 80,000 × 21,168/day × 327.4 B, where the
+  byte figure is measured on disk (100,000 rows into a `like sightings including indexes` probe:
+  195.1 B of heap, 327.4 B with indexes). Uncompressed; TimescaleDB columnar compression is not
+  enabled and is not counted.
+- **Crops: a band, not a figure.** Best-shot selection keeps **33 crops per 1,000 sightings** —
+  measured, and the ratio holds at any resolution — but the crop *size* is provisional: D2-02
+  measured a 2,912 B mean on small replay frames and marked it so. The honest statement is 3–15 KB
+  per crop pending one live-feed measurement, and the model outputs a range everywhere as a result.
+
+**Why the earlier numbers changed.** The first pass quoted three mutually inconsistent per-camera
+event rates in adjacent bullets — ~432,000/day implied by "~2 KB/s" for backhaul, 200/day for
+metadata storage, and ~1,212/day implied by "~40 crops/day" — which differ by up to 2,160×. Its
+160 Gbps, ~1.3 Gbps, ~125× and ~960 GPUs all reproduce *exactly* under its own constants, and a test
+asserts that they do; what could not survive was using a different rate for each output. All four
+figures above now derive from one measured rate. The reconciliation, line by line, is
+`docs/sizing-model.md` §5.
+
+**Still outstanding:** D1-09's throughput figures were taken while another worker loaded the same
+machine, and its handoff asks for a re-measurement on a quiet checkout before anything is published.
+**That re-run is D4-04's**, and until it lands every figure here carries that caveat.
 
 ---
 
