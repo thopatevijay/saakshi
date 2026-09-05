@@ -37,6 +37,7 @@
     "evidence:sign": "npm run evidence:sign --workspace @saakshi/api --",
     "seed:watchlist": "npm run seed:watchlist --workspace @saakshi/api --",
     "measure:trace-linking": "npm run measure:trace-linking --workspace @saakshi/api --",
+    "analyze:anomalies": "npm run analyze:anomalies --workspace @saakshi/api --",
     "bench:alert-ui": "npm run bench:alert-ui --workspace @saakshi/web --",
     "demo:alerts": "npm run demo:alerts --workspace @saakshi/api --",
     "demo:provider-swap": "npm run demo:provider-swap --workspace @saakshi/api --",

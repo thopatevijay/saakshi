@@ -3088,6 +3088,100 @@ export interface paths {
                                     } | null;
                                     note: string;
                                 }[];
+                                anomalies: {
+                                    plate: string;
+                                    segmentsExamined: number;
+                                    segmentsEvaluable: number;
+                                    impossible: number;
+                                    likelyMisread: number;
+                                    likelyCloned: number;
+                                    undetermined: number;
+                                    alerts: number;
+                                    findings: {
+                                        seq: number;
+                                        fromSightingId: string;
+                                        toSightingId: string;
+                                        fromCameraName: string;
+                                        toCameraName: string;
+                                        /** @enum {string} */
+                                        feasibility: "impossible" | "feasible" | "indeterminate";
+                                        /** @enum {string} */
+                                        anomaly: "none" | "impossible_transition";
+                                        failedTests: ("minimum_average_speed" | "faster_than_free_flow")[];
+                                        elapsedSeconds: number;
+                                        roadDistanceKm: number | null;
+                                        expectedTravelTimeS: number | null;
+                                        minimumAverageSpeedKmh: number | null;
+                                        elapsedVsExpected: number | null;
+                                        /** @enum {string} */
+                                        explanation: "likely_misread" | "likely_cloned" | "undetermined";
+                                        candidateAlternative: {
+                                            plate: string;
+                                            distance: number;
+                                            tailChars: number;
+                                            truncation: boolean;
+                                            /** @enum {string} */
+                                            weakerEndpoint: "from" | "to";
+                                            note: string;
+                                        } | null;
+                                        repeatedPairs: number;
+                                        linkConfidence: number;
+                                        headline: string;
+                                        why: string;
+                                        alternativeExplanation: string;
+                                        limitations: string;
+                                        alert: {
+                                            /** @enum {string} */
+                                            kind: "cloned_plate_suspected";
+                                            /** @enum {string} */
+                                            severity: "low" | "medium" | "high" | "critical";
+                                            plate: string;
+                                            evidence: {
+                                                left: {
+                                                    sightingId: string;
+                                                    ts: string;
+                                                    cameraId: string;
+                                                    cameraName: string;
+                                                    plateNormalized: string;
+                                                    plateRawText: string;
+                                                    ocrConfidence: number;
+                                                    /** @enum {string} */
+                                                    linkMethod: "plate_exact" | "plate_fuzzy" | "reid_bridge";
+                                                    linkConfidence: number;
+                                                    grammarValid: boolean;
+                                                    cropUri: string | null;
+                                                    cropUrl: string | null;
+                                                };
+                                                right: {
+                                                    sightingId: string;
+                                                    ts: string;
+                                                    cameraId: string;
+                                                    cameraName: string;
+                                                    plateNormalized: string;
+                                                    plateRawText: string;
+                                                    ocrConfidence: number;
+                                                    /** @enum {string} */
+                                                    linkMethod: "plate_exact" | "plate_fuzzy" | "reid_bridge";
+                                                    linkConfidence: number;
+                                                    grammarValid: boolean;
+                                                    cropUri: string | null;
+                                                    cropUrl: string | null;
+                                                };
+                                            };
+                                            cropsIncomplete: boolean;
+                                            headline: string;
+                                            why: string;
+                                            alternativeExplanation: string;
+                                            limitations: string;
+                                        } | null;
+                                    }[];
+                                    policy: {
+                                        maxPlausibleKmh: number;
+                                        graphSpeedTolerance: number;
+                                        version: number;
+                                    };
+                                    disclaimer: string;
+                                };
                                 summary: {
                                     segments: number;
                                     observedSegments: number;

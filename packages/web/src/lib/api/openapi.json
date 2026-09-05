@@ -8691,6 +8691,436 @@
                             "additionalProperties": false
                           }
                         },
+                        "anomalies": {
+                          "type": "object",
+                          "properties": {
+                            "plate": {
+                              "type": "string"
+                            },
+                            "segmentsExamined": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "segmentsEvaluable": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "impossible": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "likelyMisread": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "likelyCloned": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "undetermined": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "alerts": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "findings": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "seq": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "fromSightingId": {
+                                    "type": "string"
+                                  },
+                                  "toSightingId": {
+                                    "type": "string"
+                                  },
+                                  "fromCameraName": {
+                                    "type": "string"
+                                  },
+                                  "toCameraName": {
+                                    "type": "string"
+                                  },
+                                  "feasibility": {
+                                    "type": "string",
+                                    "enum": [
+                                      "impossible",
+                                      "feasible",
+                                      "indeterminate"
+                                    ]
+                                  },
+                                  "anomaly": {
+                                    "type": "string",
+                                    "enum": [
+                                      "none",
+                                      "impossible_transition"
+                                    ]
+                                  },
+                                  "failedTests": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "minimum_average_speed",
+                                        "faster_than_free_flow"
+                                      ]
+                                    }
+                                  },
+                                  "elapsedSeconds": {
+                                    "type": "number"
+                                  },
+                                  "roadDistanceKm": {
+                                    "nullable": true,
+                                    "type": "number"
+                                  },
+                                  "expectedTravelTimeS": {
+                                    "nullable": true,
+                                    "type": "number"
+                                  },
+                                  "minimumAverageSpeedKmh": {
+                                    "nullable": true,
+                                    "type": "number"
+                                  },
+                                  "elapsedVsExpected": {
+                                    "nullable": true,
+                                    "type": "number"
+                                  },
+                                  "explanation": {
+                                    "type": "string",
+                                    "enum": [
+                                      "likely_misread",
+                                      "likely_cloned",
+                                      "undetermined"
+                                    ]
+                                  },
+                                  "candidateAlternative": {
+                                    "nullable": true,
+                                    "type": "object",
+                                    "properties": {
+                                      "plate": {
+                                        "type": "string"
+                                      },
+                                      "distance": {
+                                        "type": "number"
+                                      },
+                                      "tailChars": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "truncation": {
+                                        "type": "boolean"
+                                      },
+                                      "weakerEndpoint": {
+                                        "type": "string",
+                                        "enum": [
+                                          "from",
+                                          "to"
+                                        ]
+                                      },
+                                      "note": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "plate",
+                                      "distance",
+                                      "tailChars",
+                                      "truncation",
+                                      "weakerEndpoint",
+                                      "note"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "repeatedPairs": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "linkConfidence": {
+                                    "type": "number"
+                                  },
+                                  "headline": {
+                                    "type": "string"
+                                  },
+                                  "why": {
+                                    "type": "string"
+                                  },
+                                  "alternativeExplanation": {
+                                    "type": "string"
+                                  },
+                                  "limitations": {
+                                    "type": "string"
+                                  },
+                                  "alert": {
+                                    "nullable": true,
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "cloned_plate_suspected"
+                                        ]
+                                      },
+                                      "severity": {
+                                        "type": "string",
+                                        "enum": [
+                                          "low",
+                                          "medium",
+                                          "high",
+                                          "critical"
+                                        ]
+                                      },
+                                      "plate": {
+                                        "type": "string"
+                                      },
+                                      "evidence": {
+                                        "type": "object",
+                                        "properties": {
+                                          "left": {
+                                            "type": "object",
+                                            "properties": {
+                                              "sightingId": {
+                                                "type": "string"
+                                              },
+                                              "ts": {
+                                                "type": "string"
+                                              },
+                                              "cameraId": {
+                                                "type": "string"
+                                              },
+                                              "cameraName": {
+                                                "type": "string"
+                                              },
+                                              "plateNormalized": {
+                                                "type": "string"
+                                              },
+                                              "plateRawText": {
+                                                "type": "string"
+                                              },
+                                              "ocrConfidence": {
+                                                "type": "number"
+                                              },
+                                              "linkMethod": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "plate_exact",
+                                                  "plate_fuzzy",
+                                                  "reid_bridge"
+                                                ]
+                                              },
+                                              "linkConfidence": {
+                                                "type": "number"
+                                              },
+                                              "grammarValid": {
+                                                "type": "boolean"
+                                              },
+                                              "cropUri": {
+                                                "nullable": true,
+                                                "type": "string"
+                                              },
+                                              "cropUrl": {
+                                                "nullable": true,
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "sightingId",
+                                              "ts",
+                                              "cameraId",
+                                              "cameraName",
+                                              "plateNormalized",
+                                              "plateRawText",
+                                              "ocrConfidence",
+                                              "linkMethod",
+                                              "linkConfidence",
+                                              "grammarValid",
+                                              "cropUri",
+                                              "cropUrl"
+                                            ],
+                                            "additionalProperties": false
+                                          },
+                                          "right": {
+                                            "type": "object",
+                                            "properties": {
+                                              "sightingId": {
+                                                "type": "string"
+                                              },
+                                              "ts": {
+                                                "type": "string"
+                                              },
+                                              "cameraId": {
+                                                "type": "string"
+                                              },
+                                              "cameraName": {
+                                                "type": "string"
+                                              },
+                                              "plateNormalized": {
+                                                "type": "string"
+                                              },
+                                              "plateRawText": {
+                                                "type": "string"
+                                              },
+                                              "ocrConfidence": {
+                                                "type": "number"
+                                              },
+                                              "linkMethod": {
+                                                "type": "string",
+                                                "enum": [
+                                                  "plate_exact",
+                                                  "plate_fuzzy",
+                                                  "reid_bridge"
+                                                ]
+                                              },
+                                              "linkConfidence": {
+                                                "type": "number"
+                                              },
+                                              "grammarValid": {
+                                                "type": "boolean"
+                                              },
+                                              "cropUri": {
+                                                "nullable": true,
+                                                "type": "string"
+                                              },
+                                              "cropUrl": {
+                                                "nullable": true,
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": [
+                                              "sightingId",
+                                              "ts",
+                                              "cameraId",
+                                              "cameraName",
+                                              "plateNormalized",
+                                              "plateRawText",
+                                              "ocrConfidence",
+                                              "linkMethod",
+                                              "linkConfidence",
+                                              "grammarValid",
+                                              "cropUri",
+                                              "cropUrl"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        },
+                                        "required": [
+                                          "left",
+                                          "right"
+                                        ],
+                                        "additionalProperties": false
+                                      },
+                                      "cropsIncomplete": {
+                                        "type": "boolean"
+                                      },
+                                      "headline": {
+                                        "type": "string"
+                                      },
+                                      "why": {
+                                        "type": "string"
+                                      },
+                                      "alternativeExplanation": {
+                                        "type": "string"
+                                      },
+                                      "limitations": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "severity",
+                                      "plate",
+                                      "evidence",
+                                      "cropsIncomplete",
+                                      "headline",
+                                      "why",
+                                      "alternativeExplanation",
+                                      "limitations"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "seq",
+                                  "fromSightingId",
+                                  "toSightingId",
+                                  "fromCameraName",
+                                  "toCameraName",
+                                  "feasibility",
+                                  "anomaly",
+                                  "failedTests",
+                                  "elapsedSeconds",
+                                  "roadDistanceKm",
+                                  "expectedTravelTimeS",
+                                  "minimumAverageSpeedKmh",
+                                  "elapsedVsExpected",
+                                  "explanation",
+                                  "candidateAlternative",
+                                  "repeatedPairs",
+                                  "linkConfidence",
+                                  "headline",
+                                  "why",
+                                  "alternativeExplanation",
+                                  "limitations",
+                                  "alert"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "policy": {
+                              "type": "object",
+                              "properties": {
+                                "maxPlausibleKmh": {
+                                  "type": "number"
+                                },
+                                "graphSpeedTolerance": {
+                                  "type": "number"
+                                },
+                                "version": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "maxPlausibleKmh",
+                                "graphSpeedTolerance",
+                                "version"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "disclaimer": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "plate",
+                            "segmentsExamined",
+                            "segmentsEvaluable",
+                            "impossible",
+                            "likelyMisread",
+                            "likelyCloned",
+                            "undetermined",
+                            "alerts",
+                            "findings",
+                            "policy",
+                            "disclaimer"
+                          ],
+                          "additionalProperties": false
+                        },
                         "summary": {
                           "type": "object",
                           "properties": {
@@ -8878,6 +9308,7 @@
                       "required": [
                         "canonicalPlate",
                         "segments",
+                        "anomalies",
                         "summary",
                         "coverage",
                         "legend",
