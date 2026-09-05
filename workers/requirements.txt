@@ -18,6 +18,29 @@ supervision>=0.23,<0.31
 # PyAV: PTS-accurate demuxing. Timing comes from PTS, never frame arrival time.
 av>=13.0
 
+# ── ANPR (D2-01) ────────────────────────────────────────────────────────────────────────────────
+#
+# All ONNX Runtime, all open weights, licences recorded in `docs/model-licences.md`.
+#
+# `open-image-models` carries the YOLO-v9 licence-plate detector (MIT). Note that on Apple Silicon
+# onnxruntime selects the CoreML provider by default and that provider *fails on every frame with
+# no plate* — `workers/analytics/anpr/plates.py` pins `CPUExecutionProvider` and explains why.
+open-image-models>=0.6.0
+
+# `fast-plate-ocr` — the fixed-slot plate recogniser. `[onnx]` pulls onnxruntime, which the plate
+# detector needs too. Installing it also pulls `opencv-python-headless` alongside the existing
+# `opencv-python`; both write into the same `cv2/` package. Harmless here (same 5.0 series, and this
+# repo makes no GUI calls) but it is a latent conflict and BL-01 carries the note.
+fast-plate-ocr[onnx]>=1.1.0
+
+# The second OCR backend: PaddleOCR's PP-OCR **weights**, run through ONNX Runtime.
+#
+# Deliberately not `paddlepaddle` + `paddleocr`. Those downgrade numpy 2.5.2 -> 2.3.5 and add
+# `opencv-contrib-python` to a virtualenv every worker in this repo shares — a large environment
+# change in exchange for a fallback path. RapidOCR runs the same models on the runtime already
+# present. Five small pure-Python packages, Apache-2.0.
+rapidocr>=3.4
+
 # HLS catalogue fetch and the sandbox cookie handling.
 requests>=2.32
 
