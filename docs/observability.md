@@ -254,12 +254,20 @@ avg_over_time(up{job="saakshi-api"}[$__range]) * 100   # observed, over the dash
 saakshi_uptime_target_ratio * 100                      # the stated target, a constant
 ```
 
-**Measured on 2026-09-05: 73.5% over the hour.** That is nowhere near the 99% target, and the panel
-renders it in red rather than rounding it away. It is honest and it is also *not* a product claim:
-that hour contained five deliberate restarts of the API while this ticket was being built, and the
-first twenty minutes of it had no exporter at all. The number a submission may quote is one measured
-over a stable window on a deployed instance, and D4-01 owns taking it. What this ticket delivers is
-the instrument, and an instrument that could only ever read 99% would not be one.
+**Two readings taken on 2026-09-05, and both are the point.**
+
+| window | observed | why |
+|---|---|---|
+| the build hour | **73.5%** | five deliberate API restarts while this ticket was being written, and no exporter at all for its first twenty minutes |
+| a stable 30 min afterwards | **100.000%** | nothing restarted |
+
+The first was rendered in red against the 99% target rather than rounded away, which is the whole
+argument: an instrument that could only ever read 99% would not be one. The second is what the same
+instrument reads when nothing is being torn down underneath it.
+
+**Neither is a product claim.** A submission may quote an uptime figure only from a stable window on
+a deployed instance over a meaningful period; D4-01 owns taking that measurement. What this ticket
+delivers is the instrument and the discipline that it reports what happened.
 
 The observed figure is only as meaningful as its window: over a ten-minute range, one missed scrape
 is 2.5%. The Estate Health board states the window on the panel, and **if the observed number is
@@ -397,7 +405,8 @@ password is a local development value, like the MinIO one; a deployment override
 | `/metrics` families | 634 `saakshi_` lines from the API alone |
 | PTS → alert | 14 observations, **p50 50 ms · p95 95 ms**, stored max 37.3 ms |
 | upstream-bound share | **95.9%** on this run (D1-09 measured 92% on the sandbox) |
-| observed API uptime | **73.5%** over the hour — see §5; the panel says so rather than hiding it |
+| observed API uptime | **73.5%** over the build hour, **100.000%** over a stable 30 minutes — see §5 |
+| retention coverage | **0 declared / 30 unknown** — see §2.4 |
 
 `SaakshiReadRateCollapse` and `SaakshiCameraStarved` also went pending on the same event, which is
 the correct behaviour: three rules describing one outage from three angles.
