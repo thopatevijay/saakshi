@@ -1,0 +1,1120 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 2 /Kids [7 0 R 9 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 13819 >>
+stream
+q 0 g BT /F2 16 Tf 1 0 0 1 44 797.89 Tm (SAAKSHI � Camera coverage gap analysis) Tj ET Q
+q 0.4 g BT /F1 8.5 Tf 1 0 0 1 44 781.89 Tm (Gujarat Police Innovation Challenge 2026 - Pillar 1, Model 1 deliverable) Tj ET Q
+q 0.6 G 1 w 44 773.89 m 551.28 773.89 l S Q
+q 0.45 g BT /F1 8 Tf 1 0 0 1 44 755.89 Tm (Generated 2026-09-05T18:42:42.382Z from database saakshi_d3_06) Tj ET Q
+q 0 g BT /F2 12 Tf 1 0 0 1 44 739.89 Tm (1 � Read this before any percentage) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 723.89 Tm (This report covers 50 of 80 registered cameras. The other 30 are unassessable, not uncovered: the upstream catalogue publishes {id,) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 712.89 Tm (name} only, so they carry no coordinates and no district, and no spatial question can be asked of them at all. They are counted in) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 701.89 Tm (camera_coverage - one row each, null geometry, with the reason recorded - precisely so that a later count\(*\) cannot be mistaken for) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 690.89 Tm (the size of the estate.) Tj ET Q
+q 0.35 g BT /F1 8.5 Tf 1 0 0 1 44 673.89 Tm (80 cameras is a sandbox, not Gujarat. Every coverage cell is a circle: cameras has no bearing column, so a directional wedge is not) Tj ET Q
+q 0.35 g BT /F1 8.5 Tf 1 0 0 1 44 662.89 Tm (expressible for any camera in the estate. The radii are assumptions, not survey measurements. No live VAHAN / SARTHI / eGujCop /) Tj ET Q
+q 0.35 g BT /F1 8.5 Tf 1 0 0 1 44 651.89 Tm (AFIS / NAFIS connectivity is used anywhere, and no face recognition is performed.) Tj ET Q
+q 0 g BT /F2 12 Tf 1 0 0 1 44 634.89 Tm (2 � The headline) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 618.89 Tm (Every metre of the 20.35 km this estate appears to cover is contributed by a camera nobody has verified. Trusted-only coverage is) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 607.89 Tm (0.00 km - a delta of 20.35 km, or 100% of apparent coverage. The cause is measured and specific: 80 of 80 cameras have never had) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 596.89 Tm (a health check run against them, so every one resolves to band: null. That is an absence of evidence, not a bad result - but a) Tj ET Q
+q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 585.89 Tm (conventional coverage map would have drawn all 20.35 km of it in green.) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 44 568.89 Tm (slice) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 269.52 568.89 Tm (cameras) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 361.72 568.89 Tm (covered) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 431.23 568.89 Tm (share of network) Tj ET Q
+q 0.75 G 0.5 w 44 564.89 m 551.28 564.89 l S Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 554.89 Tm (All cameras) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 291.66 554.89 Tm (50) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 359.15 554.89 Tm (20.35 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 460.4 554.89 Tm (0.0093%) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 544.89 Tm (Trusted cameras only) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 295.83 544.89 Tm (0) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 363.32 544.89 Tm (0.00 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 460.4 544.89 Tm (0.0000%) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 534.89 Tm (ANPR-viable cameras only) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 291.66 534.89 Tm (17) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 363.32 534.89 Tm (2.77 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 460.4 534.89 Tm (0.0013%) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 518.89 Tm (Mapping where cameras are is a map anyone can draw. cam03 returned 67 sightings in the same city and hour that cam04 returned) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 507.89 Tm (33,548 - a 500x spread - and cam03 is not broken: it decoded 5,582 frames cleanly at 23.16 fps. It simply sees almost no vehicles) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 496.89 Tm (\(D1-09, #13\). A coverage polygon for cam03 would be the same size and colour as cam04's. Yield is not a geometric property, which) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 485.89 Tm (is why the trust band, not the polygon, decides whether a metre of road counts as covered. Likewise 8 of 30 measured cameras fail) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 474.89 Tm (night usability \(D1-05, #9\): a junction covered only by a night-blind camera is uncovered for half of every day.) Tj ET Q
+q 0 g BT /F2 12 Tf 1 0 0 1 44 457.89 Tm (3 � Method) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 441.89 Tm (Cell radius by geometry class, all assumed: anpr_viable 60 m, detection_only 120 m, unclassified 60 m. Denominator: 218026.20 km) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 430.89 Tm (over 5,40,584 ways; service, track, path, footway and cycleway were excluded at import \(D3-01, #24\). ST_Intersection and) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 419.89 Tm (ST_Difference are evaluated independently in EPSG:32643 and reconciled to 1 m; the generator refuses to publish if a slice falls) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 408.89 Tm (outside that.) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 44 391.89 Tm (slice) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 235.23 391.89 Tm (cand. ways) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 312.75 391.89 Tm (cand. km) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 386.72 391.89 Tm (covered) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 451.27 391.89 Tm (reconcile err) Tj ET Q
+q 0.75 G 0.5 w 44 387.89 m 551.28 387.89 l S Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 377.89 Tm (All cameras) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 262.49 377.89 Tm (261) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 314.15 377.89 Tm (77.04 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 384.15 377.89 Tm (20.35 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 455.39 377.89 Tm (0.000000 m) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 367.89 Tm (Trusted cameras only) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 270.83 367.89 Tm (0) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 318.32 367.89 Tm (0.00 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 388.32 367.89 Tm (0.00 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 455.39 367.89 Tm (0.000000 m) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 357.89 Tm (ANPR-viable cameras only) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 266.66 357.89 Tm (43) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 314.15 357.89 Tm (15.61 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 388.32 357.89 Tm (2.77 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 455.39 357.89 Tm (0.000000 m) Tj ET Q
+q 0 g BT /F2 12 Tf 1 0 0 1 44 341.89 Tm (4 � Junctions with zero trusted coverage) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 325.89 Tm (A junction is a point where at least 3 distinct ways of class motorway, trunk, primary, secondary, tertiary terminate - a topological) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 314.89 Tm (definition from way endpoints, not an OSM junction tag, so it misses junctions where one way passes through another without a shared) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 303.89 Tm (endpoint. 6,750 of 6,750 have no trusted camera covering them.) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 59.58 286.89 Tm (#) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 123.39 286.89 Tm (lon) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 195.6 286.89 Tm (lat) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 225.89 286.89 Tm (ways) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 248 286.89 Tm (nearest named way) Tj ET Q
+q 0.75 G 0.5 w 44 282.89 m 551.28 282.89 l S Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 272.89 Tm (1) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 272.89 Tm (72.570734) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 272.89 Tm (23.186064) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 272.89 Tm (6) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 272.89 Tm (Amba Township Main Road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 262.89 Tm (2) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 262.89 Tm (73.787246) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 262.89 Tm (20.018091) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 262.89 Tm (6) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 262.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 252.89 Tm (3) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 252.89 Tm (68.977376) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 252.89 Tm (22.248284) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 252.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 252.89 Tm (Station Road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 242.89 Tm (4) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 242.89 Tm (69.606003) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 242.89 Tm (21.640595) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 242.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 242.89 Tm (MG Road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 232.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 232.89 Tm (70.459215) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 232.89 Tm (21.739962) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 232.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 232.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 222.89 Tm (6) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 222.89 Tm (70.617416) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 222.89 Tm (21.771482) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 222.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 222.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 212.89 Tm (7) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 212.89 Tm (70.829410) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 212.89 Tm (22.819765) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 212.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 212.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 202.89 Tm (8) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 202.89 Tm (70.848631) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 202.89 Tm (22.825083) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 202.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 202.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 59.83 192.89 Tm (9) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 192.89 Tm (71.352959) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 192.89 Tm (24.154854) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 192.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 192.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 182.89 Tm (10) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 182.89 Tm (71.457471) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 182.89 Tm (23.011033) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 182.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 182.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 172.89 Tm (11) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 172.89 Tm (71.493096) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 172.89 Tm (22.998067) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 172.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 172.89 Tm (State Highway 7) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 162.89 Tm (12) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 162.89 Tm (71.628397) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 162.89 Tm (22.719469) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 162.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 162.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 152.89 Tm (13) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 152.89 Tm (72.064622) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 152.89 Tm (23.093275) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 152.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 152.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 142.89 Tm (14) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 142.89 Tm (72.137592) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 142.89 Tm (23.851330) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 142.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 142.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 132.89 Tm (15) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 132.89 Tm (72.337200) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 132.89 Tm (23.288769) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 132.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 132.89 Tm (Kadi Underpass) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 122.89 Tm (16) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 122.89 Tm (72.384048) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 122.89 Tm (23.567135) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 122.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 122.89 Tm (Mehsana-Himatnagar Vijapur road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 112.89 Tm (17) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 112.89 Tm (72.390459) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 112.89 Tm (23.603880) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 112.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 112.89 Tm (Station Road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 102.89 Tm (18) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 102.89 Tm (72.488464) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 102.89 Tm (23.241196) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 102.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 102.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 92.89 Tm (19) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 92.89 Tm (72.507990) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 92.89 Tm (23.050416) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 92.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 92.89 Tm (Thaltej Road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 82.89 Tm (20) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 82.89 Tm (72.511614) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 82.89 Tm (23.027296) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 82.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 82.89 Tm (Ramdevnagar road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 72.89 Tm (21) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 72.89 Tm (72.562200) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 72.89 Tm (23.009330) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 72.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 72.89 Tm (Ashram Road) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis � generated 2026-09-05T18:42:42.382Z � saakshi_d3_06 � not a survey) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 538.63 28 Tm (1 / 2) Tj ET Q
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 46719 >>
+stream
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 59.58 797.89 Tm (#) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 123.39 797.89 Tm (lon) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 195.6 797.89 Tm (lat) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 225.89 797.89 Tm (ways) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 248 797.89 Tm (nearest named way) Tj ET Q
+q 0.75 G 0.5 w 44 793.89 m 551.28 793.89 l S Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 783.89 Tm (22) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 783.89 Tm (72.570750) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 783.89 Tm (23.042429) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 783.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 783.89 Tm (Gujrat vidhyapeeth road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 773.89 Tm (23) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 773.89 Tm (72.571280) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 773.89 Tm (23.022565) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 773.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 773.89 Tm (Ashram Road) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 763.89 Tm (24) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 763.89 Tm (72.575148) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 763.89 Tm (23.123451) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 763.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 763.89 Tm (-) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 55.66 753.89 Tm (25) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 753.89 Tm (72.596469) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 753.89 Tm (22.996112) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 753.89 Tm (5) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 248 753.89 Tm (-) Tj ET Q
+q 0 g BT /F2 12 Tf 1 0 0 1 44 737.89 Tm (5 � Where the coverage is) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 44 721.89 Tm (district) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 360.77 721.89 Tm (covered km \(all cameras\)) Tj ET Q
+q 0.75 G 0.5 w 44 717.89 m 551.28 717.89 l S Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 707.89 Tm (Junagadh) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 423.32 707.89 Tm (0.81 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 697.89 Tm (Gandhinagar) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 423.32 697.89 Tm (3.82 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 687.89 Tm (Rajkot) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 423.32 687.89 Tm (1.71 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 677.89 Tm (Ahmedabad) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 419.15 677.89 Tm (12.99 km) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 667.89 Tm (Gir Somnath) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 423.32 667.89 Tm (1.03 km) Tj ET Q
+q 0.35 g BT /F1 8.5 Tf 1 0 0 1 44 651.89 Tm (No per-department breakdown is given, and that is itself a finding: department_id is NULL for every camera in this estate, so a) Tj ET Q
+q 0.35 g BT /F1 8.5 Tf 1 0 0 1 44 640.89 Tm (departmental trust deficit has exactly one bucket - no owning department recorded \(D3-05, #28\).) Tj ET Q
+q 0 g BT /F2 12 Tf 1 0 0 1 44 623.89 Tm (Plan view) Tj ET Q
+q 0.97 g 44 387.89 507.28 220 re f Q
+q 0.7 G 0.5 w 44 387.89 m 551.28 387.89 l S Q
+q 0.7 G 0.5 w 44 607.89 m 551.28 607.89 l S Q
+q 0.7 G 0.5 w 44 387.89 m 44 607.89 l S Q
+q 0.7 G 0.5 w 551.28 387.89 m 551.28 607.89 l S Q
+q 0.55 G 0.6 w 393.18 528.26 m 393.02 529.1 l S Q
+q 0.55 G 0.6 w 393.02 529.1 m 392.54 529.81 l S Q
+q 0.55 G 0.6 w 392.54 529.81 m 391.83 530.29 l S Q
+q 0.55 G 0.6 w 391.83 530.29 m 390.98 530.46 l S Q
+q 0.55 G 0.6 w 390.98 530.46 m 390.14 530.29 l S Q
+q 0.55 G 0.6 w 390.14 530.29 m 389.43 529.81 l S Q
+q 0.55 G 0.6 w 389.43 529.81 m 388.95 529.1 l S Q
+q 0.55 G 0.6 w 388.95 529.1 m 388.78 528.26 l S Q
+q 0.55 G 0.6 w 388.78 528.26 m 388.95 527.41 l S Q
+q 0.55 G 0.6 w 388.95 527.41 m 389.43 526.7 l S Q
+q 0.55 G 0.6 w 389.43 526.7 m 390.14 526.22 l S Q
+q 0.55 G 0.6 w 390.14 526.22 m 390.98 526.06 l S Q
+q 0.55 G 0.6 w 390.98 526.06 m 391.83 526.22 l S Q
+q 0.55 G 0.6 w 391.83 526.22 m 392.54 526.7 l S Q
+q 0.55 G 0.6 w 392.54 526.7 m 393.02 527.41 l S Q
+q 0.55 G 0.6 w 393.02 527.41 m 393.18 528.26 l S Q
+q 0.55 G 0.6 w 397.4 528.14 m 397.24 528.98 l S Q
+q 0.55 G 0.6 w 397.24 528.98 m 396.76 529.69 l S Q
+q 0.55 G 0.6 w 396.76 529.69 m 396.05 530.17 l S Q
+q 0.55 G 0.6 w 396.05 530.17 m 395.2 530.34 l S Q
+q 0.55 G 0.6 w 395.2 530.34 m 394.36 530.17 l S Q
+q 0.55 G 0.6 w 394.36 530.17 m 393.65 529.69 l S Q
+q 0.55 G 0.6 w 393.65 529.69 m 393.17 528.98 l S Q
+q 0.55 G 0.6 w 393.17 528.98 m 393 528.14 l S Q
+q 0.55 G 0.6 w 393 528.14 m 393.17 527.29 l S Q
+q 0.55 G 0.6 w 393.17 527.29 m 393.65 526.58 l S Q
+q 0.55 G 0.6 w 393.65 526.58 m 394.36 526.1 l S Q
+q 0.55 G 0.6 w 394.36 526.1 m 395.2 525.94 l S Q
+q 0.55 G 0.6 w 395.2 525.94 m 396.05 526.1 l S Q
+q 0.55 G 0.6 w 396.05 526.1 m 396.76 526.58 l S Q
+q 0.55 G 0.6 w 396.76 526.58 m 397.24 527.29 l S Q
+q 0.55 G 0.6 w 397.24 527.29 m 397.4 528.14 l S Q
+q 0.55 G 0.6 w 394.31 529.18 m 394.14 530.03 l S Q
+q 0.55 G 0.6 w 394.14 530.03 m 393.66 530.74 l S Q
+q 0.55 G 0.6 w 393.66 530.74 m 392.95 531.22 l S Q
+q 0.55 G 0.6 w 392.95 531.22 m 392.11 531.38 l S Q
+q 0.55 G 0.6 w 392.11 531.38 m 391.26 531.22 l S Q
+q 0.55 G 0.6 w 391.26 531.22 m 390.55 530.74 l S Q
+q 0.55 G 0.6 w 390.55 530.74 m 390.07 530.03 l S Q
+q 0.55 G 0.6 w 390.07 530.03 m 389.91 529.18 l S Q
+q 0.55 G 0.6 w 389.91 529.18 m 390.07 528.34 l S Q
+q 0.55 G 0.6 w 390.07 528.34 m 390.55 527.63 l S Q
+q 0.55 G 0.6 w 390.55 527.63 m 391.26 527.15 l S Q
+q 0.55 G 0.6 w 391.26 527.15 m 392.11 526.98 l S Q
+q 0.55 G 0.6 w 392.11 526.98 m 392.95 527.15 l S Q
+q 0.55 G 0.6 w 392.95 527.15 m 393.66 527.63 l S Q
+q 0.55 G 0.6 w 393.66 527.63 m 394.14 528.34 l S Q
+q 0.55 G 0.6 w 394.14 528.34 m 394.31 529.18 l S Q
+q 0.55 G 0.6 w 396.41 527.45 m 396.25 528.29 l S Q
+q 0.55 G 0.6 w 396.25 528.29 m 395.77 529.01 l S Q
+q 0.55 G 0.6 w 395.77 529.01 m 395.06 529.48 l S Q
+q 0.55 G 0.6 w 395.06 529.48 m 394.21 529.65 l S Q
+q 0.55 G 0.6 w 394.21 529.65 m 393.37 529.48 l S Q
+q 0.55 G 0.6 w 393.37 529.48 m 392.66 529.01 l S Q
+q 0.55 G 0.6 w 392.66 529.01 m 392.18 528.29 l S Q
+q 0.55 G 0.6 w 392.18 528.29 m 392.01 527.45 l S Q
+q 0.55 G 0.6 w 392.01 527.45 m 392.18 526.61 l S Q
+q 0.55 G 0.6 w 392.18 526.61 m 392.66 525.89 l S Q
+q 0.55 G 0.6 w 392.66 525.89 m 393.37 525.42 l S Q
+q 0.55 G 0.6 w 393.37 525.42 m 394.21 525.25 l S Q
+q 0.55 G 0.6 w 394.21 525.25 m 395.06 525.42 l S Q
+q 0.55 G 0.6 w 395.06 525.42 m 395.77 525.89 l S Q
+q 0.55 G 0.6 w 395.77 525.89 m 396.25 526.61 l S Q
+q 0.55 G 0.6 w 396.25 526.61 m 396.41 527.45 l S Q
+q 0.55 G 0.6 w 398.31 530.92 m 398.14 531.76 l S Q
+q 0.55 G 0.6 w 398.14 531.76 m 397.66 532.47 l S Q
+q 0.55 G 0.6 w 397.66 532.47 m 396.95 532.95 l S Q
+q 0.55 G 0.6 w 396.95 532.95 m 396.11 533.12 l S Q
+q 0.55 G 0.6 w 396.11 533.12 m 395.26 532.95 l S Q
+q 0.55 G 0.6 w 395.26 532.95 m 394.55 532.47 l S Q
+q 0.55 G 0.6 w 394.55 532.47 m 394.07 531.76 l S Q
+q 0.55 G 0.6 w 394.07 531.76 m 393.91 530.92 l S Q
+q 0.55 G 0.6 w 393.91 530.92 m 394.07 530.08 l S Q
+q 0.55 G 0.6 w 394.07 530.08 m 394.55 529.36 l S Q
+q 0.55 G 0.6 w 394.55 529.36 m 395.26 528.89 l S Q
+q 0.55 G 0.6 w 395.26 528.89 m 396.11 528.72 l S Q
+q 0.55 G 0.6 w 396.11 528.72 m 396.95 528.89 l S Q
+q 0.55 G 0.6 w 396.95 528.89 m 397.66 529.36 l S Q
+q 0.55 G 0.6 w 397.66 529.36 m 398.14 530.08 l S Q
+q 0.55 G 0.6 w 398.14 530.08 m 398.31 530.92 l S Q
+q 0.55 G 0.6 w 395.75 528.85 m 395.58 529.69 l S Q
+q 0.55 G 0.6 w 395.58 529.69 m 395.1 530.41 l S Q
+q 0.55 G 0.6 w 395.1 530.41 m 394.39 530.88 l S Q
+q 0.55 G 0.6 w 394.39 530.88 m 393.55 531.05 l S Q
+q 0.55 G 0.6 w 393.55 531.05 m 392.71 530.88 l S Q
+q 0.55 G 0.6 w 392.71 530.88 m 391.99 530.41 l S Q
+q 0.55 G 0.6 w 391.99 530.41 m 391.52 529.69 l S Q
+q 0.55 G 0.6 w 391.52 529.69 m 391.35 528.85 l S Q
+q 0.55 G 0.6 w 391.35 528.85 m 391.52 528.01 l S Q
+q 0.55 G 0.6 w 391.52 528.01 m 391.99 527.29 l S Q
+q 0.55 G 0.6 w 391.99 527.29 m 392.71 526.82 l S Q
+q 0.55 G 0.6 w 392.71 526.82 m 393.55 526.65 l S Q
+q 0.55 G 0.6 w 393.55 526.65 m 394.39 526.82 l S Q
+q 0.55 G 0.6 w 394.39 526.82 m 395.1 527.29 l S Q
+q 0.55 G 0.6 w 395.1 527.29 m 395.58 528.01 l S Q
+q 0.55 G 0.6 w 395.58 528.01 m 395.75 528.85 l S Q
+q 0.55 G 0.6 w 396.61 528.77 m 396.44 529.61 l S Q
+q 0.55 G 0.6 w 396.44 529.61 m 395.96 530.32 l S Q
+q 0.55 G 0.6 w 395.96 530.32 m 395.25 530.8 l S Q
+q 0.55 G 0.6 w 395.25 530.8 m 394.41 530.97 l S Q
+q 0.55 G 0.6 w 394.41 530.97 m 393.56 530.8 l S Q
+q 0.55 G 0.6 w 393.56 530.8 m 392.85 530.32 l S Q
+q 0.55 G 0.6 w 392.85 530.32 m 392.37 529.61 l S Q
+q 0.55 G 0.6 w 392.37 529.61 m 392.21 528.77 l S Q
+q 0.55 G 0.6 w 392.21 528.77 m 392.37 527.93 l S Q
+q 0.55 G 0.6 w 392.37 527.93 m 392.85 527.21 l S Q
+q 0.55 G 0.6 w 392.85 527.21 m 393.56 526.74 l S Q
+q 0.55 G 0.6 w 393.56 526.74 m 394.41 526.57 l S Q
+q 0.55 G 0.6 w 394.41 526.57 m 395.25 526.74 l S Q
+q 0.55 G 0.6 w 395.25 526.74 m 395.96 527.21 l S Q
+q 0.55 G 0.6 w 395.96 527.21 m 396.44 527.93 l S Q
+q 0.55 G 0.6 w 396.44 527.93 m 396.61 528.77 l S Q
+q 0.55 G 0.6 w 394.68 527.57 m 394.52 528.42 l S Q
+q 0.55 G 0.6 w 394.52 528.42 m 394.04 529.13 l S Q
+q 0.55 G 0.6 w 394.04 529.13 m 393.33 529.61 l S Q
+q 0.55 G 0.6 w 393.33 529.61 m 392.48 529.77 l S Q
+q 0.55 G 0.6 w 392.48 529.77 m 391.64 529.61 l S Q
+q 0.55 G 0.6 w 391.64 529.61 m 390.93 529.13 l S Q
+q 0.55 G 0.6 w 390.93 529.13 m 390.45 528.42 l S Q
+q 0.55 G 0.6 w 390.45 528.42 m 390.28 527.57 l S Q
+q 0.55 G 0.6 w 390.28 527.57 m 390.45 526.73 l S Q
+q 0.55 G 0.6 w 390.45 526.73 m 390.93 526.02 l S Q
+q 0.55 G 0.6 w 390.93 526.02 m 391.64 525.54 l S Q
+q 0.55 G 0.6 w 391.64 525.54 m 392.48 525.37 l S Q
+q 0.55 G 0.6 w 392.48 525.37 m 393.33 525.54 l S Q
+q 0.55 G 0.6 w 393.33 525.54 m 394.04 526.02 l S Q
+q 0.55 G 0.6 w 394.04 526.02 m 394.52 526.73 l S Q
+q 0.55 G 0.6 w 394.52 526.73 m 394.68 527.57 l S Q
+q 0.55 G 0.6 w 393.97 527.71 m 393.8 528.55 l S Q
+q 0.55 G 0.6 w 393.8 528.55 m 393.32 529.27 l S Q
+q 0.55 G 0.6 w 393.32 529.27 m 392.61 529.74 l S Q
+q 0.55 G 0.6 w 392.61 529.74 m 391.77 529.91 l S Q
+q 0.55 G 0.6 w 391.77 529.91 m 390.92 529.74 l S Q
+q 0.55 G 0.6 w 390.92 529.74 m 390.21 529.27 l S Q
+q 0.55 G 0.6 w 390.21 529.27 m 389.73 528.55 l S Q
+q 0.55 G 0.6 w 389.73 528.55 m 389.57 527.71 l S Q
+q 0.55 G 0.6 w 389.57 527.71 m 389.73 526.87 l S Q
+q 0.55 G 0.6 w 389.73 526.87 m 390.21 526.15 l S Q
+q 0.55 G 0.6 w 390.21 526.15 m 390.92 525.68 l S Q
+q 0.55 G 0.6 w 390.92 525.68 m 391.77 525.51 l S Q
+q 0.55 G 0.6 w 391.77 525.51 m 392.61 525.68 l S Q
+q 0.55 G 0.6 w 392.61 525.68 m 393.32 526.15 l S Q
+q 0.55 G 0.6 w 393.32 526.15 m 393.8 526.87 l S Q
+q 0.55 G 0.6 w 393.8 526.87 m 393.97 527.71 l S Q
+q 0.55 G 0.6 w 392.64 528.06 m 392.47 528.9 l S Q
+q 0.55 G 0.6 w 392.47 528.9 m 391.99 529.62 l S Q
+q 0.55 G 0.6 w 391.99 529.62 m 391.28 530.09 l S Q
+q 0.55 G 0.6 w 391.28 530.09 m 390.44 530.26 l S Q
+q 0.55 G 0.6 w 390.44 530.26 m 389.6 530.09 l S Q
+q 0.55 G 0.6 w 389.6 530.09 m 388.88 529.62 l S Q
+q 0.55 G 0.6 w 388.88 529.62 m 388.41 528.9 l S Q
+q 0.55 G 0.6 w 388.41 528.9 m 388.24 528.06 l S Q
+q 0.55 G 0.6 w 388.24 528.06 m 388.41 527.22 l S Q
+q 0.55 G 0.6 w 388.41 527.22 m 388.88 526.51 l S Q
+q 0.55 G 0.6 w 388.88 526.51 m 389.6 526.03 l S Q
+q 0.55 G 0.6 w 389.6 526.03 m 390.44 525.86 l S Q
+q 0.55 G 0.6 w 390.44 525.86 m 391.28 526.03 l S Q
+q 0.55 G 0.6 w 391.28 526.03 m 391.99 526.51 l S Q
+q 0.55 G 0.6 w 391.99 526.51 m 392.47 527.22 l S Q
+q 0.55 G 0.6 w 392.47 527.22 m 392.64 528.06 l S Q
+q 0.55 G 0.6 w 394.25 528.71 m 394.08 529.55 l S Q
+q 0.55 G 0.6 w 394.08 529.55 m 393.6 530.27 l S Q
+q 0.55 G 0.6 w 393.6 530.27 m 392.89 530.74 l S Q
+q 0.55 G 0.6 w 392.89 530.74 m 392.05 530.91 l S Q
+q 0.55 G 0.6 w 392.05 530.91 m 391.2 530.74 l S Q
+q 0.55 G 0.6 w 391.2 530.74 m 390.49 530.27 l S Q
+q 0.55 G 0.6 w 390.49 530.27 m 390.01 529.55 l S Q
+q 0.55 G 0.6 w 390.01 529.55 m 389.85 528.71 l S Q
+q 0.55 G 0.6 w 389.85 528.71 m 390.01 527.87 l S Q
+q 0.55 G 0.6 w 390.01 527.87 m 390.49 527.15 l S Q
+q 0.55 G 0.6 w 390.49 527.15 m 391.2 526.68 l S Q
+q 0.55 G 0.6 w 391.2 526.68 m 392.05 526.51 l S Q
+q 0.55 G 0.6 w 392.05 526.51 m 392.89 526.68 l S Q
+q 0.55 G 0.6 w 392.89 526.68 m 393.6 527.15 l S Q
+q 0.55 G 0.6 w 393.6 527.15 m 394.08 527.87 l S Q
+q 0.55 G 0.6 w 394.08 527.87 m 394.25 528.71 l S Q
+q 0.55 G 0.6 w 395.07 529.17 m 394.9 530.01 l S Q
+q 0.55 G 0.6 w 394.9 530.01 m 394.42 530.73 l S Q
+q 0.55 G 0.6 w 394.42 530.73 m 393.71 531.2 l S Q
+q 0.55 G 0.6 w 393.71 531.2 m 392.87 531.37 l S Q
+q 0.55 G 0.6 w 392.87 531.37 m 392.03 531.2 l S Q
+q 0.55 G 0.6 w 392.03 531.2 m 391.31 530.73 l S Q
+q 0.55 G 0.6 w 391.31 530.73 m 390.84 530.01 l S Q
+q 0.55 G 0.6 w 390.84 530.01 m 390.67 529.17 l S Q
+q 0.55 G 0.6 w 390.67 529.17 m 390.84 528.33 l S Q
+q 0.55 G 0.6 w 390.84 528.33 m 391.31 527.62 l S Q
+q 0.55 G 0.6 w 391.31 527.62 m 392.03 527.14 l S Q
+q 0.55 G 0.6 w 392.03 527.14 m 392.87 526.97 l S Q
+q 0.55 G 0.6 w 392.87 526.97 m 393.71 527.14 l S Q
+q 0.55 G 0.6 w 393.71 527.14 m 394.42 527.62 l S Q
+q 0.55 G 0.6 w 394.42 527.62 m 394.9 528.33 l S Q
+q 0.55 G 0.6 w 394.9 528.33 m 395.07 529.17 l S Q
+q 0.55 G 0.6 w 398.41 529.91 m 398.24 530.75 l S Q
+q 0.55 G 0.6 w 398.24 530.75 m 397.76 531.46 l S Q
+q 0.55 G 0.6 w 397.76 531.46 m 397.05 531.94 l S Q
+q 0.55 G 0.6 w 397.05 531.94 m 396.21 532.11 l S Q
+q 0.55 G 0.6 w 396.21 532.11 m 395.37 531.94 l S Q
+q 0.55 G 0.6 w 395.37 531.94 m 394.65 531.46 l S Q
+q 0.55 G 0.6 w 394.65 531.46 m 394.17 530.75 l S Q
+q 0.55 G 0.6 w 394.17 530.75 m 394.01 529.91 l S Q
+q 0.55 G 0.6 w 394.01 529.91 m 394.17 529.06 l S Q
+q 0.55 G 0.6 w 394.17 529.06 m 394.65 528.35 l S Q
+q 0.55 G 0.6 w 394.65 528.35 m 395.37 527.87 l S Q
+q 0.55 G 0.6 w 395.37 527.87 m 396.21 527.71 l S Q
+q 0.55 G 0.6 w 396.21 527.71 m 397.05 527.87 l S Q
+q 0.55 G 0.6 w 397.05 527.87 m 397.76 528.35 l S Q
+q 0.55 G 0.6 w 397.76 528.35 m 398.24 529.06 l S Q
+q 0.55 G 0.6 w 398.24 529.06 m 398.41 529.91 l S Q
+q 0.55 G 0.6 w 400.12 528.42 m 399.95 529.26 l S Q
+q 0.55 G 0.6 w 399.95 529.26 m 399.48 529.97 l S Q
+q 0.55 G 0.6 w 399.48 529.97 m 398.76 530.45 l S Q
+q 0.55 G 0.6 w 398.76 530.45 m 397.92 530.62 l S Q
+q 0.55 G 0.6 w 397.92 530.62 m 397.08 530.45 l S Q
+q 0.55 G 0.6 w 397.08 530.45 m 396.36 529.97 l S Q
+q 0.55 G 0.6 w 396.36 529.97 m 395.89 529.26 l S Q
+q 0.55 G 0.6 w 395.89 529.26 m 395.72 528.42 l S Q
+q 0.55 G 0.6 w 395.72 528.42 m 395.89 527.57 l S Q
+q 0.55 G 0.6 w 395.89 527.57 m 396.36 526.86 l S Q
+q 0.55 G 0.6 w 396.36 526.86 m 397.08 526.38 l S Q
+q 0.55 G 0.6 w 397.08 526.38 m 397.92 526.22 l S Q
+q 0.55 G 0.6 w 397.92 526.22 m 398.76 526.38 l S Q
+q 0.55 G 0.6 w 398.76 526.38 m 399.48 526.86 l S Q
+q 0.55 G 0.6 w 399.48 526.86 m 399.95 527.57 l S Q
+q 0.55 G 0.6 w 399.95 527.57 m 400.12 528.42 l S Q
+q 0.55 G 0.6 w 399.57 528.26 m 399.41 529.1 l S Q
+q 0.55 G 0.6 w 399.41 529.1 m 398.93 529.81 l S Q
+q 0.55 G 0.6 w 398.93 529.81 m 398.22 530.29 l S Q
+q 0.55 G 0.6 w 398.22 530.29 m 397.37 530.46 l S Q
+q 0.55 G 0.6 w 397.37 530.46 m 396.53 530.29 l S Q
+q 0.55 G 0.6 w 396.53 530.29 m 395.82 529.81 l S Q
+q 0.55 G 0.6 w 395.82 529.81 m 395.34 529.1 l S Q
+q 0.55 G 0.6 w 395.34 529.1 m 395.17 528.26 l S Q
+q 0.55 G 0.6 w 395.17 528.26 m 395.34 527.41 l S Q
+q 0.55 G 0.6 w 395.34 527.41 m 395.82 526.7 l S Q
+q 0.55 G 0.6 w 395.82 526.7 m 396.53 526.22 l S Q
+q 0.55 G 0.6 w 396.53 526.22 m 397.37 526.06 l S Q
+q 0.55 G 0.6 w 397.37 526.06 m 398.22 526.22 l S Q
+q 0.55 G 0.6 w 398.22 526.22 m 398.93 526.7 l S Q
+q 0.55 G 0.6 w 398.93 526.7 m 399.41 527.41 l S Q
+q 0.55 G 0.6 w 399.41 527.41 m 399.57 528.26 l S Q
+q 0.55 G 0.6 w 393.33 528.28 m 393.16 529.12 l S Q
+q 0.55 G 0.6 w 393.16 529.12 m 392.69 529.83 l S Q
+q 0.55 G 0.6 w 392.69 529.83 m 391.97 530.31 l S Q
+q 0.55 G 0.6 w 391.97 530.31 m 391.13 530.48 l S Q
+q 0.55 G 0.6 w 391.13 530.48 m 390.29 530.31 l S Q
+q 0.55 G 0.6 w 390.29 530.31 m 389.58 529.83 l S Q
+q 0.55 G 0.6 w 389.58 529.83 m 389.1 529.12 l S Q
+q 0.55 G 0.6 w 389.1 529.12 m 388.93 528.28 l S Q
+q 0.55 G 0.6 w 388.93 528.28 m 389.1 527.44 l S Q
+q 0.55 G 0.6 w 389.1 527.44 m 389.58 526.72 l S Q
+q 0.55 G 0.6 w 389.58 526.72 m 390.29 526.25 l S Q
+q 0.55 G 0.6 w 390.29 526.25 m 391.13 526.08 l S Q
+q 0.55 G 0.6 w 391.13 526.08 m 391.97 526.25 l S Q
+q 0.55 G 0.6 w 391.97 526.25 m 392.69 526.72 l S Q
+q 0.55 G 0.6 w 392.69 526.72 m 393.16 527.44 l S Q
+q 0.55 G 0.6 w 393.16 527.44 m 393.33 528.28 l S Q
+q 0.55 G 0.6 w 397.83 528.02 m 397.66 528.86 l S Q
+q 0.55 G 0.6 w 397.66 528.86 m 397.18 529.58 l S Q
+q 0.55 G 0.6 w 397.18 529.58 m 396.47 530.05 l S Q
+q 0.55 G 0.6 w 396.47 530.05 m 395.63 530.22 l S Q
+q 0.55 G 0.6 w 395.63 530.22 m 394.79 530.05 l S Q
+q 0.55 G 0.6 w 394.79 530.05 m 394.07 529.58 l S Q
+q 0.55 G 0.6 w 394.07 529.58 m 393.6 528.86 l S Q
+q 0.55 G 0.6 w 393.6 528.86 m 393.43 528.02 l S Q
+q 0.55 G 0.6 w 393.43 528.02 m 393.6 527.18 l S Q
+q 0.55 G 0.6 w 393.6 527.18 m 394.07 526.47 l S Q
+q 0.55 G 0.6 w 394.07 526.47 m 394.79 525.99 l S Q
+q 0.55 G 0.6 w 394.79 525.99 m 395.63 525.82 l S Q
+q 0.55 G 0.6 w 395.63 525.82 m 396.47 525.99 l S Q
+q 0.55 G 0.6 w 396.47 525.99 m 397.18 526.47 l S Q
+q 0.55 G 0.6 w 397.18 526.47 m 397.66 527.18 l S Q
+q 0.55 G 0.6 w 397.66 527.18 m 397.83 528.02 l S Q
+q 0.55 G 0.6 w 394.65 529.23 m 394.48 530.07 l S Q
+q 0.55 G 0.6 w 394.48 530.07 m 394.01 530.78 l S Q
+q 0.55 G 0.6 w 394.01 530.78 m 393.29 531.26 l S Q
+q 0.55 G 0.6 w 393.29 531.26 m 392.45 531.43 l S Q
+q 0.55 G 0.6 w 392.45 531.43 m 391.61 531.26 l S Q
+q 0.55 G 0.6 w 391.61 531.26 m 390.9 530.78 l S Q
+q 0.55 G 0.6 w 390.9 530.78 m 390.42 530.07 l S Q
+q 0.55 G 0.6 w 390.42 530.07 m 390.25 529.23 l S Q
+q 0.55 G 0.6 w 390.25 529.23 m 390.42 528.38 l S Q
+q 0.55 G 0.6 w 390.42 528.38 m 390.9 527.67 l S Q
+q 0.55 G 0.6 w 390.9 527.67 m 391.61 527.19 l S Q
+q 0.55 G 0.6 w 391.61 527.19 m 392.45 527.03 l S Q
+q 0.55 G 0.6 w 392.45 527.03 m 393.29 527.19 l S Q
+q 0.55 G 0.6 w 393.29 527.19 m 394.01 527.67 l S Q
+q 0.55 G 0.6 w 394.01 527.67 m 394.48 528.38 l S Q
+q 0.55 G 0.6 w 394.48 528.38 m 394.65 529.23 l S Q
+q 0.55 G 0.6 w 396.5 527.69 m 396.33 528.53 l S Q
+q 0.55 G 0.6 w 396.33 528.53 m 395.86 529.24 l S Q
+q 0.55 G 0.6 w 395.86 529.24 m 395.14 529.72 l S Q
+q 0.55 G 0.6 w 395.14 529.72 m 394.3 529.89 l S Q
+q 0.55 G 0.6 w 394.3 529.89 m 393.46 529.72 l S Q
+q 0.55 G 0.6 w 393.46 529.72 m 392.74 529.24 l S Q
+q 0.55 G 0.6 w 392.74 529.24 m 392.27 528.53 l S Q
+q 0.55 G 0.6 w 392.27 528.53 m 392.1 527.69 l S Q
+q 0.55 G 0.6 w 392.1 527.69 m 392.27 526.84 l S Q
+q 0.55 G 0.6 w 392.27 526.84 m 392.74 526.13 l S Q
+q 0.55 G 0.6 w 392.74 526.13 m 393.46 525.65 l S Q
+q 0.55 G 0.6 w 393.46 525.65 m 394.3 525.49 l S Q
+q 0.55 G 0.6 w 394.3 525.49 m 395.14 525.65 l S Q
+q 0.55 G 0.6 w 395.14 525.65 m 395.86 526.13 l S Q
+q 0.55 G 0.6 w 395.86 526.13 m 396.33 526.84 l S Q
+q 0.55 G 0.6 w 396.33 526.84 m 396.5 527.69 l S Q
+q 0.55 G 0.6 w 398.76 531.01 m 398.59 531.85 l S Q
+q 0.55 G 0.6 w 398.59 531.85 m 398.12 532.56 l S Q
+q 0.55 G 0.6 w 398.12 532.56 m 397.4 533.04 l S Q
+q 0.55 G 0.6 w 397.4 533.04 m 396.56 533.21 l S Q
+q 0.55 G 0.6 w 396.56 533.21 m 395.72 533.04 l S Q
+q 0.55 G 0.6 w 395.72 533.04 m 395.01 532.56 l S Q
+q 0.55 G 0.6 w 395.01 532.56 m 394.53 531.85 l S Q
+q 0.55 G 0.6 w 394.53 531.85 m 394.36 531.01 l S Q
+q 0.55 G 0.6 w 394.36 531.01 m 394.53 530.16 l S Q
+q 0.55 G 0.6 w 394.53 530.16 m 395.01 529.45 l S Q
+q 0.55 G 0.6 w 395.01 529.45 m 395.72 528.97 l S Q
+q 0.55 G 0.6 w 395.72 528.97 m 396.56 528.81 l S Q
+q 0.55 G 0.6 w 396.56 528.81 m 397.4 528.97 l S Q
+q 0.55 G 0.6 w 397.4 528.97 m 398.12 529.45 l S Q
+q 0.55 G 0.6 w 398.12 529.45 m 398.59 530.16 l S Q
+q 0.55 G 0.6 w 398.59 530.16 m 398.76 531.01 l S Q
+q 0.55 G 0.6 w 396.24 528.66 m 396.07 529.5 l S Q
+q 0.55 G 0.6 w 396.07 529.5 m 395.6 530.21 l S Q
+q 0.55 G 0.6 w 395.6 530.21 m 394.88 530.69 l S Q
+q 0.55 G 0.6 w 394.88 530.69 m 394.04 530.86 l S Q
+q 0.55 G 0.6 w 394.04 530.86 m 393.2 530.69 l S Q
+q 0.55 G 0.6 w 393.2 530.69 m 392.49 530.21 l S Q
+q 0.55 G 0.6 w 392.49 530.21 m 392.01 529.5 l S Q
+q 0.55 G 0.6 w 392.01 529.5 m 391.84 528.66 l S Q
+q 0.55 G 0.6 w 391.84 528.66 m 392.01 527.81 l S Q
+q 0.55 G 0.6 w 392.01 527.81 m 392.49 527.1 l S Q
+q 0.55 G 0.6 w 392.49 527.1 m 393.2 526.62 l S Q
+q 0.55 G 0.6 w 393.2 526.62 m 394.04 526.46 l S Q
+q 0.55 G 0.6 w 394.04 526.46 m 394.88 526.62 l S Q
+q 0.55 G 0.6 w 394.88 526.62 m 395.6 527.1 l S Q
+q 0.55 G 0.6 w 395.6 527.1 m 396.07 527.81 l S Q
+q 0.55 G 0.6 w 396.07 527.81 m 396.24 528.66 l S Q
+q 0.55 G 0.6 w 396.91 528.76 m 396.74 529.6 l S Q
+q 0.55 G 0.6 w 396.74 529.6 m 396.26 530.32 l S Q
+q 0.55 G 0.6 w 396.26 530.32 m 395.55 530.79 l S Q
+q 0.55 G 0.6 w 395.55 530.79 m 394.71 530.96 l S Q
+q 0.55 G 0.6 w 394.71 530.96 m 393.86 530.79 l S Q
+q 0.55 G 0.6 w 393.86 530.79 m 393.15 530.32 l S Q
+q 0.55 G 0.6 w 393.15 530.32 m 392.67 529.6 l S Q
+q 0.55 G 0.6 w 392.67 529.6 m 392.51 528.76 l S Q
+q 0.55 G 0.6 w 392.51 528.76 m 392.67 527.92 l S Q
+q 0.55 G 0.6 w 392.67 527.92 m 393.15 527.21 l S Q
+q 0.55 G 0.6 w 393.15 527.21 m 393.86 526.73 l S Q
+q 0.55 G 0.6 w 393.86 526.73 m 394.71 526.56 l S Q
+q 0.55 G 0.6 w 394.71 526.56 m 395.55 526.73 l S Q
+q 0.55 G 0.6 w 395.55 526.73 m 396.26 527.21 l S Q
+q 0.55 G 0.6 w 396.26 527.21 m 396.74 527.92 l S Q
+q 0.55 G 0.6 w 396.74 527.92 m 396.91 528.76 l S Q
+q 0.55 G 0.6 w 394.5 527.48 m 394.33 528.32 l S Q
+q 0.55 G 0.6 w 394.33 528.32 m 393.86 529.04 l S Q
+q 0.55 G 0.6 w 393.86 529.04 m 393.14 529.51 l S Q
+q 0.55 G 0.6 w 393.14 529.51 m 392.3 529.68 l S Q
+q 0.55 G 0.6 w 392.3 529.68 m 391.46 529.51 l S Q
+q 0.55 G 0.6 w 391.46 529.51 m 390.75 529.04 l S Q
+q 0.55 G 0.6 w 390.75 529.04 m 390.27 528.32 l S Q
+q 0.55 G 0.6 w 390.27 528.32 m 390.1 527.48 l S Q
+q 0.55 G 0.6 w 390.1 527.48 m 390.27 526.64 l S Q
+q 0.55 G 0.6 w 390.27 526.64 m 390.75 525.92 l S Q
+q 0.55 G 0.6 w 390.75 525.92 m 391.46 525.45 l S Q
+q 0.55 G 0.6 w 391.46 525.45 m 392.3 525.28 l S Q
+q 0.55 G 0.6 w 392.3 525.28 m 393.14 525.45 l S Q
+q 0.55 G 0.6 w 393.14 525.45 m 393.86 525.92 l S Q
+q 0.55 G 0.6 w 393.86 525.92 m 394.33 526.64 l S Q
+q 0.55 G 0.6 w 394.33 526.64 m 394.5 527.48 l S Q
+q 0.55 G 0.6 w 394.14 527.53 m 393.97 528.37 l S Q
+q 0.55 G 0.6 w 393.97 528.37 m 393.49 529.09 l S Q
+q 0.55 G 0.6 w 393.49 529.09 m 392.78 529.56 l S Q
+q 0.55 G 0.6 w 392.78 529.56 m 391.94 529.73 l S Q
+q 0.55 G 0.6 w 391.94 529.73 m 391.09 529.56 l S Q
+q 0.55 G 0.6 w 391.09 529.56 m 390.38 529.09 l S Q
+q 0.55 G 0.6 w 390.38 529.09 m 389.9 528.37 l S Q
+q 0.55 G 0.6 w 389.9 528.37 m 389.74 527.53 l S Q
+q 0.55 G 0.6 w 389.74 527.53 m 389.9 526.69 l S Q
+q 0.55 G 0.6 w 389.9 526.69 m 390.38 525.97 l S Q
+q 0.55 G 0.6 w 390.38 525.97 m 391.09 525.5 l S Q
+q 0.55 G 0.6 w 391.09 525.5 m 391.94 525.33 l S Q
+q 0.55 G 0.6 w 391.94 525.33 m 392.78 525.5 l S Q
+q 0.55 G 0.6 w 392.78 525.5 m 393.49 525.97 l S Q
+q 0.55 G 0.6 w 393.49 525.97 m 393.97 526.69 l S Q
+q 0.55 G 0.6 w 393.97 526.69 m 394.14 527.53 l S Q
+q 0.55 G 0.6 w 392.53 528.11 m 392.36 528.95 l S Q
+q 0.55 G 0.6 w 392.36 528.95 m 391.88 529.67 l S Q
+q 0.55 G 0.6 w 391.88 529.67 m 391.17 530.14 l S Q
+q 0.55 G 0.6 w 391.17 530.14 m 390.33 530.31 l S Q
+q 0.55 G 0.6 w 390.33 530.31 m 389.48 530.14 l S Q
+q 0.55 G 0.6 w 389.48 530.14 m 388.77 529.67 l S Q
+q 0.55 G 0.6 w 388.77 529.67 m 388.29 528.95 l S Q
+q 0.55 G 0.6 w 388.29 528.95 m 388.13 528.11 l S Q
+q 0.55 G 0.6 w 388.13 528.11 m 388.29 527.27 l S Q
+q 0.55 G 0.6 w 388.29 527.27 m 388.77 526.55 l S Q
+q 0.55 G 0.6 w 388.77 526.55 m 389.48 526.08 l S Q
+q 0.55 G 0.6 w 389.48 526.08 m 390.33 525.91 l S Q
+q 0.55 G 0.6 w 390.33 525.91 m 391.17 526.08 l S Q
+q 0.55 G 0.6 w 391.17 526.08 m 391.88 526.55 l S Q
+q 0.55 G 0.6 w 391.88 526.55 m 392.36 527.27 l S Q
+q 0.55 G 0.6 w 392.36 527.27 m 392.53 528.11 l S Q
+q 0.55 G 0.6 w 394.39 528.65 m 394.23 529.49 l S Q
+q 0.55 G 0.6 w 394.23 529.49 m 393.75 530.21 l S Q
+q 0.55 G 0.6 w 393.75 530.21 m 393.03 530.68 l S Q
+q 0.55 G 0.6 w 393.03 530.68 m 392.19 530.85 l S Q
+q 0.55 G 0.6 w 392.19 530.85 m 391.35 530.68 l S Q
+q 0.55 G 0.6 w 391.35 530.68 m 390.64 530.21 l S Q
+q 0.55 G 0.6 w 390.64 530.21 m 390.16 529.49 l S Q
+q 0.55 G 0.6 w 390.16 529.49 m 389.99 528.65 l S Q
+q 0.55 G 0.6 w 389.99 528.65 m 390.16 527.81 l S Q
+q 0.55 G 0.6 w 390.16 527.81 m 390.64 527.09 l S Q
+q 0.55 G 0.6 w 390.64 527.09 m 391.35 526.62 l S Q
+q 0.55 G 0.6 w 391.35 526.62 m 392.19 526.45 l S Q
+q 0.55 G 0.6 w 392.19 526.45 m 393.03 526.62 l S Q
+q 0.55 G 0.6 w 393.03 526.62 m 393.75 527.09 l S Q
+q 0.55 G 0.6 w 393.75 527.09 m 394.23 527.81 l S Q
+q 0.55 G 0.6 w 394.23 527.81 m 394.39 528.65 l S Q
+q 0.55 G 0.6 w 395.16 529.21 m 394.99 530.05 l S Q
+q 0.55 G 0.6 w 394.99 530.05 m 394.51 530.76 l S Q
+q 0.55 G 0.6 w 394.51 530.76 m 393.8 531.24 l S Q
+q 0.55 G 0.6 w 393.8 531.24 m 392.96 531.41 l S Q
+q 0.55 G 0.6 w 392.96 531.41 m 392.11 531.24 l S Q
+q 0.55 G 0.6 w 392.11 531.24 m 391.4 530.76 l S Q
+q 0.55 G 0.6 w 391.4 530.76 m 390.92 530.05 l S Q
+q 0.55 G 0.6 w 390.92 530.05 m 390.76 529.21 l S Q
+q 0.55 G 0.6 w 390.76 529.21 m 390.92 528.36 l S Q
+q 0.55 G 0.6 w 390.92 528.36 m 391.4 527.65 l S Q
+q 0.55 G 0.6 w 391.4 527.65 m 392.11 527.17 l S Q
+q 0.55 G 0.6 w 392.11 527.17 m 392.96 527.01 l S Q
+q 0.55 G 0.6 w 392.96 527.01 m 393.8 527.17 l S Q
+q 0.55 G 0.6 w 393.8 527.17 m 394.51 527.65 l S Q
+q 0.55 G 0.6 w 394.51 527.65 m 394.99 528.36 l S Q
+q 0.55 G 0.6 w 394.99 528.36 m 395.16 529.21 l S Q
+q 0.55 G 0.6 w 398.43 529.73 m 398.26 530.58 l S Q
+q 0.55 G 0.6 w 398.26 530.58 m 397.78 531.29 l S Q
+q 0.55 G 0.6 w 397.78 531.29 m 397.07 531.77 l S Q
+q 0.55 G 0.6 w 397.07 531.77 m 396.23 531.93 l S Q
+q 0.55 G 0.6 w 396.23 531.93 m 395.38 531.77 l S Q
+q 0.55 G 0.6 w 395.38 531.77 m 394.67 531.29 l S Q
+q 0.55 G 0.6 w 394.67 531.29 m 394.19 530.58 l S Q
+q 0.55 G 0.6 w 394.19 530.58 m 394.03 529.73 l S Q
+q 0.55 G 0.6 w 394.03 529.73 m 394.19 528.89 l S Q
+q 0.55 G 0.6 w 394.19 528.89 m 394.67 528.18 l S Q
+q 0.55 G 0.6 w 394.67 528.18 m 395.38 527.7 l S Q
+q 0.55 G 0.6 w 395.38 527.7 m 396.23 527.53 l S Q
+q 0.55 G 0.6 w 396.23 527.53 m 397.07 527.7 l S Q
+q 0.55 G 0.6 w 397.07 527.7 m 397.78 528.18 l S Q
+q 0.55 G 0.6 w 397.78 528.18 m 398.26 528.89 l S Q
+q 0.55 G 0.6 w 398.26 528.89 m 398.43 529.73 l S Q
+q 0.55 G 0.6 w 399.63 528.38 m 399.46 529.22 l S Q
+q 0.55 G 0.6 w 399.46 529.22 m 398.98 529.93 l S Q
+q 0.55 G 0.6 w 398.98 529.93 m 398.27 530.41 l S Q
+q 0.55 G 0.6 w 398.27 530.41 m 397.43 530.58 l S Q
+q 0.55 G 0.6 w 397.43 530.58 m 396.59 530.41 l S Q
+q 0.55 G 0.6 w 396.59 530.41 m 395.87 529.93 l S Q
+q 0.55 G 0.6 w 395.87 529.93 m 395.4 529.22 l S Q
+q 0.55 G 0.6 w 395.4 529.22 m 395.23 528.38 l S Q
+q 0.55 G 0.6 w 395.23 528.38 m 395.4 527.53 l S Q
+q 0.55 G 0.6 w 395.4 527.53 m 395.87 526.82 l S Q
+q 0.55 G 0.6 w 395.87 526.82 m 396.59 526.34 l S Q
+q 0.55 G 0.6 w 396.59 526.34 m 397.43 526.18 l S Q
+q 0.55 G 0.6 w 397.43 526.18 m 398.27 526.34 l S Q
+q 0.55 G 0.6 w 398.27 526.34 m 398.98 526.82 l S Q
+q 0.55 G 0.6 w 398.98 526.82 m 399.46 527.53 l S Q
+q 0.55 G 0.6 w 399.46 527.53 m 399.63 528.38 l S Q
+q 0.55 G 0.6 w 399.01 528.2 m 398.85 529.04 l S Q
+q 0.55 G 0.6 w 398.85 529.04 m 398.37 529.75 l S Q
+q 0.55 G 0.6 w 398.37 529.75 m 397.66 530.23 l S Q
+q 0.55 G 0.6 w 397.66 530.23 m 396.81 530.4 l S Q
+q 0.55 G 0.6 w 396.81 530.4 m 395.97 530.23 l S Q
+q 0.55 G 0.6 w 395.97 530.23 m 395.26 529.75 l S Q
+q 0.55 G 0.6 w 395.26 529.75 m 394.78 529.04 l S Q
+q 0.55 G 0.6 w 394.78 529.04 m 394.61 528.2 l S Q
+q 0.55 G 0.6 w 394.61 528.2 m 394.78 527.35 l S Q
+q 0.55 G 0.6 w 394.78 527.35 m 395.26 526.64 l S Q
+q 0.55 G 0.6 w 395.26 526.64 m 395.97 526.16 l S Q
+q 0.55 G 0.6 w 395.97 526.16 m 396.81 526 l S Q
+q 0.55 G 0.6 w 396.81 526 m 397.66 526.16 l S Q
+q 0.55 G 0.6 w 397.66 526.16 m 398.37 526.64 l S Q
+q 0.55 G 0.6 w 398.37 526.64 m 398.85 527.35 l S Q
+q 0.55 G 0.6 w 398.85 527.35 m 399.01 528.2 l S Q
+q 0.55 G 0.6 w 398.44 534.33 m 398.27 535.18 l S Q
+q 0.55 G 0.6 w 398.27 535.18 m 397.79 535.89 l S Q
+q 0.55 G 0.6 w 397.79 535.89 m 397.08 536.37 l S Q
+q 0.55 G 0.6 w 397.08 536.37 m 396.24 536.53 l S Q
+q 0.55 G 0.6 w 396.24 536.53 m 395.4 536.37 l S Q
+q 0.55 G 0.6 w 395.4 536.37 m 394.68 535.89 l S Q
+q 0.55 G 0.6 w 394.68 535.89 m 394.21 535.18 l S Q
+q 0.55 G 0.6 w 394.21 535.18 m 394.04 534.33 l S Q
+q 0.55 G 0.6 w 394.04 534.33 m 394.21 533.49 l S Q
+q 0.55 G 0.6 w 394.21 533.49 m 394.68 532.78 l S Q
+q 0.55 G 0.6 w 394.68 532.78 m 395.4 532.3 l S Q
+q 0.55 G 0.6 w 395.4 532.3 m 396.24 532.13 l S Q
+q 0.55 G 0.6 w 396.24 532.13 m 397.08 532.3 l S Q
+q 0.55 G 0.6 w 397.08 532.3 m 397.79 532.78 l S Q
+q 0.55 G 0.6 w 397.79 532.78 m 398.27 533.49 l S Q
+q 0.55 G 0.6 w 398.27 533.49 m 398.44 534.33 l S Q
+q 0.55 G 0.6 w 402.41 536.75 m 402.24 537.59 l S Q
+q 0.55 G 0.6 w 402.24 537.59 m 401.76 538.3 l S Q
+q 0.55 G 0.6 w 401.76 538.3 m 401.05 538.78 l S Q
+q 0.55 G 0.6 w 401.05 538.78 m 400.21 538.95 l S Q
+q 0.55 G 0.6 w 400.21 538.95 m 399.36 538.78 l S Q
+q 0.55 G 0.6 w 399.36 538.78 m 398.65 538.3 l S Q
+q 0.55 G 0.6 w 398.65 538.3 m 398.17 537.59 l S Q
+q 0.55 G 0.6 w 398.17 537.59 m 398.01 536.75 l S Q
+q 0.55 G 0.6 w 398.01 536.75 m 398.17 535.9 l S Q
+q 0.55 G 0.6 w 398.17 535.9 m 398.65 535.19 l S Q
+q 0.55 G 0.6 w 398.65 535.19 m 399.36 534.71 l S Q
+q 0.55 G 0.6 w 399.36 534.71 m 400.21 534.55 l S Q
+q 0.55 G 0.6 w 400.21 534.55 m 401.05 534.71 l S Q
+q 0.55 G 0.6 w 401.05 534.71 m 401.76 535.19 l S Q
+q 0.55 G 0.6 w 401.76 535.19 m 402.24 535.9 l S Q
+q 0.55 G 0.6 w 402.24 535.9 m 402.41 536.75 l S Q
+q 0.55 G 0.6 w 401.88 535.51 m 401.71 536.35 l S Q
+q 0.55 G 0.6 w 401.71 536.35 m 401.23 537.07 l S Q
+q 0.55 G 0.6 w 401.23 537.07 m 400.52 537.54 l S Q
+q 0.55 G 0.6 w 400.52 537.54 m 399.68 537.71 l S Q
+q 0.55 G 0.6 w 399.68 537.71 m 398.84 537.54 l S Q
+q 0.55 G 0.6 w 398.84 537.54 m 398.12 537.07 l S Q
+q 0.55 G 0.6 w 398.12 537.07 m 397.65 536.35 l S Q
+q 0.55 G 0.6 w 397.65 536.35 m 397.48 535.51 l S Q
+q 0.55 G 0.6 w 397.48 535.51 m 397.65 534.67 l S Q
+q 0.55 G 0.6 w 397.65 534.67 m 398.12 533.95 l S Q
+q 0.55 G 0.6 w 398.12 533.95 m 398.84 533.48 l S Q
+q 0.55 G 0.6 w 398.84 533.48 m 399.68 533.31 l S Q
+q 0.55 G 0.6 w 399.68 533.31 m 400.52 533.48 l S Q
+q 0.55 G 0.6 w 400.52 533.48 m 401.23 533.95 l S Q
+q 0.55 G 0.6 w 401.23 533.95 m 401.71 534.67 l S Q
+q 0.55 G 0.6 w 401.71 534.67 m 401.88 535.51 l S Q
+q 0.55 G 0.6 w 401.85 534.86 m 401.68 535.71 l S Q
+q 0.55 G 0.6 w 401.68 535.71 m 401.2 536.42 l S Q
+q 0.55 G 0.6 w 401.2 536.42 m 400.49 536.9 l S Q
+q 0.55 G 0.6 w 400.49 536.9 m 399.65 537.06 l S Q
+q 0.55 G 0.6 w 399.65 537.06 m 398.81 536.9 l S Q
+q 0.55 G 0.6 w 398.81 536.9 m 398.09 536.42 l S Q
+q 0.55 G 0.6 w 398.09 536.42 m 397.62 535.71 l S Q
+q 0.55 G 0.6 w 397.62 535.71 m 397.45 534.86 l S Q
+q 0.55 G 0.6 w 397.45 534.86 m 397.62 534.02 l S Q
+q 0.55 G 0.6 w 397.62 534.02 m 398.09 533.31 l S Q
+q 0.55 G 0.6 w 398.09 533.31 m 398.81 532.83 l S Q
+q 0.55 G 0.6 w 398.81 532.83 m 399.65 532.66 l S Q
+q 0.55 G 0.6 w 399.65 532.66 m 400.49 532.83 l S Q
+q 0.55 G 0.6 w 400.49 532.83 m 401.2 533.31 l S Q
+q 0.55 G 0.6 w 401.2 533.31 m 401.68 534.02 l S Q
+q 0.55 G 0.6 w 401.68 534.02 m 401.85 534.86 l S Q
+q 0.55 G 0.6 w 403.64 537.33 m 403.47 538.17 l S Q
+q 0.55 G 0.6 w 403.47 538.17 m 402.99 538.88 l S Q
+q 0.55 G 0.6 w 402.99 538.88 m 402.28 539.36 l S Q
+q 0.55 G 0.6 w 402.28 539.36 m 401.44 539.53 l S Q
+q 0.55 G 0.6 w 401.44 539.53 m 400.6 539.36 l S Q
+q 0.55 G 0.6 w 400.6 539.36 m 399.88 538.88 l S Q
+q 0.55 G 0.6 w 399.88 538.88 m 399.41 538.17 l S Q
+q 0.55 G 0.6 w 399.41 538.17 m 399.24 537.33 l S Q
+q 0.55 G 0.6 w 399.24 537.33 m 399.41 536.48 l S Q
+q 0.55 G 0.6 w 399.41 536.48 m 399.88 535.77 l S Q
+q 0.55 G 0.6 w 399.88 535.77 m 400.6 535.29 l S Q
+q 0.55 G 0.6 w 400.6 535.29 m 401.44 535.13 l S Q
+q 0.55 G 0.6 w 401.44 535.13 m 402.28 535.29 l S Q
+q 0.55 G 0.6 w 402.28 535.29 m 402.99 535.77 l S Q
+q 0.55 G 0.6 w 402.99 535.77 m 403.47 536.48 l S Q
+q 0.55 G 0.6 w 403.47 536.48 m 403.64 537.33 l S Q
+q 0.55 G 0.6 w 398 534.4 m 397.83 535.25 l S Q
+q 0.55 G 0.6 w 397.83 535.25 m 397.36 535.96 l S Q
+q 0.55 G 0.6 w 397.36 535.96 m 396.64 536.44 l S Q
+q 0.55 G 0.6 w 396.64 536.44 m 395.8 536.6 l S Q
+q 0.55 G 0.6 w 395.8 536.6 m 394.96 536.44 l S Q
+q 0.55 G 0.6 w 394.96 536.44 m 394.25 535.96 l S Q
+q 0.55 G 0.6 w 394.25 535.96 m 393.77 535.25 l S Q
+q 0.55 G 0.6 w 393.77 535.25 m 393.6 534.4 l S Q
+q 0.55 G 0.6 w 393.6 534.4 m 393.77 533.56 l S Q
+q 0.55 G 0.6 w 393.77 533.56 m 394.25 532.85 l S Q
+q 0.55 G 0.6 w 394.25 532.85 m 394.96 532.37 l S Q
+q 0.55 G 0.6 w 394.96 532.37 m 395.8 532.2 l S Q
+q 0.55 G 0.6 w 395.8 532.2 m 396.64 532.37 l S Q
+q 0.55 G 0.6 w 396.64 532.37 m 397.36 532.85 l S Q
+q 0.55 G 0.6 w 397.36 532.85 m 397.83 533.56 l S Q
+q 0.55 G 0.6 w 397.83 533.56 m 398 534.4 l S Q
+q 0.55 G 0.6 w 402.33 536.83 m 402.16 537.67 l S Q
+q 0.55 G 0.6 w 402.16 537.67 m 401.69 538.38 l S Q
+q 0.55 G 0.6 w 401.69 538.38 m 400.97 538.86 l S Q
+q 0.55 G 0.6 w 400.97 538.86 m 400.13 539.03 l S Q
+q 0.55 G 0.6 w 400.13 539.03 m 399.29 538.86 l S Q
+q 0.55 G 0.6 w 399.29 538.86 m 398.57 538.38 l S Q
+q 0.55 G 0.6 w 398.57 538.38 m 398.1 537.67 l S Q
+q 0.55 G 0.6 w 398.1 537.67 m 397.93 536.83 l S Q
+q 0.55 G 0.6 w 397.93 536.83 m 398.1 535.98 l S Q
+q 0.55 G 0.6 w 398.1 535.98 m 398.57 535.27 l S Q
+q 0.55 G 0.6 w 398.57 535.27 m 399.29 534.79 l S Q
+q 0.55 G 0.6 w 399.29 534.79 m 400.13 534.63 l S Q
+q 0.55 G 0.6 w 400.13 534.63 m 400.97 534.79 l S Q
+q 0.55 G 0.6 w 400.97 534.79 m 401.69 535.27 l S Q
+q 0.55 G 0.6 w 401.69 535.27 m 402.16 535.98 l S Q
+q 0.55 G 0.6 w 402.16 535.98 m 402.33 536.83 l S Q
+q 0.55 G 0.6 w 401.7 535.51 m 401.53 536.35 l S Q
+q 0.55 G 0.6 w 401.53 536.35 m 401.06 537.07 l S Q
+q 0.55 G 0.6 w 401.06 537.07 m 400.34 537.54 l S Q
+q 0.55 G 0.6 w 400.34 537.54 m 399.5 537.71 l S Q
+q 0.55 G 0.6 w 399.5 537.71 m 398.66 537.54 l S Q
+q 0.55 G 0.6 w 398.66 537.54 m 397.94 537.07 l S Q
+q 0.55 G 0.6 w 397.94 537.07 m 397.47 536.35 l S Q
+q 0.55 G 0.6 w 397.47 536.35 m 397.3 535.51 l S Q
+q 0.55 G 0.6 w 397.3 535.51 m 397.47 534.67 l S Q
+q 0.55 G 0.6 w 397.47 534.67 m 397.94 533.96 l S Q
+q 0.55 G 0.6 w 397.94 533.96 m 398.66 533.48 l S Q
+q 0.55 G 0.6 w 398.66 533.48 m 399.5 533.31 l S Q
+q 0.55 G 0.6 w 399.5 533.31 m 400.34 533.48 l S Q
+q 0.55 G 0.6 w 400.34 533.48 m 401.06 533.96 l S Q
+q 0.55 G 0.6 w 401.06 533.96 m 401.53 534.67 l S Q
+q 0.55 G 0.6 w 401.53 534.67 m 401.7 535.51 l S Q
+q 0.55 G 0.6 w 402.06 535.01 m 401.89 535.86 l S Q
+q 0.55 G 0.6 w 401.89 535.86 m 401.42 536.57 l S Q
+q 0.55 G 0.6 w 401.42 536.57 m 400.7 537.05 l S Q
+q 0.55 G 0.6 w 400.7 537.05 m 399.86 537.21 l S Q
+q 0.55 G 0.6 w 399.86 537.21 m 399.02 537.05 l S Q
+q 0.55 G 0.6 w 399.02 537.05 m 398.3 536.57 l S Q
+q 0.55 G 0.6 w 398.3 536.57 m 397.83 535.86 l S Q
+q 0.55 G 0.6 w 397.83 535.86 m 397.66 535.01 l S Q
+q 0.55 G 0.6 w 397.66 535.01 m 397.83 534.17 l S Q
+q 0.55 G 0.6 w 397.83 534.17 m 398.3 533.46 l S Q
+q 0.55 G 0.6 w 398.3 533.46 m 399.02 532.98 l S Q
+q 0.55 G 0.6 w 399.02 532.98 m 399.86 532.81 l S Q
+q 0.55 G 0.6 w 399.86 532.81 m 400.7 532.98 l S Q
+q 0.55 G 0.6 w 400.7 532.98 m 401.42 533.46 l S Q
+q 0.55 G 0.6 w 401.42 533.46 m 401.89 534.17 l S Q
+q 0.55 G 0.6 w 401.89 534.17 m 402.06 535.01 l S Q
+q 0.55 G 0.6 w 403.75 537.35 m 403.58 538.19 l S Q
+q 0.55 G 0.6 w 403.58 538.19 m 403.1 538.91 l S Q
+q 0.55 G 0.6 w 403.1 538.91 m 402.39 539.39 l S Q
+q 0.55 G 0.6 w 402.39 539.39 m 401.55 539.55 l S Q
+q 0.55 G 0.6 w 401.55 539.55 m 400.7 539.39 l S Q
+q 0.55 G 0.6 w 400.7 539.39 m 399.99 538.91 l S Q
+q 0.55 G 0.6 w 399.99 538.91 m 399.51 538.19 l S Q
+q 0.55 G 0.6 w 399.51 538.19 m 399.35 537.35 l S Q
+q 0.55 G 0.6 w 399.35 537.35 m 399.51 536.51 l S Q
+q 0.55 G 0.6 w 399.51 536.51 m 399.99 535.8 l S Q
+q 0.55 G 0.6 w 399.99 535.8 m 400.7 535.32 l S Q
+q 0.55 G 0.6 w 400.7 535.32 m 401.55 535.15 l S Q
+q 0.55 G 0.6 w 401.55 535.15 m 402.39 535.32 l S Q
+q 0.55 G 0.6 w 402.39 535.32 m 403.1 535.8 l S Q
+q 0.55 G 0.6 w 403.1 535.8 m 403.58 536.51 l S Q
+q 0.55 G 0.6 w 403.58 536.51 m 403.75 537.35 l S Q
+q 0.55 G 0.6 w 227.96 433.35 m 227.79 434.19 l S Q
+q 0.55 G 0.6 w 227.79 434.19 m 227.31 434.9 l S Q
+q 0.55 G 0.6 w 227.31 434.9 m 226.6 435.38 l S Q
+q 0.55 G 0.6 w 226.6 435.38 m 225.76 435.55 l S Q
+q 0.55 G 0.6 w 225.76 435.55 m 224.91 435.38 l S Q
+q 0.55 G 0.6 w 224.91 435.38 m 224.2 434.9 l S Q
+q 0.55 G 0.6 w 224.2 434.9 m 223.72 434.19 l S Q
+q 0.55 G 0.6 w 223.72 434.19 m 223.56 433.35 l S Q
+q 0.55 G 0.6 w 223.56 433.35 m 223.72 432.51 l S Q
+q 0.55 G 0.6 w 223.72 432.51 m 224.2 431.79 l S Q
+q 0.55 G 0.6 w 224.2 431.79 m 224.91 431.32 l S Q
+q 0.55 G 0.6 w 224.91 431.32 m 225.76 431.15 l S Q
+q 0.55 G 0.6 w 225.76 431.15 m 226.6 431.32 l S Q
+q 0.55 G 0.6 w 226.6 431.32 m 227.31 431.79 l S Q
+q 0.55 G 0.6 w 227.31 431.79 m 227.79 432.51 l S Q
+q 0.55 G 0.6 w 227.79 432.51 m 227.96 433.35 l S Q
+q 0.55 G 0.6 w 235.23 460.28 m 235.06 461.12 l S Q
+q 0.55 G 0.6 w 235.06 461.12 m 234.59 461.83 l S Q
+q 0.55 G 0.6 w 234.59 461.83 m 233.87 462.31 l S Q
+q 0.55 G 0.6 w 233.87 462.31 m 233.03 462.48 l S Q
+q 0.55 G 0.6 w 233.03 462.48 m 232.19 462.31 l S Q
+q 0.55 G 0.6 w 232.19 462.31 m 231.48 461.83 l S Q
+q 0.55 G 0.6 w 231.48 461.83 m 231 461.12 l S Q
+q 0.55 G 0.6 w 231 461.12 m 230.83 460.28 l S Q
+q 0.55 G 0.6 w 230.83 460.28 m 231 459.44 l S Q
+q 0.55 G 0.6 w 231 459.44 m 231.48 458.72 l S Q
+q 0.55 G 0.6 w 231.48 458.72 m 232.19 458.25 l S Q
+q 0.55 G 0.6 w 232.19 458.25 m 233.03 458.08 l S Q
+q 0.55 G 0.6 w 233.03 458.08 m 233.87 458.25 l S Q
+q 0.55 G 0.6 w 233.87 458.25 m 234.59 458.72 l S Q
+q 0.55 G 0.6 w 234.59 458.72 m 235.06 459.44 l S Q
+q 0.55 G 0.6 w 235.06 459.44 m 235.23 460.28 l S Q
+q 0.55 G 0.6 w 235.29 460.68 m 235.12 461.52 l S Q
+q 0.55 G 0.6 w 235.12 461.52 m 234.65 462.23 l S Q
+q 0.55 G 0.6 w 234.65 462.23 m 233.93 462.71 l S Q
+q 0.55 G 0.6 w 233.93 462.71 m 233.09 462.88 l S Q
+q 0.55 G 0.6 w 233.09 462.88 m 232.25 462.71 l S Q
+q 0.55 G 0.6 w 232.25 462.71 m 231.54 462.23 l S Q
+q 0.55 G 0.6 w 231.54 462.23 m 231.06 461.52 l S Q
+q 0.55 G 0.6 w 231.06 461.52 m 230.89 460.68 l S Q
+q 0.55 G 0.6 w 230.89 460.68 m 231.06 459.84 l S Q
+q 0.55 G 0.6 w 231.06 459.84 m 231.54 459.12 l S Q
+q 0.55 G 0.6 w 231.54 459.12 m 232.25 458.65 l S Q
+q 0.55 G 0.6 w 232.25 458.65 m 233.09 458.48 l S Q
+q 0.55 G 0.6 w 233.09 458.48 m 233.93 458.65 l S Q
+q 0.55 G 0.6 w 233.93 458.65 m 234.65 459.12 l S Q
+q 0.55 G 0.6 w 234.65 459.12 m 235.12 459.84 l S Q
+q 0.55 G 0.6 w 235.12 459.84 m 235.29 460.68 l S Q
+q 0.55 G 0.6 w 233.63 459.58 m 233.47 460.43 l S Q
+q 0.55 G 0.6 w 233.47 460.43 m 232.99 461.14 l S Q
+q 0.55 G 0.6 w 232.99 461.14 m 232.28 461.62 l S Q
+q 0.55 G 0.6 w 232.28 461.62 m 231.43 461.78 l S Q
+q 0.55 G 0.6 w 231.43 461.78 m 230.59 461.62 l S Q
+q 0.55 G 0.6 w 230.59 461.62 m 229.88 461.14 l S Q
+q 0.55 G 0.6 w 229.88 461.14 m 229.4 460.43 l S Q
+q 0.55 G 0.6 w 229.4 460.43 m 229.23 459.58 l S Q
+q 0.55 G 0.6 w 229.23 459.58 m 229.4 458.74 l S Q
+q 0.55 G 0.6 w 229.4 458.74 m 229.88 458.03 l S Q
+q 0.55 G 0.6 w 229.88 458.03 m 230.59 457.55 l S Q
+q 0.55 G 0.6 w 230.59 457.55 m 231.43 457.38 l S Q
+q 0.55 G 0.6 w 231.43 457.38 m 232.28 457.55 l S Q
+q 0.55 G 0.6 w 232.28 457.55 m 232.99 458.03 l S Q
+q 0.55 G 0.6 w 232.99 458.03 m 233.47 458.74 l S Q
+q 0.55 G 0.6 w 233.47 458.74 m 233.63 459.58 l S Q
+q 0.55 G 0.6 w 235 460.42 m 234.83 461.26 l S Q
+q 0.55 G 0.6 w 234.83 461.26 m 234.35 461.98 l S Q
+q 0.55 G 0.6 w 234.35 461.98 m 233.64 462.46 l S Q
+q 0.55 G 0.6 w 233.64 462.46 m 232.8 462.62 l S Q
+q 0.55 G 0.6 w 232.8 462.62 m 231.96 462.46 l S Q
+q 0.55 G 0.6 w 231.96 462.46 m 231.24 461.98 l S Q
+q 0.55 G 0.6 w 231.24 461.98 m 230.76 461.26 l S Q
+q 0.55 G 0.6 w 230.76 461.26 m 230.6 460.42 l S Q
+q 0.55 G 0.6 w 230.6 460.42 m 230.76 459.58 l S Q
+q 0.55 G 0.6 w 230.76 459.58 m 231.24 458.87 l S Q
+q 0.55 G 0.6 w 231.24 458.87 m 231.96 458.39 l S Q
+q 0.55 G 0.6 w 231.96 458.39 m 232.8 458.22 l S Q
+q 0.55 G 0.6 w 232.8 458.22 m 233.64 458.39 l S Q
+q 0.55 G 0.6 w 233.64 458.39 m 234.35 458.87 l S Q
+q 0.55 G 0.6 w 234.35 458.87 m 234.83 459.58 l S Q
+q 0.55 G 0.6 w 234.83 459.58 m 235 460.42 l S Q
+q 0.55 G 0.6 w 235.76 458.9 m 235.59 459.74 l S Q
+q 0.55 G 0.6 w 235.59 459.74 m 235.11 460.46 l S Q
+q 0.55 G 0.6 w 235.11 460.46 m 234.4 460.93 l S Q
+q 0.55 G 0.6 w 234.4 460.93 m 233.56 461.1 l S Q
+q 0.55 G 0.6 w 233.56 461.1 m 232.71 460.93 l S Q
+q 0.55 G 0.6 w 232.71 460.93 m 232 460.46 l S Q
+q 0.55 G 0.6 w 232 460.46 m 231.52 459.74 l S Q
+q 0.55 G 0.6 w 231.52 459.74 m 231.36 458.9 l S Q
+q 0.55 G 0.6 w 231.36 458.9 m 231.52 458.06 l S Q
+q 0.55 G 0.6 w 231.52 458.06 m 232 457.34 l S Q
+q 0.55 G 0.6 w 232 457.34 m 232.71 456.87 l S Q
+q 0.55 G 0.6 w 232.71 456.87 m 233.56 456.7 l S Q
+q 0.55 G 0.6 w 233.56 456.7 m 234.4 456.87 l S Q
+q 0.55 G 0.6 w 234.4 456.87 m 235.11 457.34 l S Q
+q 0.55 G 0.6 w 235.11 457.34 m 235.59 458.06 l S Q
+q 0.55 G 0.6 w 235.59 458.06 m 235.76 458.9 l S Q
+q 0.55 G 0.6 w 237.18 459.81 m 237.01 460.65 l S Q
+q 0.55 G 0.6 w 237.01 460.65 m 236.54 461.36 l S Q
+q 0.55 G 0.6 w 236.54 461.36 m 235.82 461.84 l S Q
+q 0.55 G 0.6 w 235.82 461.84 m 234.98 462.01 l S Q
+q 0.55 G 0.6 w 234.98 462.01 m 234.14 461.84 l S Q
+q 0.55 G 0.6 w 234.14 461.84 m 233.43 461.36 l S Q
+q 0.55 G 0.6 w 233.43 461.36 m 232.95 460.65 l S Q
+q 0.55 G 0.6 w 232.95 460.65 m 232.78 459.81 l S Q
+q 0.55 G 0.6 w 232.78 459.81 m 232.95 458.97 l S Q
+q 0.55 G 0.6 w 232.95 458.97 m 233.43 458.25 l S Q
+q 0.55 G 0.6 w 233.43 458.25 m 234.14 457.78 l S Q
+q 0.55 G 0.6 w 234.14 457.78 m 234.98 457.61 l S Q
+q 0.55 G 0.6 w 234.98 457.61 m 235.82 457.78 l S Q
+q 0.55 G 0.6 w 235.82 457.78 m 236.54 458.25 l S Q
+q 0.55 G 0.6 w 236.54 458.25 m 237.01 458.97 l S Q
+q 0.55 G 0.6 w 237.01 458.97 m 237.18 459.81 l S Q
+q 0.55 G 0.6 w 261.04 495.8 m 260.88 496.65 l S Q
+q 0.55 G 0.6 w 260.88 496.65 m 260.4 497.36 l S Q
+q 0.55 G 0.6 w 260.4 497.36 m 259.68 497.84 l S Q
+q 0.55 G 0.6 w 259.68 497.84 m 258.84 498 l S Q
+q 0.55 G 0.6 w 258.84 498 m 258 497.84 l S Q
+q 0.55 G 0.6 w 258 497.84 m 257.29 497.36 l S Q
+q 0.55 G 0.6 w 257.29 497.36 m 256.81 496.65 l S Q
+q 0.55 G 0.6 w 256.81 496.65 m 256.64 495.8 l S Q
+q 0.55 G 0.6 w 256.64 495.8 m 256.81 494.96 l S Q
+q 0.55 G 0.6 w 256.81 494.96 m 257.29 494.25 l S Q
+q 0.55 G 0.6 w 257.29 494.25 m 258 493.77 l S Q
+q 0.55 G 0.6 w 258 493.77 m 258.84 493.6 l S Q
+q 0.55 G 0.6 w 258.84 493.6 m 259.68 493.77 l S Q
+q 0.55 G 0.6 w 259.68 493.77 m 260.4 494.25 l S Q
+q 0.55 G 0.6 w 260.4 494.25 m 260.88 494.96 l S Q
+q 0.55 G 0.6 w 260.88 494.96 m 261.04 495.8 l S Q
+q 0.55 G 0.6 w 261.54 495.63 m 261.37 496.47 l S Q
+q 0.55 G 0.6 w 261.37 496.47 m 260.89 497.18 l S Q
+q 0.55 G 0.6 w 260.89 497.18 m 260.18 497.66 l S Q
+q 0.55 G 0.6 w 260.18 497.66 m 259.34 497.83 l S Q
+q 0.55 G 0.6 w 259.34 497.83 m 258.49 497.66 l S Q
+q 0.55 G 0.6 w 258.49 497.66 m 257.78 497.18 l S Q
+q 0.55 G 0.6 w 257.78 497.18 m 257.3 496.47 l S Q
+q 0.55 G 0.6 w 257.3 496.47 m 257.14 495.63 l S Q
+q 0.55 G 0.6 w 257.14 495.63 m 257.3 494.78 l S Q
+q 0.55 G 0.6 w 257.3 494.78 m 257.78 494.07 l S Q
+q 0.55 G 0.6 w 257.78 494.07 m 258.49 493.59 l S Q
+q 0.55 G 0.6 w 258.49 493.59 m 259.34 493.43 l S Q
+q 0.55 G 0.6 w 259.34 493.43 m 260.18 493.59 l S Q
+q 0.55 G 0.6 w 260.18 493.59 m 260.89 494.07 l S Q
+q 0.55 G 0.6 w 260.89 494.07 m 261.37 494.78 l S Q
+q 0.55 G 0.6 w 261.37 494.78 m 261.54 495.63 l S Q
+q 0.55 G 0.6 w 260.79 494.27 m 260.62 495.11 l S Q
+q 0.55 G 0.6 w 260.62 495.11 m 260.15 495.82 l S Q
+q 0.55 G 0.6 w 260.15 495.82 m 259.43 496.3 l S Q
+q 0.55 G 0.6 w 259.43 496.3 m 258.59 496.47 l S Q
+q 0.55 G 0.6 w 258.59 496.47 m 257.75 496.3 l S Q
+q 0.55 G 0.6 w 257.75 496.3 m 257.04 495.82 l S Q
+q 0.55 G 0.6 w 257.04 495.82 m 256.56 495.11 l S Q
+q 0.55 G 0.6 w 256.56 495.11 m 256.39 494.27 l S Q
+q 0.55 G 0.6 w 256.39 494.27 m 256.56 493.42 l S Q
+q 0.55 G 0.6 w 256.56 493.42 m 257.04 492.71 l S Q
+q 0.55 G 0.6 w 257.04 492.71 m 257.75 492.23 l S Q
+q 0.55 G 0.6 w 257.75 492.23 m 258.59 492.07 l S Q
+q 0.55 G 0.6 w 258.59 492.07 m 259.43 492.23 l S Q
+q 0.55 G 0.6 w 259.43 492.23 m 260.15 492.71 l S Q
+q 0.55 G 0.6 w 260.15 492.71 m 260.62 493.42 l S Q
+q 0.55 G 0.6 w 260.62 493.42 m 260.79 494.27 l S Q
+q 0.45 g BT /F1 7 Tf 1 0 0 1 44 378.89 Tm (50 placed cameras of 80 registered, across 5 districts. Frame is the import clip 68,19.9 to 74.6,24.8. Dark rings counted as trusted \(0\); light rings did not. Markers) Tj ET Q
+q 0.45 g BT /F1 7 Tf 1 0 0 1 44 369.89 Tm (show position only - a 60 m cell is far below one point at this scale, so the rings are not drawn to scale and this figure must not be read as a coverage area. The 30) Tj ET Q
+q 0.45 g BT /F1 7 Tf 1 0 0 1 44 360.89 Tm (cameras with no coordinates cannot appear here at all.) Tj ET Q
+q 0 g BT /F2 12 Tf 1 0 0 1 44 332.89 Tm (6 � Figures this run did not measure) Tj ET Q
+q 0.35 g BT /F1 8.5 Tf 1 0 0 1 44 316.89 Tm (Measured against the live sandbox feed by earlier tickets. The feed is not held during report generation, so these are cited, not) Tj ET Q
+q 0.35 g BT /F1 8.5 Tf 1 0 0 1 44 305.89 Tm (recomputed, and no figure above depends on them.) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 44 288.89 Tm (fact) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 224 288.89 Tm (value) Tj ET Q
+q 0.35 g BT /F2 7.5 Tf 1 0 0 1 464 288.89 Tm (source) Tj ET Q
+q 0.75 G 0.5 w 44 284.89 m 551.28 284.89 l S Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 274.89 Tm (Per-camera sighting yield, same city, same hour) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 224 274.89 Tm (a 500x spread - cam04 33,548 � cam08 24,462 � cam05 17,622 � c...) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 464 274.89 Tm (D1-09 \(#13\)) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 264.89 Tm (cam03 is not broken) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 224 264.89 Tm (decoded 5,582 frames cleanly at 23.16 fps - it simply sees almost no...) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 464 264.89 Tm (D1-09 \(#13\)) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 254.89 Tm (Cameras failing night usability) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 224 254.89 Tm (8 of 30; luma means range 8.40 to 135.19) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 464 254.89 Tm (D1-05 \(#9\)) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 244.89 Tm (Distinct resolutions across the measured estate) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 224 244.89 Tm (six - 854x480 x12 � 1920x1080 x11 � 1280x960 x3 � 1280x720 x2 �...) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 464 244.89 Tm (D1-05 \(#9\)) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 234.89 Tm (Cameras effectively blind on focus \(quality 0, a dis...) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 224 234.89 Tm (cam22 \(blur 0.011\) and cam09 \(blur 2.047\)) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 464 234.89 Tm (D1-05/D1-06 \(#9, #10\)) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 224.89 Tm (Cameras declaring a retention period) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 224 224.89 Tm (0 of 30) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 464 224.89 Tm (D3-05 \(#28\)) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 44 214.89 Tm (Road network) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 224 214.89 Tm (540,584 GiST-indexed ways from Geofabrik western-zone, clipped to...) Tj ET Q
+q 0 g BT /F1 7.5 Tf 1 0 0 1 464 214.89 Tm (D3-01 \(#24\)) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis � generated 2026-09-05T18:42:42.382Z � saakshi_d3_06 � not a survey) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 538.63 28 Tm (2 / 2) Tj ET Q
+endstream
+endobj
+11 0 obj
+<< /Title (SAAKSHI - camera coverage gap analysis) /Author (SAAKSHI) /Subject (Generated from live data. Coverage cells are radius discs, not measured fields of view; the radii are assumptions. Cameras without coordinates are unassessable, not uncovered.) /Producer (SAAKSHI) /CreationDate (D:20260905184242Z) >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000320 00000 n 
+0000000425 00000 n 
+0000000520 00000 n 
+0000000682 00000 n 
+0000014554 00000 n 
+0000014717 00000 n 
+0000061490 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R /Info 11 0 R >>
+startxref
+61819
+%%EOF
