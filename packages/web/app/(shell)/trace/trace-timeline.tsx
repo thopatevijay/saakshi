@@ -26,6 +26,7 @@ import {
   seqAtFraction,
   type TraceablePoint,
 } from '@/src/lib/trace/geojson';
+import { RetentionChip } from '../evidence/retention-chip';
 
 /** Range inputs work in integers; 1000 steps over the window is finer than a pixel. */
 const STEPS = 1000;
@@ -131,7 +132,10 @@ export function TraceTimeline({ sightings, selectedSeq, onSelect }: TraceTimelin
               }}
             >
               {LINK_STYLE[selected.linkMethod].label} · {selected.linkConfidence.toFixed(2)}
-            </span>
+            </span>{' '}
+            {/* D3-05. Per sighting, not per trace: a trace can span days, and the footage behind
+                two sightings of the same vehicle is on two different clocks. */}
+            <RetentionChip retention={selected.retention} testId="trace-retention" />
           </>
         )}
       </p>

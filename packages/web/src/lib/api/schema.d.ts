@@ -3435,7 +3435,7 @@ export interface paths {
                                     computedAt: string;
                                     expiresOnIstDate: string | null;
                                     label: string;
-                                };
+                                } | null;
                             }[];
                             nextCursor: string | null;
                             limit: number;
@@ -3842,7 +3842,7 @@ export interface paths {
                                 computedAt: string;
                                 expiresOnIstDate: string | null;
                                 label: string;
-                            };
+                            } | null;
                         };
                     };
                 };

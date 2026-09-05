@@ -685,7 +685,10 @@ describe('AC 7 — retention state travels with the alert and with every trace s
     });
     expect(list.statusCode).toBe(200);
     const alerts = list.json<{
-      data: { id: string; retention: { state: string; retentionDays: number | null; label: string } }[];
+      data: {
+        id: string;
+        retention: { state: string; retentionDays: number | null; label: string };
+      }[];
     }>();
 
     const alert = alerts.data[0];
@@ -700,7 +703,9 @@ describe('AC 7 — retention state travels with the alert and with every trace s
       headers: auth('operator'),
     });
     expect(detail.statusCode).toBe(200);
-    expect(detail.json<{ retention: { retentionDays: number | null } }>().retention.retentionDays).toBe(7);
+    expect(
+      detail.json<{ retention: { retentionDays: number | null } }>().retention.retentionDays,
+    ).toBe(7);
   });
 });
 

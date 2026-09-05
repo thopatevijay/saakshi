@@ -8,9 +8,22 @@
  * `IdentificationStrength` members) instead of widening to `boolean` and `string` through JSON
  * Schema. The *request* shapes still come from the generated client.
  */
-import type { AlertDigest, AlertRecord } from '@saakshi/shared';
+import { AlertWithRetention } from '@saakshi/shared';
+import type { AlertDigest } from '@saakshi/shared';
 
-export type { AlertDigest, AlertRecord };
+export type { AlertDigest };
+
+/**
+ * What the queue renders.
+ *
+ * `AlertWithRetention`, not the bare `AlertRecord`: `GET /api/v1/alerts` carries the retention clock
+ * on the footage behind each alert (D3-05), and `z.object` **strips** unknown keys — re-parsing
+ * against the unextended record would silently drop `retention` and the detail panel would lose the
+ * "this evidence expires in N days" line without anything failing. Exported as a value as well as a
+ * type because `actions.ts` parses with it.
+ */
+export const AlertRecord = AlertWithRetention;
+export type AlertRecord = AlertWithRetention;
 
 /** One page of the queue, plus the disclaimer D2-06 repeats on every response. */
 export interface AlertPage {

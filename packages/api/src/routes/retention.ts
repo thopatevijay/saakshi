@@ -204,7 +204,8 @@ export function registerRetentionRoutes(app: App, deps: RetentionRouteOptions): 
       preHandler: [requireRole(READ_ROLES)],
       schema: {
         tags: ['evidence'],
-        summary: 'Which cameras covered a location at a time, and whether that footage still exists',
+        summary:
+          'Which cameras covered a location at a time, and whether that footage still exists',
         description:
           'Coverage is proximity to the registered position, not a viewshed. Cameras with no ' +
           'registered position cannot be ruled in or out and are returned in `unassessable` ' +
@@ -247,7 +248,8 @@ export function registerRetentionRoutes(app: App, deps: RetentionRouteOptions): 
       preHandler: [requireRole(READ_ROLES)],
       schema: {
         tags: ['evidence'],
-        summary: 'How much of the estate is on which retention window, by declared period and department',
+        summary:
+          'How much of the estate is on which retention window, by declared period and department',
         description:
           'The `retentionDays: null` bucket is cameras whose department declared no retention ' +
           'period. It is a real bucket and is never folded into a default.',
@@ -267,7 +269,8 @@ export function registerRetentionRoutes(app: App, deps: RetentionRouteOptions): 
       preHandler: [requireRole(WRITE_ROLES)],
       schema: {
         tags: ['evidence'],
-        summary: 'Record a request that the owning department preserve footage past its retention window',
+        summary:
+          'Record a request that the owning department preserve footage past its retention window',
         description: PRESERVATION_DISCLAIMER,
         body: PreservationRequestBody,
         response: {

@@ -176,7 +176,11 @@ function labelFor(state: RetentionState, remainingMs: number | null): string {
   const minutes = Math.floor((abs % MS_PER_HOUR) / 60_000);
 
   const magnitude =
-    days > 0 ? `${String(days)}d ${String(hours)}h` : hours > 0 ? `${String(hours)}h ${String(minutes)}m` : `${String(minutes)}m`;
+    days > 0
+      ? `${String(days)}d ${String(hours)}h`
+      : hours > 0
+        ? `${String(hours)}h ${String(minutes)}m`
+        : `${String(minutes)}m`;
 
   return remainingMs <= 0 ? `expired ${magnitude} ago` : `${magnitude} left`;
 }

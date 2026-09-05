@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RetentionStatus } from './retention.js';
 
 export const WatchlistCategory = z.enum([
   'stolen_vehicle',
@@ -305,6 +306,33 @@ export type AlertRecord = z.infer<typeof AlertRecord>;
  */
 export const Alert = AlertRecord;
 export type Alert = AlertRecord;
+
+/**
+ * What `GET /api/v1/alerts` and `GET /api/v1/alerts/:id` actually return (D3-05).
+ *
+ * `AlertRecord` plus the retention clock on the footage behind the alert — the field that lets the
+ * detail panel say *"this evidence expires in N days"*. Separate from `AlertRecord` on purpose:
+ *
+ * - `AlertRecord` is what the **engine writes** and what the SSE bus republishes. Baking a countdown
+ *   into it would put a value in the pipeline that is stale the instant after it is produced — the
+ *   same mistake as persisting a signed URL (D2-02).
+ * - `AlertWithRetention` is a **rendered read**, computed against the moment of the request.
+ *
+ * Defined here rather than in either consumer because the API validates its responses against it and
+ * the web app re-parses with it, and a second copy of an object shape is how a screen ends up
+ * silently stripping a field: `z.object` strips unknown keys, so a web-side parse against the
+ * unextended `AlertRecord` would drop `retention` without erroring.
+ *
+ * **`null` means "not computed on this delivery path", not "unknown retention".** `GET /alerts` and
+ * `GET /alerts/:id` always populate it. The live SSE frame does not: that path is fed by the engine
+ * at the moment the alert is raised, and joining the registry there would put a query on the raise
+ * hot path to answer a question that is trivial for an alert seconds old — its footage is by
+ * construction at the far end of whatever window applies. The clock arrives with the next list read.
+ * An undeclared retention period is `state: 'unknown'` **inside** a present object, which is a
+ * different fact and stays distinguishable.
+ */
+export const AlertWithRetention = AlertRecord.extend({ retention: RetentionStatus.nullable() });
+export type AlertWithRetention = z.infer<typeof AlertWithRetention>;
 
 /**
  * The lifecycle, as a graph rather than as scattered `if`s.

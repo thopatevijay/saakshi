@@ -482,9 +482,7 @@ function toPreservationRecord(
     status: row.status,
     retentionDaysAtRequest: row.retention_days_at_request,
     expiresAtAtRequest:
-      row.expires_at_at_request === null
-        ? null
-        : new Date(row.expires_at_at_request).toISOString(),
+      row.expires_at_at_request === null ? null : new Date(row.expires_at_at_request).toISOString(),
     auditHash: row.audit_hash,
     notes: row.notes,
     // Against the window's START, which is the oldest footage in the request and therefore the
