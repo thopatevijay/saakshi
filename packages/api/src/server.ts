@@ -25,6 +25,7 @@ import { registerTrustRoutes } from './routes/trust.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerWatchlistRoutes } from './routes/watchlist.js';
 import { registerPlateRoutes } from './routes/plates.js';
+import { registerTraceRoutes } from './routes/trace.js';
 
 /**
  * The app type with the zod type provider attached. Route handlers get `request.body`,
@@ -138,6 +139,13 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'possibilities, never identifications — docs/fuzzy-matching.md carries the measured ' +
             'precision and recall.',
         },
+        {
+          name: 'trace',
+          description:
+            "A vehicle's movement history. Sightings are observed; that they are the same " +
+            'vehicle, and the path between them, are inferred — every row carries the link ' +
+            'method and its confidence.',
+        },
         { name: 'health', description: 'Liveness' },
         { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
@@ -170,6 +178,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerAuthRoutes(app, { db });
     registerWatchlistRoutes(app, { db });
     registerPlateRoutes(app, { db });
+    registerTraceRoutes(app, { db });
   }
 
   return app;
