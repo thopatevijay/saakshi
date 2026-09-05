@@ -28,7 +28,7 @@ evidence/<camera_id>/<yyyy-mm-dd>/<sighting_id>-<kind>.jpg
 | `<camera_id>` | the camera's **external** id (`cam01`) | Not the uuid. The external id is what the upstream catalogue, the stream URLs, every operator and every screenshot already use; a bucket keyed by uuid is one no human can navigate, and the uuid is one join away when it is needed. |
 | `<yyyy-mm-dd>` | UTC date of the **sighting** | Never the upload date. A crop that lands at 00:04 for a vehicle seen at 23:58 must retain under the day it was *seen*, or the retention clock is wrong by a day at exactly the moment somebody is asking whether evidence still exists. |
 | `<sighting_id>` | `sightings.id` (uuid) | The row and the object name each other. There is no orphan class: the consumer looks the row up *before* it uploads, so a record with no row writes nothing. |
-| `<kind>` | `vehicle` \| `plate` | `plate` is D2-01's; the convention is shared so one retention rule and one export walker cover both. |
+| `<kind>` | `vehicle` \| `plate` | Both are written by **this** consumer (D2-11). One uploader, one bucket, one retention rule, one export walker. |
 
 Example:
 
@@ -39,6 +39,20 @@ evidence/cam01/2026-09-05/00323491-77ee-40ee-bcdb-fb84632f76d6-vehicle.jpg
 `sightings.crop_uri` stores **`s3://<bucket>/<key>`**, never a signed URL. A signed URL is a
 credential with an expiry: persisting one would put a value in the database that stops working, and
 an export bundle would ship a link that is dead before anyone opens it. URLs are minted on read.
+
+### Which column holds which crop (D2-11)
+
+| kind | column | set by |
+|---|---|---|
+| `vehicle` | `sightings.crop_uri` | `storeEvidence` — also writes the colour/body attributes |
+| `plate` | `plate_reads.crop_uri` | `storePlateCrop` — writes **only** `crop_uri`, never the sighting's attributes, because a plate crop carries no colour read |
+
+D2-01's `LocalCropStore` also writes a local copy of each plate crop under `evidence/plates/` and
+puts a `file://` URI in the row. **That is the fallback, not the destination.** The evidence
+consumer overwrites it with the `s3://` URI as soon as it drains the record; with no object store
+configured the `file://` URI survives, `services/crop-url.ts` refuses to sign it, and the UI renders
+"no crop stored" — which is true. Nothing on any path ever signs a URI it cannot serve: a link that
+4xxs looks real and is not.
 
 ---
 
@@ -362,6 +376,14 @@ The consumer matches a record to its row on `(camera_id, track_id, frame_pts_ms)
 `track_id` is session-qualified. Order of operations is **find the row → upload → update the row**:
 looking first means a record whose row has not landed writes nothing at all, so there is never an
 orphan object inflating the count.
+
+A `kind: 'plate'` record matches the same tuple but resolves to the `plate_reads` row hanging off
+that sighting (D2-11). That is exact rather than approximate: the ANPR engine emits its one voted
+read for a track on the frame the vote fires, and `pipeline.py` attaches the read to *that* frame's
+sighting payload — so the frame that produced the plate crop is the frame whose sighting owns the
+read. `workers/analytics/evidence.py:to_plate_record` builds the record; its vehicle-attribute
+fields are `unknown` / `0.0` / low-confidence, because no colour classifier ran on a plate crop, and
+the consumer writes none of them anywhere.
 
 **Run `consume:sightings` before `consume:evidence`.** The two streams are independent and a crop
 cannot be named until its sighting row exists. The consumer waits and retries (3 × 500 ms) and then

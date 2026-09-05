@@ -376,13 +376,63 @@ Non-negotiable and asserted field by field. `REQUIRED_WHY_FIELDS` in `@saakshi/s
 |---|---|---|
 | `camera.location` | the registry has no geometry for this camera | *no location on file* |
 | `camera.trustScore` | the camera has never been probed (never scored 0 for being unmeasured) | *never probed* |
-| `evidence.cropUrl` | no crop stored, or no object store configured | *no crop URL* |
+| `evidence.cropUrl` | no crop stored, no object store configured, or a crop URI this store cannot serve | *no crop URL* |
 
 **`cropUri` is `s3://bucket/key`, never a URL.** A signed URL persisted in the database is a
 credential with an expiry rotting in a column — it would be dead within the hour. The URL is minted
 at read time by `EvidenceStore.presignGet`, which is synchronous and makes no network call, so one
 per alert costs nothing. It is signed for **GET**: a `HEAD` of it answers 403 against a store that is
 working perfectly, because the HTTP method is part of the SigV4 canonical request.
+
+### Where a plate crop lives, and what `null` means (D2-11)
+
+**Both crop kinds live in MinIO, in one bucket, under one key convention.**
+
+| kind | key | column | written by |
+|---|---|---|---|
+| vehicle best shot | `evidence/<camera>/<yyyy-mm-dd>/<sighting_id>-vehicle.jpg` | `sightings.crop_uri` | `consumers/evidence.ts` |
+| plate best shot | `evidence/<camera>/<yyyy-mm-dd>/<sighting_id>-plate.jpg` | `plate_reads.crop_uri` | `consumers/evidence.ts` |
+
+Both travel on the same Valkey `evidence` stream as an `EvidenceRecord`, distinguished by
+`kind: 'vehicle' | 'plate'`, and both are uploaded by the same consumer. There is one uploader on
+purpose: two is what produced the defect D2-GATE found. The analytics worker holds no MinIO
+credentials and cannot name the object either — the key contains a `sighting_id` that Postgres
+generates downstream of the bus — so the worker publishes pixels plus the matching tuple
+`(cameraId, trackId, framePtsMs)` and the consumer does the naming.
+
+`workers/analytics/anpr/crops.py`'s `LocalCropStore` still writes a **local** copy under
+`evidence/plates/` and puts a `file://` URI in the row. That is the fallback for a machine with no
+object store, not the destination; the evidence consumer overwrites it with the `s3://` URI.
+
+**`cropUrl: null` means one of exactly three things, and the caveat says which:**
+
+| stored `cropUri` | object store | `cropUrl` | caveat |
+|---|---|---|---|
+| `null` | any | `null` | *no crop was stored for this sighting* |
+| any | not configured | `null` | *no evidence store is configured* |
+| not `s3://<this bucket>/…` — a `file://` path, or another bucket | configured | `null` | *not an object in this evidence store* |
+| `s3://<this bucket>/…` | configured | a signed GET URL | — |
+
+**`null` is a correct, first-class answer, not a degraded one.** D2-07 renders it as "no crop
+stored" and D2-02's four-way `cropState` handles it. The rule the whole path is built on is that a
+link which 4xxs is *worse* than no link, because it looks real: `services/crop-url.ts`'s
+`presignerFor` guards on the `s3://<bucket>/` prefix and returns `null` otherwise, and both the
+alert path and the trace path call that one function.
+
+**The crop URL is minted on read, not stored.** `alerts.reason` is persisted at correlation time,
+so a URL signed into it would (a) expire — a queue opened sixteen minutes later served a link that
+403s — and (b) be signed before the crop existed, since the upload happens in another process
+seconds later. `routes/alerts.ts` therefore re-reads the current `crop_uri` from the sighting
+(`current_crop_uri`, preferring the plate crop over the vehicle crop) and re-mints on every read.
+
+**To check a live alert's crop resolves:**
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" localhost:4000/api/v1/alerts \
+  | jq -r '.data[0].reason.evidence.cropUrl' \
+  | xargs -r curl -s -o /dev/null -w '%{http_code} %{content_type}\n'
+# -> 200 image/jpeg   ... or the jq prints `null`, which is the honest "no crop stored"
+```
 
 **`caveats` is never empty.** Even a perfect exact match carries the mock-provider line, because the
 one claim that must never be implied is that VAHAN answered.

@@ -208,6 +208,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       db,
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
+      ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
   }
 
