@@ -28,7 +28,7 @@
  *    instead of silent.
  */
 import { sql } from 'drizzle-orm';
-import { Sighting, type PlateRead } from '@saakshi/shared';
+import { evaluatePlateRead, Sighting, type PlateRead } from '@saakshi/shared';
 import { plateReads as plateReadsTable, sightings as sightingsTable } from '@saakshi/shared/db';
 import type { Db } from '../db/client.js';
 
@@ -231,6 +231,37 @@ export interface CorrelatablePlateRead {
 }
 
 /**
+ * The stored value of `plate_reads.normalized_text` for one read — the single place the column's
+ * three meanings are decided (D2-10).
+ *
+ * ```
+ * null    NOT NORMALISED.        Nothing has run D2-03's grammar over this read. Unreachable from
+ *                                this consumer now that it always evaluates; it survives as the
+ *                                meaning of rows written before D2-10, or by any other writer.
+ * ''      NORMALISED TO NOTHING. `evaluatePlateRead` ran and found no `[A-Z0-9]` at all — a
+ *                                rejection, and what the per-camera rejection rate counts.
+ * 'GJ01…' A CANONICAL FORM.      The `[A-Z0-9]` key D2-04, the watchlist and `services/trace.ts`
+ *                                match on.
+ * ```
+ *
+ * D2-01's handoff on #17 is emphatic that `null` means *not evaluated yet*, never *rejected*: the
+ * per-camera rejection rate is a trust signal that only exists while the first two are
+ * distinguishable, so an empty evaluation is stored as `''` and never collapsed into `null`.
+ *
+ * **The worker stays authoritative if it ever sends a value.** A non-null `normalizedText` on the
+ * wire is stored verbatim, so this never becomes a second, competing normaliser: exactly one layer
+ * normalises, and today that layer is this one. It is this one because `evaluatePlateRead` is
+ * TypeScript — normalising in the Python worker would mean reimplementing D2-03's grammar in
+ * another language, which is the drift this ticket exists to close. `services/alerts.ts` computes
+ * the same value from the same `rawText` at correlation time, and D2-10's tests assert the two
+ * agree.
+ */
+export function storedNormalizedText(read: PlateRead): string {
+  if (read.normalizedText !== null) return read.normalizedText;
+  return evaluatePlateRead(read.rawText, read.confidence).normalizedText;
+}
+
+/**
  * Writes one batch: sightings first, then the plate reads that hang off them.
  *
  * `sightings` is a hypertable, so `plate_reads` cannot carry a foreign key to it — Timescale does
@@ -274,10 +305,11 @@ export async function insertBatch(db: Db, decoded: DecodedSighting[]): Promise<I
         sightingId: parent.id,
         sightingTs: parent.ts,
         rawText: read.rawText,
-        // Left as the worker sent it — `null`. D2-03 owns normalisation and grammar validation,
-        // and the rejection rate per camera is a trust signal that only exists if this column
-        // distinguishes "not normalised yet" from "normalised to nothing".
-        normalizedText: read.normalizedText,
+        // D2-03's canonical form, computed here (D2-10). Before this the column was left as the
+        // worker sent it — `null` — and `services/trace.ts` filters on it, so a plate that raised
+        // an alert was untraceable. `storedNormalizedText` documents which of the three values
+        // means what.
+        normalizedText: storedNormalizedText(read),
         confidence: read.confidence,
         isBestShot: read.isBestShot,
         voteCount: read.voteCount,
