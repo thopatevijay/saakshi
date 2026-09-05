@@ -19,6 +19,7 @@
  * vehicle passing five cameras. Nothing here should be quoted as an observation.
  *
  *   npm run demo:trace -w packages/api -- --seed
+ *   npm run demo:trace -w packages/api -- --seed --clone   # + a second vehicle on the same plate
  *   npm run demo:trace -w packages/api -- --remove
  */
 import { readFileSync } from 'node:fs';
@@ -156,11 +157,79 @@ const ITINERARY: {
   },
 ];
 
+/**
+ * A **second vehicle wearing the same registration** — opt-in with `--clone` (D3-02).
+ *
+ * Seeded only when asked for, and labelled here as unambiguously synthetic, because it is the one
+ * thing on this estate that cannot be observed: the measured corpus has 0 sightings with a plate
+ * read at two placed cameras, so there is no real pair for an impossible transition to exist
+ * between. Without this the cloning detector has a whole-table sweep, two synthetic unit tests and
+ * nothing an officer can look at.
+ *
+ * The shape is the one the detector is supposed to find, and each part of it matters:
+ *  - `TRACEFIX-CAM-D` to `TRACEFIX-CAM-A` is 9.24 km of real Ahmedabad road, 669 s at free-flow;
+ *  - the two reads are **30 seconds apart**, which demands a minimum average of 1,109 km/h;
+ *  - both reads are **exact and confident** (0.86, 0.84) and grammar-valid, so there is nothing for
+ *    OCR to have got wrong — the misread branch is not available;
+ *  - and it happens **twice**, an hour apart, because one anomaly is an accident and a repeat is a
+ *    pattern. `repeatPairsForClone` in `config/anomaly-policy.json` is what makes that decisive.
+ *
+ * Nothing here should ever be quoted as an observation, and `--remove` deletes it with the rest.
+ */
+const CLONE_ITINERARY: typeof ITINERARY = [
+  {
+    camera: 'CAM-D',
+    minute: 60,
+    raw: 'GJ01AB1234',
+    normalized: 'GJ01AB1234',
+    confidence: 0.86,
+    trackId: 900_003,
+    crop: 'day_cam07_097_01_plate.jpg',
+    color: 'silver',
+    colorConfidence: 0.66,
+  },
+  {
+    camera: 'CAM-A',
+    minute: 60.5,
+    raw: 'GJ01AB1234',
+    normalized: 'GJ01AB1234',
+    confidence: 0.84,
+    trackId: 910_005,
+    crop: 'day_cam04_122_02_plate.jpg',
+    color: 'white',
+    colorConfidence: 0.72,
+  },
+  {
+    camera: 'CAM-D',
+    minute: 90,
+    raw: 'GJ01AB1234',
+    normalized: 'GJ01AB1234',
+    confidence: 0.86,
+    trackId: 920_002,
+    crop: 'day_cam07_097_01_plate.jpg',
+    color: 'silver',
+    colorConfidence: 0.64,
+  },
+  {
+    camera: 'CAM-A',
+    minute: 90.5,
+    raw: 'GJ01AB1234',
+    normalized: 'GJ01AB1234',
+    confidence: 0.84,
+    trackId: 930_007,
+    crop: 'day_cam04_122_02_plate.jpg',
+    color: 'white',
+    colorConfidence: 0.7,
+  },
+];
+
 /** Anchored so a demo and a screenshot show the same times whenever they are taken. */
 const START = new Date('2026-09-05T09:00:00.000Z');
 
 async function main(): Promise<void> {
   const mode = process.argv.includes('--remove') ? 'remove' : 'seed';
+  /** Opt-in, never the default: a cloned plate is an accusation-shaped fixture. */
+  const withClone = process.argv.includes('--clone');
   const env = loadEnv({ ...process.env });
   const rawSql = createSql(env.DATABASE_URL, 4);
   const db = createDb(rawSql);
@@ -215,7 +284,8 @@ async function main(): Promise<void> {
       out('no object store configured — crops will be seeded as URIs with no bytes behind them');
     }
 
-    for (const stop of ITINERARY) {
+    const itinerary = withClone ? [...ITINERARY, ...CLONE_ITINERARY] : ITINERARY;
+    for (const stop of itinerary) {
       const ts = new Date(START.getTime() + stop.minute * 60_000).toISOString();
       const day = ts.slice(0, 10);
       // D2-02's key convention: named by the **track_id**, not the sighting id.
@@ -245,8 +315,15 @@ async function main(): Promise<void> {
 
     const after = await countReal(db);
     out(
-      `seeded ${String(CAMERAS.length)} fixture cameras and ${String(ITINERARY.length)} sightings for ${DEMO_PLATE}`,
+      `seeded ${String(CAMERAS.length)} fixture cameras and ${String(itinerary.length)} sightings for ${DEMO_PLATE}`,
     );
+    if (withClone) {
+      out(
+        `--clone: ${String(CLONE_ITINERARY.length)} of those are a SECOND, SYNTHETIC vehicle wearing ${DEMO_PLATE}.\n` +
+          '  Two 30-second CAM-D to CAM-A transitions over 9.24 km of real road. Synthetic by\n' +
+          '  construction — never quote it as an observation.',
+      );
+    }
     out(`real cameras before ${String(before)} · after ${String(after)} — must be equal`);
     if (before !== after) throw new Error('a real camera row changed; that must never happen');
     out(`trace it:  /trace?plate=${DEMO_PLATE}`);
