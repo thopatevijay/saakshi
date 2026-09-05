@@ -104,14 +104,6 @@ interface TrustSignal {
 }
 
 /**
- * The signals that cost this camera points, worst first.
- *
- * A signal that could not be judged is **excluded**, never scored zero (D1-06) — every sandbox row
- * is VOD, so the clock signal is inapplicable estate-wide and counting it against them would cost
- * each camera ten points for our own gateway being a file server. So `applicable === false` rows
- * are dropped here rather than reported as failures.
- */
-/**
  * The prober's own error sentence.
  *
  * `camera_health_checks` has no `error` column — `workers/prober/db.py:_with_error` folds it into
@@ -124,6 +116,14 @@ export function probeErrorFrom(breakdown: unknown): string | null {
   return typeof value === 'string' && value !== '' ? value : null;
 }
 
+/**
+ * The signals that cost this camera points, worst first.
+ *
+ * A signal that could not be judged is **excluded**, never scored zero (D1-06) — every sandbox row
+ * is VOD, so the clock signal is inapplicable estate-wide and counting it against them would cost
+ * each camera ten points for our own gateway being a file server. So `applicable === false` rows
+ * are dropped here rather than reported as failures.
+ */
 export function failingSignalsFrom(breakdown: unknown): {
   signal: string;
   note: string;
@@ -169,6 +169,21 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
     });
 
   const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+
+  /**
+   * Timestamps leave as ISO-8601.
+   *
+   * The `ts` columns are `mode: 'string'`, so postgres-js hands back its own rendering
+   * (`2026-09-05 12:39:35.207+00`). `new Date()` happens to accept that in V8 and does not in every
+   * runtime — it is not a format the ECMAScript spec requires any engine to parse — so it is
+   * normalised here rather than left as a browser-dependent surprise on a screen that renders
+   * "last probed" next to a dead camera.
+   */
+  const iso = (v: string | null | undefined): string | null => {
+    if (v === null || v === undefined) return null;
+    const parsed = new Date(v.includes('T') ? v : v.replace(' ', 'T'));
+    return Number.isNaN(parsed.getTime()) ? v : parsed.toISOString();
+  };
 
   const loadCamera = async (id: string) => {
     const rows: {
@@ -291,7 +306,7 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
         trust: {
           band: camera.band,
           score: num(camera.trustScore),
-          checkedAt: health?.checkedAt ?? null,
+          checkedAt: iso(health?.checkedAt),
           connectable: health?.connectable ?? null,
           decodable: health?.decodable ?? null,
           error: probeErrorFrom(health?.breakdown),
@@ -316,7 +331,7 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
             sighting?.latestPts === null || sighting?.latestPts === undefined
               ? null
               : Number(sighting.latestPts),
-          latestTs: sighting?.latestTs ?? null,
+          latestTs: iso(sighting?.latestTs),
         },
       };
     },
@@ -467,7 +482,7 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
           return {
             id: row.id,
             ptsMs: Number(row.ptsMs),
-            ts: row.ts,
+            ts: iso(row.ts) ?? row.ts,
             trackId: row.trackId,
             class: row.class,
             bbox: {
