@@ -182,16 +182,22 @@ describe('audit_log is append-only', () => {
     if (!reachable) return;
     // Defence in depth: grants can be changed by an administrator in a hurry, a trigger shows up
     // in a schema diff. Seed one row, then try to edit it as the owner.
+    //
+    // `prev_hash` and `hash` are both per-run values since D3-04's migration 0018: `prev_hash`
+    // gained a unique index so the chain cannot fork, and the literal 'genesis' this used to insert
+    // now collides with the real first link — a duplicate-key error, which would pass a bare
+    // `.rejects` while proving nothing about the trigger.
+    const tag = `drift-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     await expect(
       rawSql.begin(async (tx) => {
         await tx.unsafe(
           `
           insert into audit_log (action, target_type, purpose, prev_hash, hash)
-          values ('drift.test', 'test', 'verifying the append-only guard', 'genesis', $1)
+          values ('drift.test', 'test', 'verifying the append-only guard', $1, $2)
         `,
-          [`drift-${Date.now()}`],
+          [`${tag}-prev`, tag],
         );
-        await tx.unsafe(`update audit_log set purpose = 'tampered' where action = 'drift.test'`);
+        await tx.unsafe(`update audit_log set purpose = 'tampered' where hash = $1`, [tag]);
       }),
     ).rejects.toThrow(/append-only/i);
   });
