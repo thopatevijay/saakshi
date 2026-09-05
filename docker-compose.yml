@@ -83,6 +83,60 @@ services:
       interval: 5s
       retries: 20
 
+  # ── Observability (D3-10) ─────────────────────────────────────────────────────────────────────
+  # At 80,000 cameras operability is the product: a system nobody can monitor is a system nobody
+  # runs. Both services are configured entirely from files in `ops/`, so a fresh clone gets the same
+  # dashboards and the same alert rules with no console click. See docs/observability.md.
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      # 15 days is enough to answer "was it like this yesterday" and small enough that the volume
+      # never becomes a thing anybody has to think about on a laptop.
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    ports: ['9090:9090']
+    volumes:
+      - './ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro'
+      - './ops/prometheus/rules.yml:/etc/prometheus/rules.yml:ro'
+      - 'promdata:/prometheus'
+    # The API and both Python workers run on the HOST, not in this network — they are the code under
+    # development, and containerising them would mean an image rebuild per edit. Docker Desktop
+    # resolves `host.docker.internal` already; this line gives Linux the same name.
+    extra_hosts: ['host.docker.internal:host-gateway']
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O- http://127.0.0.1:9090/-/healthy || exit 1']
+      interval: 5s
+      retries: 20
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: saakshi
+      # A local operations console, not a public one. Anonymous viewing keeps a demo one click away
+      # while every edit still needs the admin login — and `allowUiUpdates: false` in the dashboard
+      # provider means a browser edit could not be saved anyway.
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: dark
+      # Off: this stack must work on a machine with no internet, and a plugin fetched at boot is a
+      # dependency nobody declared.
+      GF_INSTALL_PLUGINS: ''
+    # 3000 is `next dev`'s port, so the host side is overridable and defaults to 3001.
+    ports: ['${GRAFANA_HOST_PORT:-3001}:3000']
+    volumes:
+      - './ops/grafana/provisioning:/etc/grafana/provisioning:ro'
+      - './ops/grafana/dashboards:/var/lib/grafana/dashboards:ro'
+      - 'grafanadata:/var/lib/grafana'
+    depends_on:
+      prometheus: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O- http://127.0.0.1:3000/api/health || exit 1']
+      interval: 5s
+      retries: 20
+
   # Travel-time / road-graph engine for route reconstruction (D3-01).
   # Prepare once with `./scripts/import-osm.sh`, which downloads the extract, clips it to Gujarat,
   # builds the graph and fills `road_network`. See docs/road-network-setup.md.
@@ -100,3 +154,5 @@ volumes:
   dbdata:
   valkeydata:
   miniodata:
+  promdata:
+  grafanadata:

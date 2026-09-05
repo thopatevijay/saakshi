@@ -23,10 +23,16 @@ import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import replace
+from typing import TYPE_CHECKING
 
 from . import db
 from .probe import ProbeResult, probe_camera
 from .thresholds import DEFAULTS, Thresholds
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    # Imported lazily at call time so `prometheus_client` is not a hard dependency of a sweep that
+    # was never asked to expose metrics.
+    from .metrics import ProberMetrics
 
 log = logging.getLogger("saakshi.prober")
 
@@ -93,8 +99,14 @@ def run_pass(
     thresholds: Thresholds = DEFAULTS,
     max_wall_s: float = 180.0,
     database_url: str | None = None,
+    metrics: "ProberMetrics | None" = None,
 ) -> list[ProbeResult]:
-    """One sweep. Returns every result, written or not."""
+    """One sweep. Returns every result, written or not.
+
+    `metrics` is D3-10's exporter. Updated **per result**, in the same place the row is written,
+    because a sweep takes 23.6 minutes on this estate and a board that only updated at the end of a
+    pass would show half-hour-old health for half an hour.
+    """
     pass_id = str(uuid.uuid4())
     started = time.monotonic()
 
@@ -125,8 +137,12 @@ def run_pass(
                 db.insert_health_check(conn, camera.id, stamped)
                 conn.commit()
                 results.append(stamped)
+                if metrics is not None:
+                    metrics.record(stamped)
 
     elapsed = time.monotonic() - started
+    if metrics is not None:
+        metrics.record_pass(cameras=len(results), duration_s=elapsed)
     log.info(
         "pass %s: %d rows in %.1fs — %d decodable, %d unreachable, %d retryable",
         pass_id[:8],
@@ -183,6 +199,13 @@ def main(argv: list[str] | None = None) -> int:
         help="also probe cameras delisted from the catalogue (a delisted camera that still serves "
         "is itself a finding)",
     )
+    parser.add_argument(
+        "--metrics-port",
+        type=int,
+        default=None,
+        help="expose Prometheus metrics on this port (D3-10). Off by default: a sweep that binds a "
+        "port nobody asked for is a sweep whose second copy will not start.",
+    )
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args(argv)
 
@@ -196,6 +219,12 @@ def main(argv: list[str] | None = None) -> int:
 
     thresholds = DEFAULTS if args.window is None else replace(DEFAULTS, fps_window_s=args.window)
 
+    metrics: ProberMetrics | None = None
+    if args.metrics_port is not None:
+        from .metrics import serve as serve_metrics
+
+        metrics = serve_metrics(args.metrics_port)
+
     def one() -> list[ProbeResult]:
         results = run_pass(
             include_absent=args.include_absent,
@@ -204,6 +233,7 @@ def main(argv: list[str] | None = None) -> int:
             pool=args.pool,
             thresholds=thresholds,
             max_wall_s=args.max_wall,
+            metrics=metrics,
         )
         if not args.quiet:
             print(summarise(results))

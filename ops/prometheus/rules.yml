@@ -1,0 +1,259 @@
+# Alert rules for SAAKSHI (D3-10).
+#
+# Every threshold here is derived from something this project measured, and the comments say which,
+# because a rule whose number nobody can defend is a rule somebody will eventually silence.
+#
+# The four the ticket asks for are `SaakshiCameraDown`, `SaakshiTrustDrop`, `SaakshiBusLagRising`
+# and `SaakshiReadRateCollapse`. The rest exist because leaving them out would make the first four
+# lie: a starvation alert that cannot distinguish the gateway from our loop, or a drift alert that
+# fires on every VOD row, teaches an operator to ignore the board.
+
+groups:
+  - name: saakshi-cameras
+    interval: 15s
+    rules:
+      # ── The ticket's rule: camera down > 5 min ──────────────────────────────────────────────
+      #
+      # Built on the worker's session flag rather than on "frames per second fell", because those
+      # are different failures. `connected` goes to 0 when the container closes and the reconnect
+      # ladder cannot reopen it; a gateway that has merely stopped delivering frames keeps the
+      # session open and is caught by SaakshiCameraStarved below, which says whose stall it is.
+      #
+      # 5 m is the ticket's number. It is also longer than the worst backoff step (30 s) by an order
+      # of magnitude, so a camera walking the full 2s->30s ladder never pages anybody.
+      - alert: SaakshiCameraDown
+        expr: saakshi_worker_camera_connected == 0
+        for: 5m
+        labels:
+          severity: critical
+          pillar: connectivity
+        annotations:
+          summary: '{{ $labels.camera }} has had no open stream for 5 minutes'
+          description: >-
+            The analytics worker has been unable to hold a decode session open for
+            {{ $labels.camera }}. Check saakshi_worker_camera_reconnects_total and
+            saakshi_worker_camera_decode_errors_total{retryable="true"} — a retryable error says
+            this is the network, not the camera.
+
+      # A camera whose session is open but whose frames have stopped. Distinct from Down on purpose:
+      # D1-09 measured single stalls of 54.6 s between frames on a healthy camera, with 0
+      # reconnects, while 92% of all wall time was blocked upstream. Firing "camera down" on that
+      # would have blamed us for the gateway.
+      #
+      # 120 s is chosen against that measurement: it is more than twice the worst observed healthy
+      # stall, so a normal throttle cannot reach it.
+      - alert: SaakshiCameraStarved
+        expr: saakshi_worker_camera_seconds_since_frame > 120
+        for: 2m
+        labels:
+          severity: warning
+          pillar: connectivity
+        annotations:
+          summary: '{{ $labels.camera }} is connected but has delivered no frame for 2 minutes'
+          description: >-
+            Read this next to the time split. If
+            rate(saakshi_worker_camera_upstream_wait_seconds_total[5m]) dominates
+            rate(saakshi_worker_camera_loop_self_seconds_total[5m]) then the gateway is starving us
+            and there is nothing to fix in the pipeline.
+
+      # ── The ticket's rule: trust drop > 20 points ───────────────────────────────────────────
+      #
+      # Against the camera's own recent maximum, not against a fixed floor: a camera that has always
+      # scored 45 is a known-degraded camera somebody has already triaged, while one that fell from
+      # 88 to 60 is a new fault. 6 h covers several prober sweeps (one sweep is 23.6 minutes).
+      - alert: SaakshiTrustDrop
+        expr: (max_over_time(saakshi_camera_trust_score[6h]) - saakshi_camera_trust_score) > 20
+        for: 10m
+        labels:
+          severity: warning
+          pillar: trust
+        annotations:
+          summary: '{{ $labels.camera }} lost {{ $value | printf "%.0f" }} trust points'
+          description: >-
+            Compare the signal that moved: blur_score, luma_mean, tamper_score and the
+            connectable/decodable pair are all exported per camera. GET /api/v1/cameras/<id>/trust
+            gives the same breakdown with the reason strings.
+
+      # A camera the prober cannot measure is NOT a camera at 0 fps. This fires on the marker
+      # series, never on a zero, and stays a warning: D1-05 recorded the same camera as
+      # unmeasurable after a 516-second probe and at 20 fps after an 85-second one.
+      - alert: SaakshiFpsUnmeasurable
+        expr: saakshi_camera_fps_unmeasurable == 1
+        for: 1h
+        labels:
+          severity: info
+          pillar: trust
+        annotations:
+          summary: '{{ $labels.camera }} frame rate unmeasurable ({{ $labels.reason }}) for an hour'
+          description: >-
+            This is not a zero and must not be treated as one. It usually means the gateway is too
+            slow to measure through, which says something about the network and nothing about the
+            camera.
+
+      # Encoder clock drift — and ONLY on a live source. `meaning="vod"` is pull-rate skew, which on
+      # the sandbox runs to 124,007 ms at the median and is completely meaningless. Every sandbox row
+      # is VOD, so on the sandbox this rule correctly never fires.
+      #
+      # 5,000 ms on a live source: a camera whose clock is five seconds out corrupts every route
+      # reconstruction it contributes to (D3-01, D3-02), because a route is built from timestamps.
+      - alert: SaakshiEncoderClockDrift
+        expr: abs(saakshi_camera_pts_drift_ms{meaning="live"}) > 5000
+        for: 30m
+        labels:
+          severity: warning
+          pillar: trust
+        annotations:
+          summary: '{{ $labels.camera }} encoder clock is {{ $value | printf "%.0f" }} ms out'
+          description: >-
+            Live source only. A wrong camera clock silently corrupts every route reconstruction the
+            camera contributes to. On a VOD source the same number means pull-rate skew and is
+            ignored by this rule.
+
+  - name: saakshi-pipeline
+    interval: 15s
+    rules:
+      # ── The ticket's rule: read rate collapse ───────────────────────────────────────────────
+      #
+      # **Against the camera's own baseline, never an estate constant.** Over one 22-minute soak
+      # cam04 produced 33,548 sightings and cam03 produced 67 — a 500x spread in the same city at
+      # the same hour — and cam03 was not broken: it decoded 5,582 frames cleanly at 23.16 fps and
+      # simply sees almost no vehicles. Any fixed floor either pages every night about cam03 or
+      # never notices cam04 falling to a tenth of itself.
+      #
+      # The `> 1` guard keeps a genuinely quiet camera out of the rule entirely: 20% of a baseline
+      # of 0.5 is noise, not a signal.
+      - alert: SaakshiReadRateCollapse
+        expr: >-
+          saakshi_camera_sightings_baseline_per_min > 1
+          and saakshi_camera_sightings_per_min
+              < 0.2 * saakshi_camera_sightings_baseline_per_min
+        for: 15m
+        labels:
+          severity: warning
+          pillar: pipeline
+        annotations:
+          summary: >-
+            {{ $labels.camera }} is producing {{ $value | printf "%.1f" }} sightings/min against its
+            own baseline
+          description: >-
+            A silently broken pipeline looks exactly like this: the process is up, the stream is
+            connected, and nothing is coming out. Check
+            saakshi_worker_camera_frames_decoded_total and the motion-gate skip ratio before
+            assuming the camera.
+
+      # ── The ticket's rule: bus lag rising ───────────────────────────────────────────────────
+      #
+      # Rising, not merely large: a burst that drains is the system working. `deriv` over 15 m with a
+      # floor of 1,000 entries — one batch is 256, so 1,000 is about four batches behind, which is
+      # past anything a healthy consumer leaves unread between polls.
+      - alert: SaakshiBusLagRising
+        expr: >-
+          saakshi_bus_group_lag_entries > 1000
+          and deriv(saakshi_bus_group_lag_entries[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          pillar: pipeline
+        annotations:
+          summary: '{{ $labels.stream }}/{{ $labels.group }} lag is {{ $value | printf "%.0f" }} and climbing'
+          description: >-
+            Nothing is draining the stream fast enough. saakshi_bus_group_consumers at 0 means no
+            consumer is attached at all; a non-zero pending count with a flat lag means one is
+            attached but stuck.
+
+      - alert: SaakshiNoBusConsumer
+        expr: saakshi_bus_group_consumers == 0 and saakshi_bus_stream_length > 0
+        for: 10m
+        labels:
+          severity: warning
+          pillar: pipeline
+        annotations:
+          summary: 'No consumer attached to {{ $labels.stream }}/{{ $labels.group }}'
+          description: 'Entries are accumulating with nothing to read them. Start `npm run consume:sightings`.'
+
+      - alert: SaakshiInvalidPayloads
+        expr: rate(saakshi_consumer_invalid_payloads_total[15m]) > 0
+        for: 15m
+        labels:
+          severity: warning
+          pillar: pipeline
+        annotations:
+          summary: 'The sightings consumer is dropping payloads'
+          description: >-
+            Dropped and counted rather than redelivered forever, which is the correct behaviour —
+            but a sustained non-zero rate means a publisher is sending something that is not a
+            Sighting, and those detections are being lost.
+
+  - name: saakshi-platform
+    interval: 15s
+    rules:
+      # The API is the only always-on process, so it is the only one whose absence is a fault. The
+      # workers are batch jobs; `up == 0` on those means "not running", which is their normal state.
+      - alert: SaakshiComponentDown
+        expr: up{job="saakshi-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          pillar: platform
+        annotations:
+          summary: 'The SAAKSHI API is not answering scrapes'
+          description: 'Every estate gauge comes from this process; the board is blind while it is down.'
+
+      # PROJECT.md states an API response latency target of < 200 ms. The histogram has a bucket
+      # edge at exactly 0.2 s so the SLO is readable straight off it rather than interpolated.
+      - alert: SaakshiApiLatencyOverTarget
+        expr: >-
+          histogram_quantile(
+            0.95, sum by (le) (rate(saakshi_api_http_request_duration_seconds_bucket[10m]))
+          ) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          pillar: platform
+        annotations:
+          summary: 'API p95 is {{ $value | printf "%.3f" }} s, over the stated 200 ms target'
+
+      - alert: SaakshiApiErrorRate
+        expr: >-
+          sum(rate(saakshi_api_http_errors_total{class="5xx"}[10m]))
+          / clamp_min(sum(rate(saakshi_api_http_requests_total[10m])), 0.001) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+          pillar: platform
+        annotations:
+          summary: 'More than 2% of API responses are 5xx'
+
+      - alert: SaakshiDatabaseUnreachable
+        expr: saakshi_db_reachable == 0
+        for: 2m
+        labels:
+          severity: critical
+          pillar: platform
+        annotations:
+          summary: 'The API cannot reach PostgreSQL'
+
+      # An append-only chain that forked is a chain whose tamper-evidence claim no longer holds.
+      # There is no acceptable non-zero value, so there is no `for:` — it fires on the first scrape.
+      - alert: SaakshiAuditChainForked
+        expr: saakshi_audit_chain_forks > 0
+        labels:
+          severity: critical
+          pillar: custody
+        annotations:
+          summary: 'The audit chain has {{ $value }} fork(s)'
+          description: >-
+            GET /api/v1/audit/verify names the entries. A fork means two entries claim the same
+            predecessor, which is exactly what the chain exists to make visible.
+
+      # The relay exists so nine tiles do not cost the department gateway nine copies of a stream.
+      # A queue that stays deep means the concurrency ceiling is the bottleneck; D3-07 measured a
+      # 6-second HLS segment arriving in 22-49 s, so the gateway is slow enough for this to matter.
+      - alert: SaakshiRelayQueueDeep
+        expr: saakshi_relay_queued > 20
+        for: 5m
+        labels:
+          severity: info
+          pillar: platform
+        annotations:
+          summary: '{{ $value }} relay fetches are waiting for a concurrency slot'

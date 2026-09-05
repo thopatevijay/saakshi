@@ -4,6 +4,8 @@ import { buildServer } from './server.js';
 import { createDb, createSql } from './db/client.js';
 import { startCatalogueSchedule } from './jobs/scheduler.js';
 import { presignerFromEnv } from './services/crop-url.js';
+import { createValkeyInspector } from './consumers/valkey-reader.js';
+import { enableDefaultMetrics } from './metrics.js';
 
 const env = loadEnv();
 const sql = createSql(env.DATABASE_URL, env.DATABASE_POOL_MAX);
@@ -15,7 +17,17 @@ const db = createDb(sql);
 // A connection of its own for `LISTEN`: a listening connection is blocked for the life of the
 // subscription, so taking one from the query pool would permanently remove it from that pool.
 const listenSql = createSql(env.DATABASE_URL, 1);
-const app = await buildServer({ env, db, listenSql, cropPresigner: presignerFromEnv() });
+// D3-10. Read-only: it calls XINFO and never joins a consumer group, so it cannot steal an entry
+// from the real consumer. Built here, at the composition root, like every other client.
+const busInspector = createValkeyInspector(env.VALKEY_URL);
+enableDefaultMetrics();
+const app = await buildServer({
+  env,
+  db,
+  listenSql,
+  busInspector,
+  cropPresigner: presignerFromEnv(),
+});
 
 // Scheduled catalogue re-sync. Off unless CATALOGUE_SYNC_INTERVAL_MIN is set, and never fatal —
 // the on-demand paths (the API endpoint and `npm run sync:catalogue`) are the ones that matter.

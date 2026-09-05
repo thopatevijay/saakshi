@@ -51,6 +51,11 @@ psycopg[binary]>=3.2
 # the redis client is the correct dependency rather than a separate one.
 redis>=5.0
 
+# Prometheus exposition for both workers (D3-10). Pure Python, no extension, Apache-2.0 — and it is
+# only imported when `--metrics-port` is passed, so a worker that was never asked to expose metrics
+# does not pay for it.
+prometheus_client>=0.21
+
 # Tests. The prober's CV signals are pure functions over frames, which is what makes the tamper and
 # connect-burst acceptance criteria provable offline rather than only against a live feed.
 pytest>=8.3

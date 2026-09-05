@@ -1,0 +1,716 @@
+{
+  "uid": "saakshi-alerting",
+  "title": "SAAKSHI \u00b7 Alerting",
+  "description": "End-to-end PTS to alert latency, the rules that are firing, and the alert queue.",
+  "tags": ["saakshi", "alerting"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 78,
+      "type": "text",
+      "title": "End to end, and what an alert is and is not",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 5
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**PTS \u2192 alert is the end-to-end number.** It is measured from the sighting's *PTS-derived* timestamp \u2014 the frame's own presentation time plus the stream epoch, never frame arrival time \u2014 to the moment watchlist correlation raised the alert. Two series measure the same quantity from different places: the live histogram comes from the sightings consumer, and the stored quantiles come from `alerts.created_at - alerts.sighting_ts` so the number survives the consumer exiting.\n\n**An alert is a ranked possibility, never an identification.** Every watchlist provider in SAAKSHI is a mock \u2014 there is no live VAHAN, SARTHI, eGujCop, AFIS or NAFIS connectivity \u2014 and no biometric data is processed anywhere. A fuzzy plate match carries its edit distance and its confidence for exactly that reason."
+      }
+    },
+    {
+      "id": 82,
+      "type": "timeseries",
+      "title": "PTS \u2192 alert latency",
+      "description": "The deck's end-to-end figure. On a throttled gateway most of this is the gateway: 92% of the pipeline's wall time was measured blocked upstream, so read it next to the starvation panel on Pipeline Throughput before quoting it as a system latency.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 14,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(saakshi_pts_to_alert_latency_seconds_bucket[5m])))",
+          "legendFormat": "live p50",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(saakshi_pts_to_alert_latency_seconds_bucket[5m])))",
+          "legendFormat": "live p95",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "saakshi_alert_pts_latency_seconds",
+          "legendFormat": "stored {{quantile}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "type": "stat",
+      "title": "Alerts raised (rate)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 5,
+        "w": 5,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(saakshi_consumer_alerts_raised_total[5m])) * 60",
+          "legendFormat": "per min",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "F"
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "type": "stat",
+      "title": "PTS \u2192 ingest p95",
+      "description": "The first half of the same journey: frame time to the row being committed. The gap to PTS \u2192 alert is what correlation costs.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 5,
+        "w": 5,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(saakshi_pts_to_ingest_latency_seconds_bucket[5m])))",
+          "legendFormat": "p95",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "H"
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "type": "table",
+      "title": "Firing and pending alert rules",
+      "description": "Straight from Prometheus' own rule evaluation. 'pending' means the condition is true but the rule's `for:` window has not elapsed yet \u2014 a camera-down rule with `for: 5m` spends five minutes here before it fires.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 9,
+        "w": 10,
+        "h": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "ALERTS{alertstate=~\"firing|pending\"}",
+          "legendFormat": "{{alertname}}",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "refId": "J"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "stack": true,
+              "Value": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "type": "timeseries",
+      "title": "Alert rule states over time",
+      "description": "Every rule in ops/prometheus/rules.yml carries the measurement its threshold was derived from, in a comment above it.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (alertname, alertstate) (ALERTS)",
+          "legendFormat": "{{alertname}} ({{alertstate}})",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "L"
+        }
+      ]
+    },
+    {
+      "id": 92,
+      "type": "bargauge",
+      "title": "Stored alerts by status",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 8,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (status) (saakshi_alerts_stored)",
+          "legendFormat": "{{status}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "N"
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "type": "bargauge",
+      "title": "Stored alerts by severity",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 20,
+        "w": 8,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (severity) (saakshi_alerts_stored)",
+          "legendFormat": "{{severity}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "refId": "P"
+        }
+      ]
+    },
+    {
+      "id": 97,
+      "type": "timeseries",
+      "title": "API latency against the stated 200 ms target",
+      "description": "PROJECT.md states < 200 ms. The histogram has a bucket edge at exactly 0.2 s so the SLO is read off the data rather than interpolated between buckets.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 20,
+        "w": 8,
+        "h": 7
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(saakshi_api_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "R"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(saakshi_api_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "S"
+        }
+      ]
+    },
+    {
+      "id": 101,
+      "type": "timeseries",
+      "title": "Consumer drops and failures",
+      "description": "Dropped and counted rather than redelivered forever \u2014 a malformed entry replayed in a loop is a stuck consumer. A sustained non-zero rate means detections are being lost.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 12,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "rate(saakshi_consumer_invalid_payloads_total[5m]) * 60",
+          "legendFormat": "invalid payloads/min",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "U"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "rate(saakshi_consumer_unknown_cameras_total[5m]) * 60",
+          "legendFormat": "unknown cameras/min",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "V"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "rate(saakshi_consumer_correlation_failures_total[5m]) * 60",
+          "legendFormat": "correlation fails/min",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "W"
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "type": "timeseries",
+      "title": "API errors",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "saakshi-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 27,
+        "w": 12,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (class) (rate(saakshi_api_http_errors_total[5m]) * 60)",
+          "legendFormat": "{{class}}/min",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "Y"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "saakshi-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(saakshi_api_http_requests_total[5m]) * 60)",
+          "legendFormat": "requests/min",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "refId": "Z"
+        }
+      ]
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  }
+}
