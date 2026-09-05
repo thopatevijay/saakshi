@@ -248,6 +248,14 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
       if (q.severity !== undefined) filters.push(sql`a.severity = ${q.severity}`);
       if (q.matchType !== undefined) filters.push(sql`a.match_type = ${q.matchType}`);
       if (q.cameraId !== undefined) filters.push(sql`a.camera_id = ${q.cameraId}::uuid`);
+      // Resolved as a sub-select rather than a join so the keyset order and the `limit + 1`
+      // look-ahead below are untouched — a join would multiply rows if a camera ever gained a
+      // second department row, and the pagination contract would break silently.
+      if (q.departmentId !== undefined) {
+        filters.push(
+          sql`a.camera_id in (select id from cameras where department_id = ${q.departmentId}::uuid)`,
+        );
+      }
       if (q.watchlistEntryId !== undefined) {
         filters.push(sql`a.watchlist_entry_id = ${q.watchlistEntryId}::uuid`);
       }
@@ -255,6 +263,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
         filters.push(sql`a.reason -> 'watchlistRecord' ->> 'category' = ${q.category}`);
       }
       if (q.since !== undefined) filters.push(sql`a.last_seen_at >= ${q.since}::timestamptz`);
+      if (q.until !== undefined) filters.push(sql`a.last_seen_at <= ${q.until}::timestamptz`);
       if (q.cursor !== undefined) filters.push(sql`a.last_seen_at < ${q.cursor}::timestamptz`);
 
       const where = filters.length === 0 ? sql`` : sql` where ${sql.join(filters, sql` and `)}`;

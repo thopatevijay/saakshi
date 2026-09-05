@@ -11,7 +11,9 @@
     "test": "vitest run",
     "lint": "eslint .",
     "a11y": "node scripts/a11y.mjs",
-    "responsive": "node scripts/responsive.mjs"
+    "responsive": "node scripts/responsive.mjs",
+    "bench:alert-ui": "node scripts/bench-alert-ui.mjs",
+    "verify:alerts": "node scripts/verify-alerts.mjs"
   },
   "dependencies": {
     "@saakshi/shared": "*",

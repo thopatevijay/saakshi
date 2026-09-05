@@ -3086,6 +3086,938 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alerts/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Live alert stream (SSE). Events: ready · alert · digest · ping
+         * @description Server-Sent Events. `alert` carries one AlertRecord including its full why-payload; `digest` carries a rate-limit overflow summary; `ping` is a 15 s keepalive. Pass the bearer token in the Authorization header, or as `?access_token=` for EventSource.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    access_token?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The alert queue, filterable and keyset-paginated */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "new" | "ack" | "dismissed" | "escalated";
+                    severity?: "low" | "medium" | "high" | "critical";
+                    category?: "stolen_vehicle" | "wanted_person" | "missing_person" | "blacklisted_vehicle" | "suspect";
+                    matchType?: "exact" | "fuzzy";
+                    cameraId?: string;
+                    departmentId?: string;
+                    watchlistEntryId?: string;
+                    since?: string;
+                    until?: string;
+                    sort?: "recent" | "severity";
+                    limit?: number;
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                watchlistEntryId: string;
+                                /** Format: uuid */
+                                sightingId: string;
+                                /** Format: uuid */
+                                cameraId: string;
+                                /** Format: date-time */
+                                ts: string;
+                                /** Format: date-time */
+                                lastSeenAt: string;
+                                sightingCount: number;
+                                lastObservedPlate: string | null;
+                                /** @enum {string} */
+                                category: "stolen_vehicle" | "wanted_person" | "missing_person" | "blacklisted_vehicle" | "suspect";
+                                /** @enum {string} */
+                                sourceSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                                /** @enum {string} */
+                                severity: "low" | "medium" | "high" | "critical";
+                                /** @enum {string} */
+                                matchType: "exact" | "fuzzy";
+                                matchDistance: number;
+                                confidence: number;
+                                reason: {
+                                    /** @enum {string} */
+                                    matchType: "exact" | "fuzzy";
+                                    matchDistance: number;
+                                    explanation: string;
+                                    identification: {
+                                        observedPlate: string;
+                                        correctedPlate: string;
+                                        watchlistValue: string;
+                                        /** @enum {string} */
+                                        validity: "valid" | "partial" | "invalid";
+                                        grammarValid: boolean;
+                                        grammarCorrected: boolean;
+                                        rejectionCodes: string[];
+                                        missingChars: number | null;
+                                        completeness: number;
+                                        plateConfidence: number;
+                                        adjustedPlateConfidence: number;
+                                        matchConfidence: number;
+                                        combinedConfidence: number;
+                                        /** @enum {string} */
+                                        strength: "confirmed" | "probable" | "possible" | "weak";
+                                    };
+                                    severityBasis: {
+                                        /** @enum {string} */
+                                        fromCategory: "low" | "medium" | "high" | "critical";
+                                        /** @enum {string} */
+                                        fromEntry: "low" | "medium" | "high" | "critical";
+                                        ceilingsApplied: string[];
+                                        /** @enum {string} */
+                                        final: "low" | "medium" | "high" | "critical";
+                                        categoryRank: number;
+                                    };
+                                    camera: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        externalId: string;
+                                        name: string;
+                                        location: {
+                                            lat: number;
+                                            lon: number;
+                                        } | null;
+                                        district: string | null;
+                                        trustScore: number | null;
+                                    };
+                                    sighting: {
+                                        /** Format: uuid */
+                                        id: string;
+                                        /** Format: date-time */
+                                        ts: string;
+                                        framePtsMs: number;
+                                        trackId: number;
+                                        vehicleClass: string;
+                                    };
+                                    evidence: {
+                                        cropUri: string | null;
+                                        cropUrl: string | null;
+                                        cropUrlExpiresInS: number;
+                                        isBestShot: boolean;
+                                    };
+                                    watchlistRecord: {
+                                        /** Format: uuid */
+                                        entryId: string;
+                                        /** @enum {string} */
+                                        category: "stolen_vehicle" | "wanted_person" | "missing_person" | "blacklisted_vehicle" | "suspect";
+                                        /** @enum {string} */
+                                        entityType: "vehicle" | "person";
+                                        plateNormalized: string | null;
+                                        personRef: string | null;
+                                        /** @enum {string} */
+                                        sourceSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                                        sourceRef: string | null;
+                                        /** @enum {string} */
+                                        providerSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                                        /** @enum {boolean} */
+                                        live: false;
+                                        /** @enum {string} */
+                                        entrySeverity: "low" | "medium" | "high" | "critical";
+                                        /** Format: date-time */
+                                        validFrom: string;
+                                        /** Format: date-time */
+                                        validTo: string | null;
+                                        note: string | null;
+                                    };
+                                    caveats: string[];
+                                    disclaimer: string;
+                                    policyVersion: number;
+                                };
+                                dedupeKey: string;
+                                /** Format: date-time */
+                                dedupeWindowStart: string;
+                                /** @enum {string} */
+                                status: "new" | "ack" | "dismissed" | "escalated";
+                                /** Format: uuid */
+                                ackedBy: string | null;
+                                /** Format: date-time */
+                                ackedAt: string | null;
+                                /** Format: uuid */
+                                statusChangedBy: string | null;
+                                /** Format: date-time */
+                                statusChangedAt: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                            }[];
+                            nextCursor: string | null;
+                            limit: number;
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/digests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rate-limit overflow digests — what the queue was not shown, and why */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: date-time */
+                                windowStart: string;
+                                /** Format: date-time */
+                                windowEnd: string;
+                                suppressedCount: number;
+                                deliveredCount: number;
+                                bySeverity: {
+                                    [key: string]: number;
+                                };
+                                byCategory: {
+                                    [key: string]: number;
+                                };
+                                byCamera: {
+                                    [key: string]: number;
+                                };
+                                sample: string[];
+                            }[];
+                            limit: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Queue composition, the measured dedupe ratio, and the live delivery cap */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            bySeverityStatus: {
+                                /** @enum {string} */
+                                severity: "low" | "medium" | "high" | "critical";
+                                /** @enum {string} */
+                                status: "new" | "ack" | "dismissed" | "escalated";
+                                count: number;
+                            }[];
+                            byMatchType: {
+                                /** @enum {string} */
+                                matchType: "exact" | "fuzzy";
+                                count: number;
+                            }[];
+                            total: number;
+                            totalSightings: number;
+                            dedupeRatio: number;
+                            rateLimit: {
+                                windowStart: string;
+                                delivered: number;
+                                suppressed: number;
+                                cap: number;
+                            };
+                            streamSubscribers: number;
+                            policyVersion: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One alert with its complete why-payload */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            watchlistEntryId: string;
+                            /** Format: uuid */
+                            sightingId: string;
+                            /** Format: uuid */
+                            cameraId: string;
+                            /** Format: date-time */
+                            ts: string;
+                            /** Format: date-time */
+                            lastSeenAt: string;
+                            sightingCount: number;
+                            lastObservedPlate: string | null;
+                            /** @enum {string} */
+                            category: "stolen_vehicle" | "wanted_person" | "missing_person" | "blacklisted_vehicle" | "suspect";
+                            /** @enum {string} */
+                            sourceSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                            /** @enum {string} */
+                            severity: "low" | "medium" | "high" | "critical";
+                            /** @enum {string} */
+                            matchType: "exact" | "fuzzy";
+                            matchDistance: number;
+                            confidence: number;
+                            reason: {
+                                /** @enum {string} */
+                                matchType: "exact" | "fuzzy";
+                                matchDistance: number;
+                                explanation: string;
+                                identification: {
+                                    observedPlate: string;
+                                    correctedPlate: string;
+                                    watchlistValue: string;
+                                    /** @enum {string} */
+                                    validity: "valid" | "partial" | "invalid";
+                                    grammarValid: boolean;
+                                    grammarCorrected: boolean;
+                                    rejectionCodes: string[];
+                                    missingChars: number | null;
+                                    completeness: number;
+                                    plateConfidence: number;
+                                    adjustedPlateConfidence: number;
+                                    matchConfidence: number;
+                                    combinedConfidence: number;
+                                    /** @enum {string} */
+                                    strength: "confirmed" | "probable" | "possible" | "weak";
+                                };
+                                severityBasis: {
+                                    /** @enum {string} */
+                                    fromCategory: "low" | "medium" | "high" | "critical";
+                                    /** @enum {string} */
+                                    fromEntry: "low" | "medium" | "high" | "critical";
+                                    ceilingsApplied: string[];
+                                    /** @enum {string} */
+                                    final: "low" | "medium" | "high" | "critical";
+                                    categoryRank: number;
+                                };
+                                camera: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    externalId: string;
+                                    name: string;
+                                    location: {
+                                        lat: number;
+                                        lon: number;
+                                    } | null;
+                                    district: string | null;
+                                    trustScore: number | null;
+                                };
+                                sighting: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** Format: date-time */
+                                    ts: string;
+                                    framePtsMs: number;
+                                    trackId: number;
+                                    vehicleClass: string;
+                                };
+                                evidence: {
+                                    cropUri: string | null;
+                                    cropUrl: string | null;
+                                    cropUrlExpiresInS: number;
+                                    isBestShot: boolean;
+                                };
+                                watchlistRecord: {
+                                    /** Format: uuid */
+                                    entryId: string;
+                                    /** @enum {string} */
+                                    category: "stolen_vehicle" | "wanted_person" | "missing_person" | "blacklisted_vehicle" | "suspect";
+                                    /** @enum {string} */
+                                    entityType: "vehicle" | "person";
+                                    plateNormalized: string | null;
+                                    personRef: string | null;
+                                    /** @enum {string} */
+                                    sourceSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                                    sourceRef: string | null;
+                                    /** @enum {string} */
+                                    providerSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                                    /** @enum {boolean} */
+                                    live: false;
+                                    /** @enum {string} */
+                                    entrySeverity: "low" | "medium" | "high" | "critical";
+                                    /** Format: date-time */
+                                    validFrom: string;
+                                    /** Format: date-time */
+                                    validTo: string | null;
+                                    note: string | null;
+                                };
+                                caveats: string[];
+                                disclaimer: string;
+                                policyVersion: number;
+                            };
+                            dedupeKey: string;
+                            /** Format: date-time */
+                            dedupeWindowStart: string;
+                            /** @enum {string} */
+                            status: "new" | "ack" | "dismissed" | "escalated";
+                            /** Format: uuid */
+                            ackedBy: string | null;
+                            /** Format: date-time */
+                            ackedAt: string | null;
+                            /** Format: uuid */
+                            statusChangedBy: string | null;
+                            /** Format: date-time */
+                            statusChangedAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/{id}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move an alert through new → ack → dismissed | escalated. Always audited
+         * @description Illegal transitions are refused with 409 — `dismissed` is terminal, so an alert an operator judged cannot be quietly reopened. Every transition writes an audit_log row in the same transaction as the update.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        to: "new" | "ack" | "dismissed" | "escalated";
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            watchlistEntryId: string;
+                            /** Format: uuid */
+                            sightingId: string;
+                            /** Format: uuid */
+                            cameraId: string;
+                            /** Format: date-time */
+                            ts: string;
+                            /** Format: date-time */
+                            lastSeenAt: string;
+                            sightingCount: number;
+                            lastObservedPlate: string | null;
+                            /** @enum {string} */
+                            category: "stolen_vehicle" | "wanted_person" | "missing_person" | "blacklisted_vehicle" | "suspect";
+                            /** @enum {string} */
+                            sourceSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                            /** @enum {string} */
+                            severity: "low" | "medium" | "high" | "critical";
+                            /** @enum {string} */
+                            matchType: "exact" | "fuzzy";
+                            matchDistance: number;
+                            confidence: number;
+                            reason: {
+                                /** @enum {string} */
+                                matchType: "exact" | "fuzzy";
+                                matchDistance: number;
+                                explanation: string;
+                                identification: {
+                                    observedPlate: string;
+                                    correctedPlate: string;
+                                    watchlistValue: string;
+                                    /** @enum {string} */
+                                    validity: "valid" | "partial" | "invalid";
+                                    grammarValid: boolean;
+                                    grammarCorrected: boolean;
+                                    rejectionCodes: string[];
+                                    missingChars: number | null;
+                                    completeness: number;
+                                    plateConfidence: number;
+                                    adjustedPlateConfidence: number;
+                                    matchConfidence: number;
+                                    combinedConfidence: number;
+                                    /** @enum {string} */
+                                    strength: "confirmed" | "probable" | "possible" | "weak";
+                                };
+                                severityBasis: {
+                                    /** @enum {string} */
+                                    fromCategory: "low" | "medium" | "high" | "critical";
+                                    /** @enum {string} */
+                                    fromEntry: "low" | "medium" | "high" | "critical";
+                                    ceilingsApplied: string[];
+                                    /** @enum {string} */
+                                    final: "low" | "medium" | "high" | "critical";
+                                    categoryRank: number;
+                                };
+                                camera: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    externalId: string;
+                                    name: string;
+                                    location: {
+                                        lat: number;
+                                        lon: number;
+                                    } | null;
+                                    district: string | null;
+                                    trustScore: number | null;
+                                };
+                                sighting: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    /** Format: date-time */
+                                    ts: string;
+                                    framePtsMs: number;
+                                    trackId: number;
+                                    vehicleClass: string;
+                                };
+                                evidence: {
+                                    cropUri: string | null;
+                                    cropUrl: string | null;
+                                    cropUrlExpiresInS: number;
+                                    isBestShot: boolean;
+                                };
+                                watchlistRecord: {
+                                    /** Format: uuid */
+                                    entryId: string;
+                                    /** @enum {string} */
+                                    category: "stolen_vehicle" | "wanted_person" | "missing_person" | "blacklisted_vehicle" | "suspect";
+                                    /** @enum {string} */
+                                    entityType: "vehicle" | "person";
+                                    plateNormalized: string | null;
+                                    personRef: string | null;
+                                    /** @enum {string} */
+                                    sourceSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                                    sourceRef: string | null;
+                                    /** @enum {string} */
+                                    providerSystem: "VAHAN" | "SARTHI" | "eGujCop" | "AFIS" | "NAFIS" | "manual";
+                                    /** @enum {boolean} */
+                                    live: false;
+                                    /** @enum {string} */
+                                    entrySeverity: "low" | "medium" | "high" | "critical";
+                                    /** Format: date-time */
+                                    validFrom: string;
+                                    /** Format: date-time */
+                                    validTo: string | null;
+                                    note: string | null;
+                                };
+                                caveats: string[];
+                                disclaimer: string;
+                                policyVersion: number;
+                            };
+                            dedupeKey: string;
+                            /** Format: date-time */
+                            dedupeWindowStart: string;
+                            /** @enum {string} */
+                            status: "new" | "ack" | "dismissed" | "escalated";
+                            /** Format: uuid */
+                            ackedBy: string | null;
+                            /** Format: date-time */
+                            ackedAt: string | null;
+                            /** Format: uuid */
+                            statusChangedBy: string | null;
+                            /** Format: date-time */
+                            statusChangedAt: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
