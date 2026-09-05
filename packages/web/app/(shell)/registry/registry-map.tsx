@@ -58,6 +58,13 @@ import {
   bandStrokeWidthExpression,
 } from '@/src/lib/registry/trust';
 import type { CameraFeatureCollection } from '@/src/lib/registry/geojson';
+import {
+  coverageFillExpression,
+  coverageOpacityExpression,
+  coverageOutlineExpression,
+  EMPTY_COVERAGE,
+  type CoverageFeatureCollection,
+} from '@/src/lib/registry/coverage';
 import { bboxParam } from '@/src/lib/registry/query';
 
 /**
@@ -91,6 +98,8 @@ function registerMapGlobals(): void {
 }
 
 const SOURCE = 'cameras';
+/** D3-06's overlay. A separate source, so `cameras` cluster counts keep meaning "cameras". */
+const COVERAGE_SOURCE = 'coverage';
 const EMPTY: CameraFeatureCollection = { type: 'FeatureCollection', features: [] };
 
 /** Worst-first. A cluster takes the first band it actually contains. */
@@ -121,6 +130,12 @@ function clusterProperties(): Record<string, unknown> {
 
 export interface RegistryMapProps {
   data: CameraFeatureCollection;
+  /**
+   * Coverage cells (D3-06). Its **own** source and layers, inserted before `'clusters'` so pins
+   * stay on top — merging geometry into the `cameras` source would change what the cluster counts
+   * mean, and the map verification asserts on those.
+   */
+  coverage?: CoverageFeatureCollection;
   /** Camera id, or null. Drives the halo layer. */
   selected: string | null;
   onSelect: (cameraId: string | null) => void;
@@ -132,6 +147,7 @@ export interface RegistryMapProps {
 
 export function RegistryMap({
   data,
+  coverage,
   selected,
   onSelect,
   onViewportChange,
@@ -141,6 +157,7 @@ export function RegistryMap({
   const map = useRef<MlMap | null>(null);
   const ready = useRef(false);
   const pending = useRef<CameraFeatureCollection>(data);
+  const pendingCoverage = useRef<CoverageFeatureCollection>(coverage ?? EMPTY_COVERAGE);
   const moveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Held in a ref rather than a dependency so the map is built exactly once; a callback identity
   // change must never tear down a WebGL context.
@@ -159,6 +176,18 @@ export function RegistryMap({
     // `setData` returns the source for chaining, and its type says `Promise`-like in v6; nothing
     // here awaits it, so the intent is marked explicitly rather than left floating.
     void source?.setData(collection);
+  }, []);
+
+  const applyCoverage = useCallback((collection: CoverageFeatureCollection) => {
+    pendingCoverage.current = collection;
+    // Same reason as `__saakshiFeatures`: a WebGL canvas is opaque to assertions, so the exact
+    // collection the source holds is published for `verify-coverage-map.mjs`.
+    (window as unknown as { __saakshiCoverage?: CoverageFeatureCollection }).__saakshiCoverage =
+      collection;
+    const instance = map.current;
+    if (instance === null || !ready.current) return;
+    const source: GeoJSONSource | undefined = instance.getSource(COVERAGE_SOURCE);
+    void source?.setData(collection as unknown as FeatureCollection);
   }, []);
 
   // ── Build the map, once ───────────────────────────────────────────────────────────────────────
@@ -252,6 +281,41 @@ export function RegistryMap({
         promoteId: 'id',
       });
 
+      // ── Coverage overlay (D3-06) ──────────────────────────────────────────────────────────
+      // Its own source, and both layers inserted `beforeId: 'clusters'` so camera pins and their
+      // cluster bubbles stay on top of the fills. Merging this geometry into `cameras` would make
+      // the cluster counts count polygons, which is what the map verification asserts against.
+      instance.addSource(COVERAGE_SOURCE, {
+        type: 'geojson',
+        data: pendingCoverage.current as unknown as FeatureCollection,
+      });
+
+      instance.addLayer({
+        id: 'coverage-fill',
+        type: 'fill',
+        source: COVERAGE_SOURCE,
+        paint: {
+          'fill-color':
+            coverageFillExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
+          'fill-opacity':
+            coverageOpacityExpression() as unknown as DataDrivenPropertyValueSpecification<number>,
+        },
+      });
+
+      instance.addLayer({
+        id: 'coverage-outline',
+        type: 'line',
+        source: COVERAGE_SOURCE,
+        paint: {
+          'line-color':
+            coverageOutlineExpression() as unknown as DataDrivenPropertyValueSpecification<string>,
+          // A 60 m cell is sub-pixel at statewide zoom. The outline carries the shape at street
+          // level and thins to nothing above it, rather than smearing the state into a solid blob.
+          'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.3, 12, 1, 16, 1.5],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 8, 0.25, 12, 0.8],
+        },
+      });
+
       instance.addLayer({
         id: 'clusters',
         type: 'circle',
@@ -311,6 +375,7 @@ export function RegistryMap({
 
       ready.current = true;
       applyData(pending.current);
+      applyCoverage(pendingCoverage.current);
 
       const cursor = (value: string) => () => {
         instance.getCanvas().style.cursor = value;
@@ -372,6 +437,10 @@ export function RegistryMap({
   useEffect(() => {
     applyData(data);
   }, [data, applyData]);
+
+  useEffect(() => {
+    applyCoverage(coverage ?? EMPTY_COVERAGE);
+  }, [coverage, applyCoverage]);
 
   useEffect(() => {
     const instance = map.current;

@@ -345,7 +345,8 @@ describe('coverage against a live database', () => {
   }, 120_000);
 
   it('applies the focus veto through the health-check breakdown, not just in memory', async () => {
-    if (!reachable) return;
+    // `seed()` places cameras on real ways, so this needs the road network too.
+    if (!reachable || !hasRoads) return;
     await seed();
     // The shape D1-06's handoff names: `breakdown.trust.signals[]` carrying `{signal, quality}`.
     await db.execute(sql`
@@ -413,7 +414,8 @@ describe('coverage against a live database', () => {
   }, 60_000);
 
   it('produces an overlay whose states come from the band, one feature per placed camera (AC 5)', async () => {
-    if (!reachable) return;
+    // `seed()` places cameras on real ways, so this needs the road network too.
+    if (!reachable || !hasRoads) return;
     await seed();
     await computeCoverage(db);
     const overlay = await coverageOverlay(db);

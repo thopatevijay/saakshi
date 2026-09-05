@@ -717,12 +717,23 @@ export async function analyse(
 /** The three states the overlay renders. `unscored` is not `untrusted` — D1-08's rule. */
 export type CoverageState = 'trusted' | 'untrusted' | 'uncovered';
 
+/**
+ * `ST_AsGeoJSON` output. Narrowed enough for the route's response schema to accept it, with the
+ * index signature matching that schema's `.passthrough()` — PostGIS may add `crs` or a bbox and
+ * neither the route nor MapLibre should care.
+ */
+export interface CoverageGeometry {
+  type: string;
+  coordinates: unknown;
+  [key: string]: unknown;
+}
+
 export interface CoverageOverlay {
   type: 'FeatureCollection';
   features: {
     type: 'Feature';
     id: string;
-    geometry: unknown;
+    geometry: CoverageGeometry;
     properties: { id: string; externalId: string; state: CoverageState; band: string; rangeM: number };
   }[];
 }
@@ -760,7 +771,7 @@ export async function coverageOverlay(
       return {
         type: 'Feature' as const,
         id: row.camera_id,
-        geometry: JSON.parse(row.geom) as unknown,
+        geometry: JSON.parse(row.geom) as CoverageGeometry,
         properties: {
           id: row.camera_id,
           externalId: row.external_id,
