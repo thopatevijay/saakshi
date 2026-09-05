@@ -15,7 +15,9 @@
     "bench:alert-ui": "node scripts/bench-alert-ui.mjs",
     "verify:alerts": "node scripts/verify-alerts.mjs",
     "verify:wall": "node scripts/verify-wall.mjs",
-    "record:wall": "node scripts/record-wall.mjs"
+    "record:wall": "node scripts/record-wall.mjs",
+    "warm:wall": "node scripts/warm-wall.mjs",
+    "measure:latency": "node scripts/measure-latency.mjs"
   },
   "dependencies": {
     "@saakshi/shared": "*",

@@ -26,6 +26,13 @@
  *
  * Defaults match the other verify scripts: web on 3100, API on 4100 — not the dev ports. And
  * `next start` serves the **built** output, so rebuild before running or you verify a stale bundle.
+ *
+ * **Reset the saved layout first**, because AC 7 works:
+ *
+ *   psql "$DATABASE_URL" -c "delete from wall_layouts"
+ *
+ * A previous run leaves this operator on a 4×4 wall — which is the feature, not a bug, and is why
+ * nothing below assumes the wall opens on 3×3.
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -112,11 +119,26 @@ async function main() {
   // ── 1 · The 3x3 grid ────────────────────────────────────────────────────────────────────────
   console.log('\n— 3×3 grid —');
   await navigate(cdp, `${base}/video-wall`);
+  await waitFor(cdp, `${TILES_LAID_OUT} >= 4`, { label: 'the wall to lay out' });
+
+  // The wall is **not** assumed to open on 3×3, because it opens on whatever this operator last
+  // saved — which is the point of AC 7 and would make a fixed expectation here fail as soon as the
+  // feature works. `defaultLayout` covers the never-saved case in `layout.test.ts`. So the grid is
+  // set explicitly and the run starts from a known wall.
+  const opened = await state(cdp);
+  console.log(`  opened on the saved layout: ${String(opened.grid)}`);
+  await cdp.evaluate(
+    `document.querySelector('[data-testid="wall-grid-option"][data-grid="3x3"]').click()`,
+  );
   await waitFor(cdp, `${TILES_LAID_OUT} >= 9`, { label: 'nine tiles with a measured height' });
 
   const laidOut = await state(cdp);
-  check(laidOut.grid === '3x3', `the default wall is 3×3 (${String(laidOut.grid)})`);
+  check(laidOut.grid === '3x3', `the wall is 3×3 (${String(laidOut.grid)})`);
   check(laidOut.tiles.length === 9, `nine tiles rendered (${String(laidOut.tiles.length)})`);
+  check(
+    laidOut.tiles.filter((t) => t.camera !== null).length === 9,
+    `all nine slots carry a camera (${String(laidOut.tiles.filter((t) => t.camera !== null).length)})`,
+  );
 
   // Frames decoding. `readyState >= 2` is HAVE_CURRENT_DATA: a frame exists at the playhead.
   // The gateway is slow enough that this is the number that has to be reported honestly, so the
