@@ -29,6 +29,7 @@ import { registerTraceRoutes } from './routes/trace.js';
 import { HttpOsrmClient } from './services/osrm.js';
 import type { CropPresigner } from './services/trace.js';
 import { registerAlertRoutes } from './routes/alerts.js';
+import { registerStreamRoutes } from './routes/streams.js';
 import { registerAuditRoutes } from './routes/audit.js';
 import type { AlertEngine } from './services/alerts.js';
 
@@ -173,6 +174,14 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'presented as certainty.',
         },
         {
+          name: 'streams',
+          description:
+            'The video wall: a relayed HLS playlist per camera, its segments and AES keys, the ' +
+            'detections that overlay them, and the saved layout. The relay caches immutable VOD ' +
+            'objects and paces upstream concurrency, because each connected client would ' +
+            'otherwise cost the department gateway its own copy of the stream.',
+        },
+        {
           name: 'audit',
           description:
             'The tamper-evident chain: search it, verify it, and package evidence as a bundle ' +
@@ -223,6 +232,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
+    registerStreamRoutes(app, { db, env });
     registerAuditRoutes(app, {
       db,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),

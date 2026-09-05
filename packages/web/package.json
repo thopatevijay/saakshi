@@ -13,10 +13,15 @@
     "a11y": "node scripts/a11y.mjs",
     "responsive": "node scripts/responsive.mjs",
     "bench:alert-ui": "node scripts/bench-alert-ui.mjs",
-    "verify:alerts": "node scripts/verify-alerts.mjs"
+    "verify:alerts": "node scripts/verify-alerts.mjs",
+    "verify:wall": "node scripts/verify-wall.mjs",
+    "record:wall": "node scripts/record-wall.mjs",
+    "warm:wall": "node scripts/warm-wall.mjs",
+    "measure:latency": "node scripts/measure-latency.mjs"
   },
   "dependencies": {
     "@saakshi/shared": "*",
+    "hls.js": "^1.7.2",
     "maplibre-gl": "^5.24.0",
     "next": "^15.5.3",
     "openapi-fetch": "^0.13.8",
