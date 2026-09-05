@@ -25,6 +25,8 @@ import { registerTrustRoutes } from './routes/trust.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerWatchlistRoutes } from './routes/watchlist.js';
 import { registerPlateRoutes } from './routes/plates.js';
+import { registerTraceRoutes } from './routes/trace.js';
+import type { CropPresigner } from './services/trace.js';
 import { registerAlertRoutes } from './routes/alerts.js';
 import type { AlertEngine } from './services/alerts.js';
 
@@ -62,6 +64,11 @@ export interface ServerOptions {
   /** D2-06's alert engine, so a test can drive the same bus the stream serves. Built if omitted. */
   alertEngine?: AlertEngine;
   fetchCatalogue?: (url: string, cookie: string) => Promise<unknown>;
+  /**
+   * Mints short-lived URLs for stored evidence crops (D2-08). Built at the composition root so no
+   * route module reads object-store credentials at import time — `services/crop-url.ts` says why.
+   */
+  cropPresigner?: CropPresigner;
 }
 
 export async function buildServer(options: ServerOptions): Promise<App> {
@@ -148,6 +155,13 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'precision and recall.',
         },
         {
+          name: 'trace',
+          description:
+            "A vehicle's movement history. Sightings are observed; that they are the same " +
+            'vehicle, and the path between them, are inferred — every row carries the link ' +
+            'method and its confidence.',
+        },
+        {
           name: 'alerts',
           description:
             'The alert queue: live SSE stream, lifecycle transitions, rate-limit digests. Every ' +
@@ -186,6 +200,10 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerAuthRoutes(app, { db });
     registerWatchlistRoutes(app, { db });
     registerPlateRoutes(app, { db });
+    registerTraceRoutes(app, {
+      db,
+      ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
+    });
     registerAlertRoutes(app, {
       db,
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),

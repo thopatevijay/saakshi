@@ -3,14 +3,19 @@ import { loadEnv } from './env.js';
 import { buildServer } from './server.js';
 import { createDb, createSql } from './db/client.js';
 import { startCatalogueSchedule } from './jobs/scheduler.js';
+import { presignerFromEnv } from './services/crop-url.js';
 
 const env = loadEnv();
 const sql = createSql(env.DATABASE_URL, env.DATABASE_POOL_MAX);
 const db = createDb(sql);
+// The object store is built here, at the composition root, and injected — no route module reads
+// credentials at import time. With no MinIO configured this yields `null` for every evidence crop
+// URL, which is the honest answer rather than a broken link.
+//
 // A connection of its own for `LISTEN`: a listening connection is blocked for the life of the
 // subscription, so taking one from the query pool would permanently remove it from that pool.
 const listenSql = createSql(env.DATABASE_URL, 1);
-const app = await buildServer({ env, db, listenSql });
+const app = await buildServer({ env, db, listenSql, cropPresigner: presignerFromEnv() });
 
 // Scheduled catalogue re-sync. Off unless CATALOGUE_SYNC_INTERVAL_MIN is set, and never fatal —
 // the on-demand paths (the API endpoint and `npm run sync:catalogue`) are the ones that matter.
