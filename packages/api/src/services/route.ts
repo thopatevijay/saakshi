@@ -89,7 +89,7 @@
  */
 import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
-import type { Db } from '../db/client.js';
+import type { Db, Tx } from '../db/client.js';
 import type { OsrmClient, OsrmRoute } from './osrm.js';
 import type { TraceResult, TraceSighting } from './trace.js';
 
@@ -381,19 +381,38 @@ export class RouteService {
     };
   }
 
+  /**
+   * **One transaction, all of it.** The first version of this wrote the `routes` row and then the
+   * segments; a segment insert that failed left a route row with a valid cache key, zero segments,
+   * and every subsequent request serving it as a *hit*. A cache that can be partially written is a
+   * cache that can serve an empty answer for a route that has five segments, which is worse than
+   * having no cache at all.
+   */
   private async writeCache(
     result: RouteReconstruction,
     trace: TraceResult,
     requestedBy: string | null,
   ): Promise<void> {
-    const first = trace.sightings[0];
-    const last = trace.sightings.at(-1);
-    if (first === undefined || last === undefined) return;
+    await this.db.transaction(async (tx) => {
+      await writeCacheIn(tx, result, trace, requestedBy);
+    });
+  }
+}
 
-    // `vehicle_identities` is written by nothing else yet (identity.ts says so explicitly), and
+async function writeCacheIn(
+  tx: Tx,
+  result: RouteReconstruction,
+  trace: TraceResult,
+  requestedBy: string | null,
+): Promise<void> {
+  const first = trace.sightings[0];
+  const last = trace.sightings.at(-1);
+  if (first === undefined || last === undefined) return;
+
+  // `vehicle_identities` is written by nothing else yet (identity.ts says so explicitly), and
     // `routes.identity_id` is NOT NULL, so the cache write is what registers the identity. Upsert
     // rather than insert: a second trace of the same plate must not fail on the unique index.
-    const identityRows = await this.db.execute<{ id: string }>(sql`
+    const identityRows = await tx.execute<{ id: string }>(sql`
       insert into vehicle_identities (canonical_plate, first_seen, last_seen, sighting_count)
       values (${result.canonicalPlate}, ${first.ts}, ${last.ts}, ${trace.sightings.length})
       on conflict (canonical_plate) do update
@@ -406,8 +425,8 @@ export class RouteService {
     if (identityId === undefined) return;
 
     // One row per question: replace rather than accumulate, or the table grows per request.
-    await this.db.execute(sql`delete from routes where cache_key = ${result.cache.key}`);
-    const routeRows = await this.db.execute<{ id: string }>(sql`
+    await tx.execute(sql`delete from routes where cache_key = ${result.cache.key}`);
+    const routeRows = await tx.execute<{ id: string }>(sql`
       insert into routes (identity_id, requested_by, params, cache_key, sightings_fingerprint,
                           sighting_count, built_at, build_ms, summary)
       values (${identityId}::uuid, ${requestedBy}::uuid, ${JSON.stringify(routeParams(trace))}::jsonb,
@@ -424,7 +443,7 @@ export class RouteService {
         segment.geometry === null
           ? sql`null`
           : sql`st_setsrid(st_geomfromgeojson(${JSON.stringify(segment.geometry)}), 4326)::geography`;
-      await this.db.execute(sql`
+      await tx.execute(sql`
         insert into route_segments
           (route_id, seq, from_sighting_id, from_sighting_ts, to_sighting_id, to_sighting_ts,
            observed, path, travel_time_s, inferred_confidence, from_camera_id, to_camera_id, kind,
@@ -442,8 +461,7 @@ export class RouteService {
                 ${segment.pathOptions},
                 ${segment.confidenceBasis === null ? null : JSON.stringify(segment.confidenceBasis)}::jsonb,
                 ${segment.note})
-      `);
-    }
+    `);
   }
 }
 
