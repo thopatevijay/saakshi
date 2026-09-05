@@ -145,6 +145,13 @@ def to_plate_record(evidence: object) -> dict:
     assert isinstance(evidence, PlateEvidence)
     crop_jpeg = encode_jpeg(evidence.crop)
     return {
+        # Always `None` on a plate crop, and present rather than omitted so the two builders keep
+        # one wire shape (`test_units.py` asserts the key sets are identical — drift here silently
+        # drops every plate crop as an invalid payload). A re-ID descriptor describes the *vehicle*;
+        # embedding a strip of registration plate and comparing it to a vehicle would be nonsense,
+        # and D2-08 found that some of these "plate" crops are shop signage anyway.
+        "appearanceEmbedderId": None,
+        "appearance": None,
         "cameraId": evidence.camera_external_id,
         "trackId": evidence.track_id,
         "ts": evidence.ts,

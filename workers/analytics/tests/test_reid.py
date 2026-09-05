@@ -292,6 +292,33 @@ def test_reid_thresholds_are_overridable_without_touching_the_defaults() -> None
     )
 
 
+# ── the wire path ───────────────────────────────────────────────────────────────────────────────
+
+
+def test_reid_descriptor_rides_the_evidence_record() -> None:
+    """The worker holds the decoded best-shot crop; the API holds the object-store credentials. The
+    descriptor is computed here, on the stream's way out, so nothing has to fetch the JPEG back."""
+    from ..evidence import appearance_of  # noqa: PLC0415 — keeps this module import-light
+
+    ok, jpeg = cv2.imencode(".jpg", car((90, 90, 200), seed=13))
+    assert ok
+    result = appearance_of(jpeg.tobytes())
+    assert result is not None
+    embedder_id, vector = result
+    assert embedder_id == ColourConstantEmbedder.embedder_id
+    assert len(vector) == EMBEDDING_DIM
+    assert math.isclose(sum(v * v for v in vector), 1.0, rel_tol=1e-3)
+
+
+def test_reid_descriptor_failure_never_breaks_the_evidence_path() -> None:
+    """A crop that cannot be decoded costs the descriptor and nothing else. The crop, the colour
+    read and the `is_best_shot` flag are evidence in their own right; a feature that ships disabled
+    by default does not get to break the path that ships enabled."""
+    from ..evidence import appearance_of  # noqa: PLC0415
+
+    assert appearance_of(b"not a jpeg") is None
+
+
 # ── the labelled set ────────────────────────────────────────────────────────────────────────────
 
 
