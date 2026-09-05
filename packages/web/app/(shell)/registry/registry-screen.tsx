@@ -168,22 +168,24 @@ export function RegistryScreen({
     };
   }, [selected, notify]);
 
+  // The "already asked" flag is a **ref, not state**, and that is load-bearing. The first draft
+  // guarded on a `coverageLoading` state value that the effect itself set: setting it re-ran the
+  // effect, whose cleanup flipped `live` to false, so the in-flight response was discarded — and
+  // the re-run then bailed on the very flag that had just been set. The overlay never loaded and
+  // the map reported zero cells against an API that was returning fifty.
+  const coverageRequested = useRef(false);
   useEffect(() => {
-    if (!coverageOn || coverage.features.length > 0 || coverageLoading) return;
-    let live = true;
+    if (!coverageOn || coverageRequested.current) return;
+    coverageRequested.current = true;
     setCoverageLoading(true);
     void loadCoverage().then((result) => {
-      if (!live) return;
       setCoverage(result);
       setCoverageLoading(false);
       if (result.features.length === 0) {
         notify('No coverage cells yet — run `npm run report:gap-analysis`.', 'error');
       }
     });
-    return () => {
-      live = false;
-    };
-  }, [coverageOn, coverage.features.length, coverageLoading, notify]);
+  }, [coverageOn, notify]);
 
   // ── Derived ───────────────────────────────────────────────────────────────────────────────────
   const mappable = cameras as unknown as MappableCamera[];
