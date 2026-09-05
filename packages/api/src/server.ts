@@ -28,6 +28,7 @@ import { registerPlateRoutes } from './routes/plates.js';
 import { registerTraceRoutes } from './routes/trace.js';
 import type { CropPresigner } from './services/trace.js';
 import { registerAlertRoutes } from './routes/alerts.js';
+import { registerStreamRoutes } from './routes/streams.js';
 import type { AlertEngine } from './services/alerts.js';
 
 /**
@@ -168,6 +169,14 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'alert carries a why-payload and a mock-provider disclaimer — a fuzzy match is never ' +
             'presented as certainty.',
         },
+        {
+          name: 'streams',
+          description:
+            'The video wall: a relayed HLS playlist per camera, its segments and AES keys, the ' +
+            'detections that overlay them, and the saved layout. The relay caches immutable VOD ' +
+            'objects and paces upstream concurrency, because each connected client would ' +
+            'otherwise cost the department gateway its own copy of the stream.',
+        },
         { name: 'health', description: 'Liveness' },
         { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
@@ -210,6 +219,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
+    registerStreamRoutes(app, { db, env });
   }
 
   return app;

@@ -553,6 +553,22 @@ export const onboardingResponses = pgTable(
   (t) => [index('onboarding_responses_department_idx').on(t.departmentId)],
 );
 
+// ── Console state ───────────────────────────────────────────────────────────────────────────────
+
+/**
+ * One video-wall layout per user (D3-07, migration 0019).
+ *
+ * Keyed on the **user**, not the browser. A shared control-room workstation would otherwise hand
+ * the previous shift's working set of cameras to whoever signs in next.
+ */
+export const wallLayouts = pgTable('wall_layouts', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  layout: jsonb('layout').notNull(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
 // ── Relations ───────────────────────────────────────────────────────────────────────────────────
 
 export const departmentsRelations = relations(departments, ({ many }) => ({

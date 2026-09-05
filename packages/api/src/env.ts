@@ -33,9 +33,27 @@ const EnvSchema = z.object({
   SENTINEL_HOST: z.string().optional(),
   SENTINEL_INGEST_URL: z.string().optional(),
   SENTINEL_PORTAL_COOKIE: z.string().optional(),
+  // Overrides the stream URL shape entirely, for an estate whose URLs look nothing like the
+  // sandbox's. `{external_id}` is substituted. Already read by the Python workers; the video wall's
+  // relay resolves through the same rule, so both sides move together.
+  SENTINEL_STREAM_TEMPLATE: z.string().optional(),
   // Scheduled catalogue re-sync, in minutes. 0 disables it, which is the default: a background job
   // that reaches an external host on a timer is something a deploy opts into.
   CATALOGUE_SYNC_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(0),
+
+  // ── Video wall (D3-07) ────────────────────────────────────────────────────────────────────────
+  // Our own MediaMTX edge gateway. WHEP is served from it, never from the government sandbox —
+  // the sandbox is HLS-only (D1-03), and the `whep` adapter's honest status is `demonstrated`.
+  MEDIAMTX_WHEP_BASE: z.string().default('http://localhost:8889'),
+  MEDIAMTX_HLS_BASE: z.string().default('http://localhost:8888'),
+  // The synthetic 640x360 / 25 fps source with a burnt-in timer that `ops/mediamtx/mediamtx.yml`
+  // publishes on startup. It is how WHEP-vs-HLS latency is *measured* rather than asserted.
+  MEDIAMTX_SELFTEST_PATH: z.string().default('saakshi-test'),
+  // Relay ceilings. The gateway throttles under sustained load and each client gets its own copy of
+  // the stream, so these are the knobs that keep nine tiles from becoming nine times the load.
+  STREAM_RELAY_CACHE_MB: z.coerce.number().int().min(1).max(8192).default(256),
+  STREAM_RELAY_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
+  STREAM_RELAY_READ_AHEAD: z.coerce.number().int().min(0).max(16).default(3),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
