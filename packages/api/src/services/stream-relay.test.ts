@@ -326,6 +326,27 @@ describe('StreamRelay', () => {
     expect(relay.stats()).toMatchObject({ misses: 1, hits: 2 });
   });
 
+  it('gives up on a gateway that stops answering, and frees the slot it was holding', async () => {
+    // Live failure this guards: four in-flight fetches stopped completing, six queued behind them,
+    // and the relay wedged with no deadline to break it. A hung upstream must not be able to take
+    // the whole console down with it.
+    const fetchImpl = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => {
+            reject(new DOMException('timed out', 'TimeoutError'));
+          });
+        }),
+    ) as unknown as typeof fetch;
+
+    const relay = relayWith(fetchImpl, { concurrency: 1, upstreamTimeoutMs: 30 });
+    await expect(relay.playlist(camera())).rejects.toThrow();
+    // The slot came back: a second request proceeds rather than queueing behind a corpse.
+    await expect(relay.playlist(camera())).rejects.toThrow();
+    expect(relay.stats().inFlight).toBe(0);
+    expect(relay.stats().queued).toBe(0);
+  });
+
   it('re-serves a cached playlist without re-rewriting it', async () => {
     const fetchImpl = vi.fn(() => Promise.resolve(ok(SANDBOX_PLAYLIST))) as unknown as typeof fetch;
     const relay = relayWith(fetchImpl);

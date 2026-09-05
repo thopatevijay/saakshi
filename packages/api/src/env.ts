@@ -54,6 +54,9 @@ const EnvSchema = z.object({
   STREAM_RELAY_CACHE_MB: z.coerce.number().int().min(1).max(8192).default(256),
   STREAM_RELAY_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
   STREAM_RELAY_READ_AHEAD: z.coerce.number().int().min(0).max(16).default(3),
+  // Wall-clock ceiling on one upstream request. Without one, a gateway that stops answering holds
+  // a concurrency slot forever and the relay wedges — observed live on 2026-09-05.
+  STREAM_RELAY_TIMEOUT_S: z.coerce.number().int().min(5).max(900).default(180),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

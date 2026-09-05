@@ -76,6 +76,8 @@ export interface RelayConfig {
   readonly cacheBytes?: number;
   /** Segments fetched ahead of the one just served. 0 disables read-ahead. */
   readonly readAhead?: number;
+  /** Wall-clock ceiling on one upstream request. See `fetchUpstream`. */
+  readonly upstreamTimeoutMs?: number;
   /** Injected by tests. */
   readonly fetchImpl?: typeof fetch;
   readonly now?: () => number;
@@ -275,6 +277,7 @@ export class StreamRelay {
   private readonly concurrency: number;
   private readonly cacheBytes: number;
   private readonly readAhead: number;
+  private readonly upstreamTimeoutMs: number;
 
   constructor(private readonly config: RelayConfig) {
     this.fetchImpl = config.fetchImpl ?? fetch;
@@ -282,6 +285,7 @@ export class StreamRelay {
     this.concurrency = config.concurrency ?? 4;
     this.cacheBytes = config.cacheBytes ?? 256 * 1024 * 1024;
     this.readAhead = config.readAhead ?? 2;
+    this.upstreamTimeoutMs = config.upstreamTimeoutMs ?? 180_000;
   }
 
   resolve(camera: RelayCamera): string {
@@ -457,10 +461,16 @@ export class StreamRelay {
         headers['cookie'] = this.config.cookie;
       }
 
+      // **A request with no deadline can hold a semaphore slot forever.** Observed live: the
+      // gateway degraded under sustained reading until four in-flight fetches stopped completing at
+      // all, six more queued behind them, and the relay wedged — the same failure D1-03 named as
+      // `TimeoutError`, one layer up. A slow gateway and a hung one demand different responses, and
+      // only a deadline can tell them apart.
+      const deadline = AbortSignal.timeout(this.upstreamTimeoutMs);
       const response = await this.fetchImpl(target.toString(), {
         headers,
         redirect: 'follow',
-        ...(signal === undefined ? {} : { signal }),
+        signal: signal === undefined ? deadline : AbortSignal.any([signal, deadline]),
       });
 
       if (!response.ok) {

@@ -54,15 +54,21 @@ export interface TrustPresentation {
   readonly playable: boolean;
 }
 
+/**
+ * The six signal names in `config/trust-weights.json`, in the words an officer uses.
+ *
+ * An operator deciding whether to trust a clip does not need to know that `focus` is a Laplacian
+ * variance; they need to know the picture is too soft to read a plate from. The keys are the
+ * scorer's — if a weight file adds a seventh signal, the fallback names it rather than inventing a
+ * sentence about a signal this file has never heard of.
+ */
 const humanSignal: Record<string, string> = {
-  blur: 'the image is too soft to read a plate from',
-  night_usable: 'the night image is unusable',
-  tamper: 'the frame looks obstructed or moved',
-  fps: 'it delivers fewer frames than it claims',
-  pts_drift: 'its timestamps drift',
-  resolution: 'it delivers less resolution than declared',
-  reachable: 'the probe could not reach it',
-  decodable: 'the bytes it returned were not decodable video',
+  reachability: 'the probe could reach it but could not decode video from it',
+  focus: 'the image is too soft to read a plate from',
+  light: 'the image is too dark to be usable — typically a night failure',
+  tamper: 'the frame looks obstructed, moved or covered',
+  frameRate: 'it delivers fewer frames than it claims to',
+  clock: 'its presentation timestamps drift against wall clock',
 };
 
 function whenChecked(checkedAt: string | null): string {

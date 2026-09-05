@@ -42,7 +42,7 @@ describe('presentTrust', () => {
       facts({
         band: 'untrusted',
         score: 35,
-        failingSignals: [{ signal: 'blur', note: 'blur 6.8', points: 0, maxPoints: 25 }],
+        failingSignals: [{ signal: 'focus', note: 'blur 6.8', points: 0, maxPoints: 30 }],
       }),
     );
     expect(shown.playable).toBe(true);
@@ -60,7 +60,7 @@ describe('presentTrust', () => {
     );
     expect(shown.playable).toBe(true);
     expect(shown.headline).toContain('out of tolerance');
-    expect(shown.detail).toContain('obstructed or moved');
+    expect(shown.detail).toContain('obstructed, moved or covered');
   });
 
   it('renders never-probed as an absence of evidence, never as a low score', () => {

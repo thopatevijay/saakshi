@@ -166,6 +166,7 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
       concurrency: env.STREAM_RELAY_CONCURRENCY,
       cacheBytes: env.STREAM_RELAY_CACHE_MB * 1024 * 1024,
       readAhead: env.STREAM_RELAY_READ_AHEAD,
+      upstreamTimeoutMs: env.STREAM_RELAY_TIMEOUT_S * 1000,
     });
 
   const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
