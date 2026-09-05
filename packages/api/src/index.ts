@@ -7,7 +7,10 @@ import { startCatalogueSchedule } from './jobs/scheduler.js';
 const env = loadEnv();
 const sql = createSql(env.DATABASE_URL, env.DATABASE_POOL_MAX);
 const db = createDb(sql);
-const app = await buildServer({ env, db });
+// A connection of its own for `LISTEN`: a listening connection is blocked for the life of the
+// subscription, so taking one from the query pool would permanently remove it from that pool.
+const listenSql = createSql(env.DATABASE_URL, 1);
+const app = await buildServer({ env, db, listenSql });
 
 // Scheduled catalogue re-sync. Off unless CATALOGUE_SYNC_INTERVAL_MIN is set, and never fatal —
 // the on-demand paths (the API endpoint and `npm run sync:catalogue`) are the ones that matter.
@@ -28,6 +31,7 @@ try {
   await app.listen({ port: env.API_PORT, host: '0.0.0.0' });
 } catch (err) {
   app.log.error(err);
+  await listenSql.end();
   await sql.end();
   process.exit(1);
 }
