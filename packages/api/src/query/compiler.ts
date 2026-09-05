@@ -260,8 +260,14 @@ export function systemPrompt(input: CompileInput): string {
     '  cameras / where was it seen".',
     '- limit is 100 unless the officer asked for a specific number of results. It may not exceed 500.',
     '- A coordinate pair is a radius, not a place name: put it in place.radius and leave nearName null.',
-    '- If the question cannot be expressed with these fields, return the filter with every constraint',
-    '  empty rather than inventing constraints that were not asked for.',
+    '- **Express every part of the question you can.** A question that mixes something expressible',
+    '  with something that is not still gets the expressible part. "White cars at cam01 driven by a',
+    '  man" is colours ["white"], classes ["car"], cameraExternalIds ["cam01"] — the driver is simply',
+    '  not represented. Dropping the whole filter because one clause does not fit would hide the',
+    '  sightings the officer asked for and give them no way to tell.',
+    '- Return the filter with EVERY constraint empty only when the question asks for nothing this',
+    '  vocabulary can express at all. That is rare. A question naming a colour, a vehicle type, a',
+    '  camera, a district, a landmark, a time or a registration always has something to express.',
   ];
   if (vocabulary !== undefined) {
     lines.push(

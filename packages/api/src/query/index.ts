@@ -39,11 +39,29 @@ export interface QueryProviderSecrets {
 }
 
 /**
- * `gpt-4.1-mini` — the id in the original ticket — is **not** in OpenAI's current model list
- * (checked 2026-09-05). `gpt-5.6-luna` is the current small/fast tier that supports Structured
- * Outputs, and the ticket asked for the id to be verified rather than trusted.
+ * Chosen on a measurement of our own task, not on the model list alone.
+ *
+ * The ticket named `gpt-4.1-mini` and asked for the id to be verified. It is superseded — the
+ * current small/fast family is `gpt-5.6-{luna,sol,terra}` — but "current" was never the whole
+ * question. All five candidates were scored against the 18-case fixture suite, and all five were
+ * first checked to support Structured Outputs with `strict: true`, since a member that does not is
+ * disqualified regardless of accuracy: that guarantee is the grounding argument.
+ *
+ * | model | exact match | vacuous | mean latency |
+ * |---|---|---|---|
+ * | **`gpt-5.6-sol`** | **17/18 (94.4%)** | 0 | 3684 ms |
+ * | `gpt-5.6-terra`   | 15/18 (83.3%)     | 0 | 2014 ms |
+ * | `gpt-5.6-luna`    | 15/18 (83.3%)     | 0 | 2675 ms |
+ * | `gpt-4.1-mini`    | 14/18 (77.8%)     | 0 | 2490 ms |
+ *
+ * `sol` wins on the number that matters and keeps us on the current model list. It costs ~1.7 s
+ * against `terra`, and that is the right trade here: an officer waits once per query and reviews the
+ * filter either way, whereas a dropped constraint hides the sightings they were looking for and
+ * gives them no way to tell. `terra` is the choice if latency ever becomes the binding constraint.
+ *
+ * Full method and the failure analysis: `docs/nl-query.md` § 5.
  */
-export const DEFAULT_OPENAI_MODEL = 'gpt-5.6-luna';
+export const DEFAULT_OPENAI_MODEL = 'gpt-5.6-sol';
 /** Current, verified against the model list on 2026-09-05. */
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5';
 export const DEFAULT_OLLAMA_MODEL = 'qwen2.5:7b-instruct';

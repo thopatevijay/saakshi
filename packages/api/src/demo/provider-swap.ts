@@ -26,7 +26,7 @@
  *   npm run demo:provider-swap -- --record          # write fixtures/nl-query-transcripts.json
  */
 import { writeFileSync } from 'node:fs';
-import { canonicalJson, describeQueryDsl, type QueryDSL } from '@saakshi/shared';
+import { canonicalJson, describeQueryDsl, isUnconstrained, type QueryDSL } from '@saakshi/shared';
 import {
   createQueryCompiler,
   providerSecretsFromEnv,
@@ -48,6 +48,8 @@ interface Leg {
   outcome: CompileOutcome | null;
   /** Set when the provider could not be attempted at all. */
   unavailable: string | null;
+  /** Schema-valid, but every constraint dropped from a question that had some. */
+  vacuous: boolean;
 }
 
 async function main(): Promise<number> {
@@ -67,8 +69,40 @@ async function main(): Promise<number> {
           .trim() || DEFAULT_QUESTION
       : DEFAULT_QUESTION;
 
+  /** A single value after a flag, or `null`. Used for `--provider` and `--model`. */
+  const flagValue = (name: string): string | null => {
+    const at = argv.indexOf(name);
+    if (at < 0) return null;
+    const value = argv[at + 1];
+    return value === undefined || value.startsWith('--') ? null : value;
+  };
+
+  /**
+   * `--provider` and `--model` exist for one specific question: **which model should
+   * `DEFAULT_OPENAI_MODEL` be pinned to?**
+   *
+   * That is an empirical question about our own task, and answering it by editing `.env` would be
+   * both slow and off-limits. These two flags let the 18-case eval run against any model id without
+   * touching configuration, which is how the choice recorded in `docs/nl-query.md` § 5 was made.
+   */
+  const onlyProvider = flagValue('--provider') as QueryProvider | null;
+  const modelOverride = flagValue('--model');
+
   const corpus = loadNlQueryFixtures();
-  const secrets = providerSecretsFromEnv();
+  const baseSecrets = providerSecretsFromEnv();
+  const secrets =
+    modelOverride === null
+      ? baseSecrets
+      : {
+          ...baseSecrets,
+          ...(onlyProvider === 'anthropic'
+            ? { anthropicModel: modelOverride }
+            : onlyProvider === 'ollama'
+              ? { ollamaModel: modelOverride }
+              : { openaiModel: modelOverride }),
+        };
+  const providers =
+    onlyProvider === null ? LIVE_PROVIDERS : LIVE_PROVIDERS.filter((p) => p === onlyProvider);
 
   console.log('');
   console.log('  SAAKSHI · natural-language query — live provider swap (D3-09)');
@@ -82,22 +116,27 @@ async function main(): Promise<number> {
     : [{ id: 'stage', question, tests: 'the representative question', expected: null as never }];
 
   const transcripts: Record<string, Record<string, string>> = {};
-  const perProvider = new Map<QueryProvider, { ran: number; matched: number; totalMs: number }>();
+  const perProvider = new Map<
+    QueryProvider,
+    { ran: number; matched: number; vacuous: number; totalMs: number }
+  >();
   // Three different outcomes that a lesser script would collapse into one. "Nobody had a
   // credential", "a model ran and produced nothing valid" and "models disagree" have three
   // different remedies and three different meanings for the claim being demonstrated.
   let anyAttempted = false;
   let anyCompiled = false;
+  /** A compile that actually carried the question's constraints. Vacuous ones do not count. */
+  let anyUsefulCompile = false;
   let anyDisagreement = false;
 
   for (const testCase of cases) {
     console.log(`  ▸ "${testCase.question}"`);
     const legs: Leg[] = [];
 
-    for (const provider of LIVE_PROVIDERS) {
+    for (const provider of providers) {
       const reason = unavailableReason(provider, secrets);
       if (reason !== null) {
-        legs.push({ provider, model: null, outcome: null, unavailable: reason });
+        legs.push({ provider, model: null, outcome: null, unavailable: reason, vacuous: false });
         continue;
       }
       anyAttempted = true;
@@ -107,9 +146,11 @@ async function main(): Promise<number> {
         vocabulary: corpus.vocabulary,
         now: new Date(corpus.now),
       });
-      legs.push({ provider, model: compiler.model, outcome, unavailable: null });
+      const vacuous =
+        outcome.ok && isUnconstrained(outcome.dsl) && questionHasConstraints(testCase);
+      legs.push({ provider, model: compiler.model, outcome, unavailable: null, vacuous });
 
-      const stats = perProvider.get(provider) ?? { ran: 0, matched: 0, totalMs: 0 };
+      const stats = perProvider.get(provider) ?? { ran: 0, matched: 0, vacuous: 0, totalMs: 0 };
       stats.ran += 1;
       stats.totalMs += outcome.tookMs;
       if (
@@ -119,19 +160,45 @@ async function main(): Promise<number> {
       ) {
         stats.matched += 1;
       }
+      // **A vacuous compile is a failure, not a success**, and this is the one place the feature
+      // could genuinely mislead. A model that satisfies a `strict: true` schema by emitting almost
+      // no filters produces a *schema-valid* answer to a heavily-constrained question — and the
+      // officer sees a filter reading "return up to 100 sightings" that looks like it worked.
+      // `strict: true` cannot catch this: the output is valid. Only comparing the filter against
+      // the question can, so the demo does, and it never prints ✓ for one.
+      if (vacuous) stats.vacuous += 1;
       perProvider.set(provider, stats);
       if (outcome.ok) {
         anyCompiled = true;
+        if (!vacuous) anyUsefulCompile = true;
         transcripts[testCase.id] = { ...transcripts[testCase.id], [provider]: outcome.raw };
       }
     }
 
     for (const leg of legs) console.log(`      ${renderLeg(leg)}`);
 
+    const ran = legs.filter((l) => l.outcome !== null);
     const succeeded = legs.filter(
       (l): l is Leg & { outcome: Extract<CompileOutcome, { ok: true }> } =>
         l.outcome !== null && l.outcome.ok,
     );
+    // **Portability and agreement are two different claims, and only one of them is the ticket's.**
+    //
+    // Portability is the vendor-neutrality argument: every provider accepted the identical derived
+    // schema, through identical code, and returned a schema-valid filter. That is what "swap the
+    // provider with one config value" means, and it either holds or it does not.
+    //
+    // Agreement is a comparison of *model capability*. A frontier model and a 7B running on a
+    // laptop will differ on a hard question's time window, and that difference says nothing about
+    // lock-in. Reporting them as one number would let a capability gap read as a portability
+    // failure — or, worse, let a loosened comparison be passed off as vendor-neutrality.
+    if (ran.length > 0) {
+      console.log(
+        `      portability: ${String(succeeded.length)}/${String(ran.length)} provider(s) that ran ` +
+          `accepted the identical derived schema and returned a schema-valid filter.`,
+      );
+    }
+
     if (succeeded.length >= 2) {
       const reference = canonicalJson(normalise(succeeded[0]!.outcome.dsl));
       const differing = succeeded.filter(
@@ -143,7 +210,9 @@ async function main(): Promise<number> {
         );
       } else {
         anyDisagreement = true;
-        console.log(`      ✗ providers disagree. The differences, field by field:`);
+        console.log(
+          `      ✗ providers agree on shape but differ in content. The differences, field by field:`,
+        );
         for (const leg of differing) {
           for (const line of diff(succeeded[0]!.outcome.dsl, leg.outcome.dsl)) {
             console.log(`          ${leg.provider}: ${line}`);
@@ -170,8 +239,8 @@ async function main(): Promise<number> {
   if (all) {
     console.log('  Per-provider result over the fixture suite');
     console.log('  ' + '─'.repeat(76));
-    console.log('  provider    ran   exact match   mean latency');
-    for (const provider of LIVE_PROVIDERS) {
+    console.log('  provider    ran   exact match   vacuous   mean latency');
+    for (const provider of providers) {
       const stats = perProvider.get(provider);
       if (stats === undefined || stats.ran === 0) {
         console.log(`  ${provider.padEnd(11)} —     —             — (unavailable)`);
@@ -180,7 +249,7 @@ async function main(): Promise<number> {
       const rate = ((stats.matched / stats.ran) * 100).toFixed(1);
       const mean = Math.round(stats.totalMs / stats.ran);
       console.log(
-        `  ${provider.padEnd(11)} ${String(stats.ran).padEnd(5)} ${`${stats.matched}/${String(stats.ran)} (${rate}%)`.padEnd(13)} ${String(mean)} ms`,
+        `  ${provider.padEnd(11)} ${String(stats.ran).padEnd(5)} ${`${stats.matched}/${String(stats.ran)} (${rate}%)`.padEnd(13)} ${`${stats.vacuous}`.padEnd(9)} ${String(mean)} ms`,
       );
     }
     console.log('');
@@ -213,6 +282,25 @@ async function main(): Promise<number> {
     );
     console.log(`  Recorded ${String(Object.keys(transcripts).length)} transcripts → ${path}`);
     console.log('');
+  }
+
+  if (anyCompiled && !anyUsefulCompile) {
+    console.log('  Every provider that ran returned a filter that constrains nothing.');
+    console.log('');
+    console.log('  This is a FAILURE, not a pass, and it is the most dangerous shape this feature');
+    console.log(
+      '  has: the output is schema-valid, so `strict: true` cannot catch it, and what the',
+    );
+    console.log(
+      '  officer sees is a filter reading "return up to 100 sightings" for a question that',
+    );
+    console.log(
+      '  named a colour, a camera, a time window and a second location. It looks like it',
+    );
+    console.log('  worked. Check the model id before anything else — docs/nl-query.md § 5 records');
+    console.log('  which models do and do not perform this task.');
+    console.log('');
+    return 1;
   }
 
   if (anyAttempted && !anyCompiled) {
@@ -256,6 +344,23 @@ async function main(): Promise<number> {
  * unavailable provider and a wrong provider in the same bucket — which is the distinction the whole
  * demo turns on.
  */
+/**
+ * Did the *question* ask for any constraint at all?
+ *
+ * Two fixtures legitimately compile to an empty filter — "Show me everything", and the question this
+ * system deliberately cannot answer (who was driving, what were they wearing: no face recognition,
+ * no biometrics). For those an unconstrained filter is the correct answer and must not be flagged.
+ *
+ * For a fixture with an expected filter, the expectation settles it. For an ad-hoc `--question`
+ * there is no expectation, so fall back to length: a question of more than a handful of words that
+ * compiles to nothing is worth flagging even if we cannot prove it wrong.
+ */
+function questionHasConstraints(testCase: NlQueryFixture): boolean {
+  const expected: QueryDSL | null = testCase.expected ?? null;
+  if (expected !== null) return !isUnconstrained(expected);
+  return testCase.question.trim().split(/\s+/).length > 4;
+}
+
 function unavailableReason(
   provider: QueryProvider,
   secrets: ReturnType<typeof providerSecretsFromEnv>,
@@ -337,7 +442,11 @@ function renderLeg(leg: Leg): string {
     return `${name} ${String(leg.outcome.tookMs).padStart(6)} ms  ✗ ${leg.outcome.reason} — ${detail}`;
   }
   const summary = describeQueryDsl(leg.outcome.dsl).slice(0, 3).join(' · ');
-  return `${name} ${String(leg.outcome.tookMs).padStart(6)} ms  ✓ ${leg.model ?? ''} — ${summary}`;
+  // `⚠ vacuous` rather than `✓`. See the note at the counting site: a schema-valid filter that
+  // constrains nothing is the one output this feature could show an officer that looks like success
+  // and is not, so it never gets a tick.
+  const mark = leg.vacuous ? '⚠ vacuous —' : '✓';
+  return `${name} ${String(leg.outcome.tookMs).padStart(6)} ms  ${mark} ${leg.model ?? ''} — ${summary}`;
 }
 
 main()

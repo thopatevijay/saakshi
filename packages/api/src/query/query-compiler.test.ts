@@ -21,6 +21,7 @@ import {
   OllamaCompiler,
   OpenAiCompiler,
   QUERY_PROVIDERS,
+  DEFAULT_OPENAI_MODEL,
   createQueryCompiler,
   finalise,
   type CompileOutcome,
@@ -92,9 +93,11 @@ describe('the compiler is swappable by config across all four implementations', 
 
   it('names the current, verified model ids', () => {
     // The ticket said "gpt-4.1-mini class — verify the model id against the current model list".
-    // It does not survive that check; gpt-5.6-luna is the current small/fast tier with Structured
-    // Outputs. claude-sonnet-5 does survive it.
-    expect(createQueryCompiler('openai', { secrets: SECRETS }).model).toBe('gpt-5.6-luna');
+    // It does not survive that check. But "current" was never the whole question: all four
+    // candidates were scored on the 18-case suite and `gpt-5.6-sol` won on our own task
+    // (17/18 vs 15/18 for its siblings, 14/18 for the superseded id). docs/nl-query.md § 5.
+    expect(DEFAULT_OPENAI_MODEL).toBe('gpt-5.6-sol');
+    expect(createQueryCompiler('openai').model).toBe(DEFAULT_OPENAI_MODEL);
     expect(createQueryCompiler('anthropic', { secrets: SECRETS }).model).toBe('claude-sonnet-5');
   });
 

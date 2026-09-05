@@ -158,6 +158,25 @@ A deployment configured for `openai` with no key gets an OpenAI compiler that fa
 would make the audit record wrong about which model wrote a filter — and "which model produced this"
 is precisely the question a vendor-neutrality argument has to be able to answer.
 
+### Portability and agreement are two different claims
+
+`npm run demo:provider-swap` reports them separately, and the distinction is the whole reason the
+demo is worth putting on a screen.
+
+**Portability** is the vendor-neutrality argument: every provider that ran accepted the *identical*
+derived schema, through identical code, and returned a schema-valid filter. That is what "swap the
+provider with one config value" means, and it either holds or it does not. Measured live,
+2026-09-05: **2/2** (`gpt-5.6-sol` and local `qwen2.5:7b-instruct`).
+
+**Agreement** is a comparison of *model capability*. A frontier model and a 7B on a laptop differ on
+a hard question's time window; that says nothing about lock-in. The demo prints the difference field
+by field rather than collapsing it into a verdict — for the stage question the local model put
+`Adalaj` in the first leg instead of the sequence, and chose the previous day's window.
+
+Collapsing these into one number would let a capability gap read as a portability failure — or,
+worse, let a loosened comparison be passed off as vendor-neutrality. **The demo therefore still exits
+non-zero on disagreement**; the bar was not lowered to make it green.
+
 ### Nothing proprietary is load-bearing
 
 This is the claim that matters for the challenge's open-source requirement, and it is exact:
@@ -174,58 +193,107 @@ on every run rather than only during an incident.
 
 ---
 
-## 5 · Measured accuracy — including where it fails
+## 5 · Choosing the model, and measured accuracy
 
-`npm run demo:provider-swap -- --all`, 18 fixtures, 2026-09-05.
+### How `OPENAI_MODEL` was chosen
 
-| provider | ran | exact match | mean latency |
-|---|---|---|---|
-| `openai` | — | — | **not measured — no API key on this machine** |
-| `anthropic` | — | — | **not measured — no API key on this machine** |
-| `ollama` (`qwen2.5:7b-instruct`, local CPU) | 18 | **8 / 18 (44.4%)** | 8,268 ms |
+The ticket named `gpt-4.1-mini` and asked for the id to be **verified against the current model
+list** rather than trusted. It does not survive that check — the current small/fast family is
+`gpt-5.6-{luna,sol,terra}`.
+
+But "current" was never the whole question, and treating it as such nearly shipped a serious defect.
+The first pin was `gpt-5.6-luna`, and on the hardest question it returned a filter that constrained
+**nothing** — schema-valid, so `strict: true` could not catch it, and what the officer would have
+seen is "return up to 100 sightings" for a question naming a colour, a class, a camera, a time window
+and a second location. **That is the most dangerous output this feature can produce, because it
+looks like it worked.**
+
+So the choice was made on a measurement of our own task. Every candidate was first checked to support
+Structured Outputs with `strict: true` — a member that does not is disqualified regardless of
+accuracy, because that guarantee is the grounding argument — and then scored over the 18 fixtures:
+
+| model | exact match | vacuous | mean latency | on the current list? |
+|---|---|---|---|---|
+| **`gpt-5.6-sol`** ← pinned | **17/18 (94.4%)** | 0 | 3,684 ms | yes |
+| `gpt-5.6-terra` | 15/18 (83.3%) | 0 | 2,014 ms | yes |
+| `gpt-5.6-luna` | 15/18 (83.3%) | 0 | 2,675 ms | yes |
+| `gpt-4.1-mini` | 14/18 (77.8%) | 0 | 2,490 ms | **superseded** |
+
+`sol` wins on the number that matters *and* keeps us on the current model list. It costs about 1.7 s
+against `terra`; that is the right trade here, because the officer waits once per query and reviews
+the filter either way, whereas a dropped constraint hides the sightings they were looking for and
+gives them no way to tell. **`terra` is the swap if latency ever becomes the binding constraint.**
+
+### The vacuous-filter defect was ours, not the model's
+
+Worth recording precisely, because the instinct — "the new model cannot do this task, pin the old
+one" — would have been wrong and would have left the real bug in place.
+
+The prompt contained an escape hatch: *"if the question cannot be expressed with these fields, return
+the filter with every constraint empty."* That is sound for a question this system genuinely cannot
+answer, and far too broad for anything else. On the hardest question `gpt-5.6-luna` took it.
+
+The fix was to narrow it to what it was actually for — **express every part of the question you can**;
+empty everything only when nothing in the question is expressible at all. On the same stage question,
+same key, same schema:
+
+| | before | after |
+|---|---|---|
+| `gpt-5.6-luna` | **2 of 3 runs vacuous** | 3 of 3 correct |
+| `gpt-4.1-mini` | 3 of 3 correct | 3 of 3 correct |
+
+The older model happened to be robust to a badly-worded instruction; the newer one was not. Pinning
+`gpt-4.1-mini` would have hidden a prompt defect behind a model choice.
+
+### The demo now fails loudly on a vacuous filter
+
+A schema-valid filter that constrains nothing, for a question that clearly had constraints, is
+**never** printed as `✓`. It renders as `⚠ vacuous`, is counted in its own column, and if every
+provider that ran returned one, the demo **exits 1** and says why. `strict: true` cannot catch this
+class of failure — only comparing the filter against the question can.
+
+Two fixtures legitimately compile to an empty filter — *"Show me everything"* and the question this
+system deliberately cannot answer (*who was driving, what were they wearing*: no face recognition, no
+biometrics). Those are excluded from the check by their expected filter, not by a heuristic.
+
+### The local, fully open-source provider
+
+| provider | ran | exact match | vacuous | mean latency |
+|---|---|---|---|---|
+| `ollama` `qwen2.5:7b-instruct` (local CPU) | 18 | **9/18 (50.0%)** | 0 | 9,839 ms |
+| `anthropic` | — | — | — | **not measured — no API key** |
 
 Run-to-run variance is real: ollama is not bit-deterministic even at `temperature: 0`, and repeated
-runs move one or two fixtures either way. The 44.4% figure was reproduced on the shipped
-configuration (including `num_ctx: 8192`); treat it as ±1 fixture, not as a precise constant.
+runs move a fixture either way. Treat the local figure as ±1 fixture, not a precise constant.
 
 **"Exact match" is the strictest possible bar**: every field of the compiled filter identical to the
 expected one. A filter that is merely *equivalent in effect* counts as a miss.
 
-### Where the local model fails, and why
+### Where the local model fails
 
-| failure | count | is it really wrong? |
-|---|---|---|
-| relative-time boundaries ("last night" → 23:00–00:00 rather than 18:00–06:00) | 3 | arguable — the fixture picks one convention; the model picks another |
-| `nearName` "Adalaj stepwell" rather than "Adalaj" | 1 | arguably **better** than the fixture |
-| a coordinate pair placed in `nearName` as well as `radius` | 1 | over-constrained; the officer removes the chip |
-| sequence legs merged into one place filter | 2 | genuinely wrong |
-| `entity` cameras/sightings confusion | 1 | genuinely wrong |
-| a schema rejection | 2 | **the system working** — rejected, not guessed at |
+| failure | is it really wrong? |
+|---|---|
+| relative-time boundaries ("last night" → a different convention than the fixture) | arguable |
+| `nearName` "Adalaj stepwell" rather than "Adalaj" | arguably **better** than the fixture |
+| sequence legs merged into one place filter | genuinely wrong |
+| `entity` cameras/sightings confusion | genuinely wrong |
+| a schema rejection | **the system working** — rejected, not guessed at |
 
-Two rounds of measured, principled fixes took this from **11.1% → 16.7% → 44.4%**:
+Successive measured fixes took the local model from **11.1% → 16.7% → 44.4% → 50.0%**: empty strings
+treated as non-values (§2), a worked example that stopped it defaulting `classes` to `["car"]` (13 of
+15 misses), and finally the escape-hatch narrowing above — which was found on the OpenAI leg and
+helped the local model too, since it was a defect in the prompt rather than in any one model.
+Tuning stopped there deliberately; further gains against this fixture set would be fixture-fitting.
 
-1. `districts: [""]` / `nearName: ""` normalised as non-values (§2).
-2. The prompt's dominant failure was defaulting `classes` to `["car"]` — 13 of 15 misses. A worked
-   example showing an almost-entirely-empty filter fixed it.
+### What these numbers do and do not mean
 
-Tuning stopped there deliberately. Further gains against this fixture set would be fixture-fitting,
-which would make the number meaningless.
+They measure **one model each against the strictest possible bar**, on 18 questions. They are not the
+accuracy of the *feature*, because the officer reviews and edits the filter before it runs and the
+most common miss — an invented or dropped constraint — is one click to fix.
 
-### What the 44.4% does and does not mean
-
-It measures **one 7B model on a laptop CPU** against the strictest possible bar. It is *not* the
-accuracy of the feature, for two reasons:
-
-1. The primary provider is unmeasured. A frontier model with constrained decoding should do
-   substantially better on exactly this kind of translation, but **we have not measured it and will
-   not claim it.**
-2. Exact match is not the product's success criterion. The officer reviews and edits the filter
-   before it runs, and the most common miss — an invented constraint — is a single click to remove.
-   A filter that is 90% right and visibly editable is a useful filter.
-
-The offline suite is a different measurement and should not be confused with this one: **18/18
-fixtures replay correctly through all three adapters' real parse-and-validate paths.** That measures
-the *pipeline*, not the *model*.
+The offline suite measures something different and should not be confused with this: **18/18 fixtures
+replay correctly through all three adapters' real parse-and-validate paths.** That measures the
+*pipeline*, not the *model*.
 
 ---
 
