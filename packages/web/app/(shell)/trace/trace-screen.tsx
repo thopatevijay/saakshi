@@ -33,6 +33,7 @@ import {
 } from '@/src/lib/trace/query';
 import { runTrace } from './actions';
 import { EvidenceStrip } from './evidence-strip';
+import { RouteSummary } from './route-summary';
 import { TraceTimeline, formatDuration } from './trace-timeline';
 import type { TracePayload, TraceSighting } from './types';
 
@@ -351,11 +352,17 @@ export function TraceScreen({
                   </p>
                 </div>
               ) : (
-                <TraceMap sightings={points} selectedSeq={query.seq} onSelect={select} />
+                <TraceMap
+                  sightings={points}
+                  route={trace.route?.segments ?? []}
+                  selectedSeq={query.seq}
+                  onSelect={select}
+                />
               )}
             </div>
 
             <div className="space-y-4">
+              {trace.route === null ? null : <RouteSummary route={trace.route} onSelect={select} />}
               <TraceTimeline sightings={points} selectedSeq={query.seq} onSelect={select} />
               <LinkLegend />
             </div>
@@ -416,6 +423,9 @@ function SightingTable({
   onSelect: (seq: number | null) => void;
 }) {
   const segmentTo = new Map(trace.segments.map((s) => [s.toSeq, s]));
+  // D3-01. The hover tooltip on the map is not the only place the distinction may live: a
+  // keyboard reader and a printed case file both need it, so the table carries it too.
+  const routeTo = new Map((trace.route?.segments ?? []).map((s) => [s.toSeq, s]));
   return (
     <section
       className="overflow-x-auto rounded-lg border border-slate-800"
@@ -436,11 +446,13 @@ function SightingTable({
             <th className="px-3 py-2">Link</th>
             <th className="px-3 py-2">Conf.</th>
             <th className="px-3 py-2">Gap from previous (inferred)</th>
+            <th className="px-3 py-2">Road-graph segment</th>
           </tr>
         </thead>
         <tbody>
           {trace.sightings.map((s) => {
             const segment = segmentTo.get(s.seq);
+            const hop = routeTo.get(s.seq);
             const style = LINK_STYLE[s.linkMethod];
             return (
               <tr
@@ -488,6 +500,30 @@ function SightingTable({
                         : segment.sameCamera
                           ? ' · same camera'
                           : ` · ≥ ${segment.straightLineKm.toFixed(2)} km, ≤ ${String(segment.impliedSpeedKmh ?? 0)} km/h`}
+                    </>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-slate-400 tabular-nums" data-route-cell={s.seq}>
+                  {hop === undefined ? (
+                    <span className="text-slate-600">—</span>
+                  ) : (
+                    <>
+                      <span
+                        className="mr-1.5 inline-block rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase"
+                        data-route-basis={hop.basis}
+                        style={{
+                          borderColor: hop.observed ? '#34d399' : '#f59e0b',
+                          color: hop.observed ? '#6ee7b7' : '#fcd34d',
+                        }}
+                      >
+                        {hop.observed ? 'Observed' : 'Inferred'}
+                      </span>
+                      {hop.roadDistanceKm === null
+                        ? 'no path'
+                        : `${hop.roadDistanceKm.toFixed(2)} km`}
+                      {hop.inferredConfidence === null
+                        ? ''
+                        : ` · conf ${hop.inferredConfidence.toFixed(2)}`}
                     </>
                   )}
                 </td>

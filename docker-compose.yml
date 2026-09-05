@@ -83,18 +83,17 @@ services:
       interval: 5s
       retries: 20
 
-  # Travel-time / road-graph engine for route reconstruction.
-  # Prepare once:
-  #   mkdir -p data && cd data
-  #   curl -O https://download.geofabrik.de/asia/india/gujarat-latest.osm.pbf
-  #   docker run -t -v "$PWD:/data" osrm/osrm-backend osrm-extract -p /opt/car.lua /data/gujarat-latest.osm.pbf
-  #   docker run -t -v "$PWD:/data" osrm/osrm-backend osrm-partition /data/gujarat-latest.osrm
-  #   docker run -t -v "$PWD:/data" osrm/osrm-backend osrm-customize /data/gujarat-latest.osrm
+  # Travel-time / road-graph engine for route reconstruction (D3-01).
+  # Prepare once with `./scripts/import-osm.sh`, which downloads the extract, clips it to Gujarat,
+  # builds the graph and fills `road_network`. See docs/road-network-setup.md.
+  # (Geofabrik has no standalone gujarat extract; the script derives one from western-zone.)
   osrm:
     image: osrm/osrm-backend
     command: osrm-routed --algorithm mld /data/gujarat-latest.osrm
     volumes: ['./data:/data']
-    ports: ['5000:5000']
+    # 5000 by default. Overridable because macOS binds :5000 to the AirPlay Receiver, so a laptop
+    # with it enabled cannot publish this port at all - see docs/road-network-setup.md.
+    ports: ['${OSRM_HOST_PORT:-5000}:5000']
     profiles: ['routing']
 
 volumes:

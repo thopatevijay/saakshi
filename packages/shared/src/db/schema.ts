@@ -455,6 +455,16 @@ export const routes = pgTable(
     requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
     requestedAt: ts('requested_at').notNull().defaultNow(),
     params: jsonb('params').notNull().default({}),
+
+    // 0017 · a route is a cache. `cacheKey` is the question (plate, window, params, model
+    // version); `sightingsFingerprint` is the evidence (sha256 of the ordered sighting list), so a
+    // new sighting invalidates the answer without waiting for a TTL to expire.
+    cacheKey: text('cache_key'),
+    sightingsFingerprint: text('sightings_fingerprint'),
+    sightingCount: integer('sighting_count').notNull().default(0),
+    builtAt: ts('built_at').notNull().defaultNow(),
+    buildMs: integer('build_ms'),
+    summary: jsonb('summary').notNull().default({}),
   },
   (t) => [
     index('routes_identity_idx').on(t.identityId),
@@ -484,6 +494,19 @@ export const routeSegments = pgTable(
     inferredConfidence: numericAsNumber('inferred_confidence'),
 
     anomaly: routeAnomalyEnum('anomaly').notNull().default('none'),
+
+    // 0017 · `observed` is the headline claim; `kind` is what "not observed" splits into, because
+    // an unroutable gap, a revisit and a scored road path are three different states of knowledge.
+    fromCameraId: uuid('from_camera_id'),
+    toCameraId: uuid('to_camera_id'),
+    kind: text('kind').notNull().default('inferred_path'),
+    elapsedS: integer('elapsed_s'),
+    // Both distances are LOWER bounds on the distance driven — OSRM returns the fastest path.
+    roadDistanceM: integer('road_distance_m'),
+    straightLineM: integer('straight_line_m'),
+    pathOptions: integer('path_options'),
+    confidenceBasis: jsonb('confidence_basis'),
+    note: text('note'),
   },
   (t) => [primaryKey({ columns: [t.routeId, t.seq] })],
 );

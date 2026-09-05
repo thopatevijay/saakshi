@@ -82,6 +82,23 @@ const ITINERARY: {
     color: 'white',
     colorConfidence: 0.71,
   },
+  // D3-01 added this one. Same camera, same *tracking session and raw tracker id* as the stop
+  // above, 45 seconds later: ByteTrack never dropped the vehicle between the two frames, so the
+  // movement between them is the one thing on this whole itinerary that was actually **observed**.
+  // Without it every segment of the demo route is inferred, and a screen whose entire point is the
+  // observed/inferred distinction would only ever be able to show one of the two.
+  // (`0.75` and not `2/3`: `frame_pts_ms` is an integer column and 0.667 x 60000 is not one.)
+  {
+    camera: 'CAM-A',
+    minute: 0.75,
+    raw: 'GJ 01 AB 1234',
+    normalized: 'GJ01AB1234',
+    confidence: 0.9,
+    trackId: 300001,
+    crop: 'day_cam04_122_02_plate.jpg',
+    color: 'white',
+    colorConfidence: 0.73,
+  },
   {
     camera: 'CAM-B',
     minute: 6,

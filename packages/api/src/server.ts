@@ -26,6 +26,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerWatchlistRoutes } from './routes/watchlist.js';
 import { registerPlateRoutes } from './routes/plates.js';
 import { registerTraceRoutes } from './routes/trace.js';
+import { HttpOsrmClient } from './services/osrm.js';
 import type { CropPresigner } from './services/trace.js';
 import { registerAlertRoutes } from './routes/alerts.js';
 import { registerAuditRoutes } from './routes/audit.js';
@@ -211,6 +212,9 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerPlateRoutes(app, { db });
     registerTraceRoutes(app, {
       db,
+      // D3-01's road graph. Constructed here rather than inside the route so a test can hand in a
+      // stub, and so a deployment with no OSRM simply routes nothing rather than failing to boot.
+      osrm: new HttpOsrmClient({ baseUrl: env.OSRM_URL, timeoutMs: env.OSRM_TIMEOUT_MS }),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
     registerAlertRoutes(app, {

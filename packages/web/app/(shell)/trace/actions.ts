@@ -32,7 +32,9 @@ export async function runTrace(state: TraceQueryState): Promise<TraceState> {
 
   const started = Date.now();
   const { data, error, response } = await apiClient(session.token).GET('/api/v1/trace', {
-    params: { query: toTraceApiQuery(state) },
+    // `reconstruct` on: this is the screen, and the screen's whole job is the observed/inferred
+    // distinction (D3-01). The CSV and PDF exports deliberately do not ask for it.
+    params: { query: toTraceApiQuery(state, { reconstruct: true }) },
   });
 
   if (error !== undefined || data === undefined) {
