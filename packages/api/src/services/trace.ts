@@ -50,6 +50,11 @@
  * it happens, is on `(camera_id, track_id)`.
  */
 import { sql, type SQL } from 'drizzle-orm';
+import {
+  DEFAULT_EXPIRING_SOON_HOURS,
+  describeRetention,
+  type RetentionStatus,
+} from '@saakshi/shared';
 import type { Db } from '../db/client.js';
 import {
   loadStoredLinks,
@@ -127,6 +132,19 @@ export interface TraceSighting {
 
   /** The detection itself. Always `'observed'` — a trace never invents a sighting. */
   basis: 'observed';
+
+  /**
+   * How long the **source footage** behind this sighting survives (D3-05).
+   *
+   * Per sighting rather than per camera, because a trace can span days and the same camera's
+   * footage from Monday and from Thursday are on different clocks. Computed at read time against
+   * the sighting's PTS-derived `ts` — never stored, and deliberately not carried into the route
+   * cache, because a countdown baked into a cached answer is wrong the moment after it is written.
+   *
+   * `state: 'unknown'` when the owning department declared no retention period, which is every
+   * camera on the sandbox estate. It is never defaulted to a window nobody stated.
+   */
+  retention: RetentionStatus;
 }
 
 /**
@@ -249,6 +267,8 @@ interface TraceRow extends Record<string, unknown> {
   raw_text: string;
   ocr_confidence: string;
   vote_count: number;
+  /** The owning department's declared retention window (D3-05). `null` = it declared none. */
+  retention_days: number | null;
 }
 
 export class TraceService {
@@ -256,10 +276,19 @@ export class TraceService {
   private readonly search: PlateSearchService;
   private readonly presign: CropPresigner;
 
-  constructor(db: Db, search?: PlateSearchService, presign?: CropPresigner) {
+  private readonly expiringSoonHours: number;
+
+  constructor(
+    db: Db,
+    search?: PlateSearchService,
+    presign?: CropPresigner,
+    /** `RETENTION_EXPIRING_SOON_HOURS` (D3-05). Passed in so this module needs no `Env`. */
+    expiringSoonHours?: number,
+  ) {
     this.db = db;
     this.search = search ?? new PlateSearchService(db);
     this.presign = presign ?? (() => null);
+    this.expiringSoonHours = expiringSoonHours ?? DEFAULT_EXPIRING_SOON_HOURS;
   }
 
   async trace(rawQuery: string, options: TraceOptions = {}): Promise<TraceResult> {
@@ -422,6 +451,7 @@ export class TraceService {
                c.external_id as camera_external_id,
                c.name as camera_name,
                c.district,
+               c.retention_days,
                case when c.location is null then null else st_y(c.location::geometry) end as lat,
                case when c.location is null then null else st_x(c.location::geometry) end as lon,
                s.class::text as class,
@@ -501,6 +531,11 @@ export class TraceService {
         ? plate.explanation
         : `link recorded in identity_sightings as ${linkMethod}, confidence ${linkConfidence.toFixed(2)}`,
       basis: 'observed',
+      retention: describeRetention({
+        footageAt: row.ts,
+        retentionDays: row.retention_days,
+        expiringSoonHours: this.expiringSoonHours,
+      }),
     };
   }
 }

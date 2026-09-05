@@ -10,7 +10,7 @@
  * The one thing that cannot be a server action is the **live stream** — `EventSource` opens its own
  * connection. That is why `stream/route.ts` exists.
  */
-import { AlertRecord } from '@saakshi/shared';
+import { AlertRecord } from './types';
 import { apiClient } from '@/src/lib/api/client';
 import { getSession } from '@/src/lib/session';
 import { toApiQuery, type AlertQueryState } from '@/src/lib/alerts/query';

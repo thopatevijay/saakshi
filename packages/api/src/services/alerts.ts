@@ -1156,6 +1156,12 @@ interface AlertRow {
    * elsewhere, in which case the stored reason's own `cropUri` is used unchanged.
    */
   current_crop_uri?: string | null;
+  /**
+   * `cameras.retention_days` for the alert's camera (D3-05). `null` means the owning department
+   * declared none — the normal case on this estate, and `unknown` rather than any default. Absent
+   * on rows built elsewhere than `SELECT_ALERT`, which is why it is optional.
+   */
+  camera_retention_days?: number | null;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════ */

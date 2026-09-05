@@ -90,6 +90,9 @@ describe('the nav is rendered from the matrix', () => {
     const labels = navFor('auditor').map((item) => item.label);
     expect(labels).toContain('Audit');
     expect(labels).toContain('Registry');
+    // D3-05. "How long does this footage last" exposes no footage, and an auditor needs to be able
+    // to ask it — the answer is a registry fact, not a surveillance capability.
+    expect(labels).toContain('Evidence');
     expect(labels).not.toContain('Video Wall');
     expect(labels).not.toContain('Trace');
     expect(labels).not.toContain('Alerts');
@@ -97,12 +100,12 @@ describe('the nav is rendered from the matrix', () => {
 
   it('the operator sees the control-room screens', () => {
     const labels = navFor('operator').map((item) => item.label);
-    expect(labels).toEqual(['Registry', 'Video Wall', 'Trace', 'Alerts', 'Sizing']);
+    expect(labels).toEqual(['Registry', 'Video Wall', 'Trace', 'Alerts', 'Evidence', 'Sizing']);
   });
 
   it('admin and supervisor see everything', () => {
-    expect(navFor('admin')).toHaveLength(6);
-    expect(navFor('supervisor')).toHaveLength(6);
+    expect(navFor('admin')).toHaveLength(7);
+    expect(navFor('supervisor')).toHaveLength(7);
   });
 });
 
@@ -114,6 +117,7 @@ describe('route → capability, for the server-side guard', () => {
     ['/trace', 'trace:run'],
     ['/alerts', 'alerts:view'],
     ['/audit', 'audit:read'],
+    ['/evidence', 'registry:read'],
     ['/sizing', 'sizing:use'],
   ] as [string, Capability][])('%s requires %s', (path, capability) => {
     expect(capabilityForPath(path)).toBe(capability);

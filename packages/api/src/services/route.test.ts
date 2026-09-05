@@ -15,6 +15,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
+import { describeRetention } from '@saakshi/shared';
 import { createDb, createSql, type Db, type Sql } from '../db/client.js';
 import { loadEnv } from '../env.js';
 import {
@@ -116,6 +117,12 @@ function sighting(
     matchStrength: 1,
     explanation: 'exact',
     basis: 'observed',
+    // D3-05. These fixture cameras declare no retention period, which is what every real camera on
+    // this estate does — so `unknown`, and the route reconstruction is indifferent to it.
+    retention: describeRetention({
+      footageAt: new Date(Date.UTC(2026, 8, 5, 9, 0, 0) + atSeconds * 1000),
+      retentionDays: null,
+    }),
   };
 }
 

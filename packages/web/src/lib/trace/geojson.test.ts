@@ -7,6 +7,7 @@
  * instant.
  */
 import { describe, expect, it } from 'vitest';
+import { describeRetention } from '@saakshi/shared';
 import {
   LINK_METHOD_ORDER,
   LINK_STYLE,
@@ -30,6 +31,12 @@ function point(over: Partial<TraceablePoint> & { seq: number }): TraceablePoint 
     located: true,
     linkMethod: 'plate_exact',
     linkConfidence: 0.9,
+    // D3-05. These fixtures declare no retention period, matching every camera on the real estate;
+    // the map and scrubber geometry is indifferent to it, which is what this file asserts.
+    retention: describeRetention({
+      footageAt: `2026-05-10T09:0${String(over.seq)}:00.000Z`,
+      retentionDays: null,
+    }),
     ...over,
   };
 }

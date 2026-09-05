@@ -38,7 +38,8 @@ import {
   useTransition,
   type KeyboardEvent,
 } from 'react';
-import type { AlertDigest, AlertRecord, AlertStatus } from '@saakshi/shared';
+import type { AlertDigest, AlertStatus } from '@saakshi/shared';
+import type { AlertRecord } from './types';
 import { EmptyState, ErrorState, Spinner } from '@/src/components/states';
 import { useToast } from '@/src/components/toast';
 import { alertsHref, parseAlertQuery, type AlertQueryState } from '@/src/lib/alerts/query';
@@ -183,8 +184,15 @@ export function AlertsScreen({
     });
 
     source.addEventListener('alert', (event) => {
-      const alert = JSON.parse((event as MessageEvent<string>).data) as AlertRecord;
-      setQueue((current) => receive(current, alert, live.current));
+      // D3-05: the live frame carries no retention clock — it is fed by the engine at raise time,
+      // which does not read the registry. `null` says "not computed on this path", and the clock
+      // arrives with the next list read. It is deliberately not faked as `state: 'unknown'`, which
+      // would assert that the department declared nothing.
+      const frame = JSON.parse((event as MessageEvent<string>).data) as Omit<
+        AlertRecord,
+        'retention'
+      >;
+      setQueue((current) => receive(current, { ...frame, retention: null }, live.current));
     });
 
     source.addEventListener('digest', (event) => {

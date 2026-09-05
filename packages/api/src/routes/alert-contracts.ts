@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import {
   AlertDigest,
-  AlertRecord,
   AlertSeverity,
   AlertStatus,
+  AlertWithRetention,
   WatchlistCategory,
 } from '@saakshi/shared';
 
@@ -47,8 +47,17 @@ export const AlertListQuery = z.object({
 });
 export type AlertListQuery = z.infer<typeof AlertListQuery>;
 
+/**
+ * `AlertRecord` plus the retention clock on the footage behind it (D3-05).
+ *
+ * Defined in `@saakshi/shared` so the API's response schema and the web app's re-parse are the same
+ * object — see the note there for why it is separate from `AlertRecord` itself. Re-exported under
+ * the contracts module's name, the way `TrustBand` is.
+ */
+export { AlertWithRetention };
+
 export const AlertListResponse = z.object({
-  data: z.array(AlertRecord),
+  data: z.array(AlertWithRetention),
   nextCursor: z.string().nullable(),
   limit: z.number().int(),
   /** Repeated on the body rather than left in a README — a screenshot has to carry it. */

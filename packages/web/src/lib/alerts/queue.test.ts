@@ -6,7 +6,11 @@
  * reducer, where an arriving alert and a focused row can be put in the same instant deliberately.
  */
 import { describe, expect, it } from 'vitest';
-import type { AlertRecord, AlertSeverity, WatchlistCategory } from '@saakshi/shared';
+import type {
+  AlertWithRetention as AlertRecord,
+  AlertSeverity,
+  WatchlistCategory,
+} from '@saakshi/shared';
 import {
   applyTransition,
   cursorIndex,
@@ -58,6 +62,9 @@ function alert(
     statusChangedBy: null,
     statusChangedAt: null,
     createdAt: lastSeenAt,
+    // D3-05. Queue ordering is indifferent to the retention clock, and `null` is the shape a live
+    // SSE frame arrives with — the case most likely to reach this reducer.
+    retention: null,
     reason: {
       severityBasis: { categoryRank: overrides.categoryRank ?? 1 },
     },

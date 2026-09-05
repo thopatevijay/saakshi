@@ -37,6 +37,7 @@ import {
   catalogueStatusEnum,
   linkMethodEnum,
   matchTypeEnum,
+  preservationStatusEnum,
   routeAnomalyEnum,
   sourceSystemEnum,
   storageTypeEnum,
@@ -603,6 +604,38 @@ export const wallLayouts = pgTable('wall_layouts', {
   layout: jsonb('layout').notNull(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 });
+
+/**
+ * A request that the owning department hold footage past its retention window (D3-05, 0020).
+ *
+ * **Not a retention extension.** SAAKSHI reaches no recorder; this row is an auditable instruction,
+ * pointed at the D3-04 chain entry that authorised it by `auditHash`. `retentionDaysAtRequest` is a
+ * snapshot, so the queue keeps showing what the officer was told when they acted.
+ */
+export const preservationRequests = pgTable(
+  'preservation_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cameraId: uuid('camera_id')
+      .notNull()
+      .references(() => cameras.id, { onDelete: 'cascade' }),
+    windowStart: ts('window_start').notNull(),
+    windowEnd: ts('window_end').notNull(),
+    caseRef: text('case_ref').notNull(),
+    purpose: text('purpose').notNull(),
+    requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
+    requestedAt: ts('requested_at').notNull().defaultNow(),
+    status: preservationStatusEnum('status').notNull().default('open'),
+    retentionDaysAtRequest: integer('retention_days_at_request'),
+    expiresAtAtRequest: ts('expires_at_at_request'),
+    auditHash: text('audit_hash').notNull(),
+    notes: text('notes'),
+  },
+  (t) => [
+    index('preservation_requests_case_ref_idx').on(t.caseRef),
+    index('preservation_requests_camera_idx').on(t.cameraId),
+  ],
+);
 
 // ── Relations ───────────────────────────────────────────────────────────────────────────────────
 
