@@ -1,0 +1,107 @@
+{
+  "$comment": [
+    "Impossible-transition policy (D3-02). Config, not code: this file is read from disk at runtime,",
+    "so the speed tolerance, the confidence thresholds and the alert severity all move without a",
+    "rebuild. anomaly.test.ts (AC 3) proves it by scoring one identical segment under two policies.",
+    "",
+    "THE RULE THAT SHAPES THIS WHOLE FILE, and the one thing most likely to be got backwards:",
+    "every quantity this policy is compared against is a LOWER bound. `roadDistanceKm` is OSRM's",
+    "FASTEST path, so it is the least distance the vehicle can have driven; therefore",
+    "`roadDistanceKm / elapsed` is the least speed it can have averaged, and `expectedTravelTimeS`",
+    "is the least time the trip can have taken. A transition is called impossible only when even",
+    "that most generous reading is unreachable. The converse is NOT a clean bill of health: a",
+    "transition that looks fine against the fastest path may still be impossible on the road the",
+    "vehicle actually took. D2-08's `TraceSegment.impliedSpeedKmh` documents the same quantity as",
+    "an UPPER bound and must not be used here — see the note on issue #25.",
+    "",
+    "A finding under this policy is never an accusation. There is no live VAHAN or SARTHI link, so",
+    "nothing here can confirm that a registration exists or who holds it. The output says two",
+    "sightings are inconsistent with a single vehicle, and names the innocent explanation beside the",
+    "guilty one every time."
+  ],
+  "version": 1,
+
+  "speed": {
+    "$comment": [
+      "Two independent feasibility tests, both on the lower-bound side. A segment must fail only ONE",
+      "to be impossible; they catch different things.",
+      "",
+      "maxPlausibleKmh 140 is the fastest sustained average this detector will concede on Indian",
+      "roads. NHAI's highest notified expressway limit for cars is 120 km/h and the ordinary",
+      "national-highway limit is 100; 140 is deliberately above both, because the cost of a false",
+      "'impossible' here is an officer told two vehicles share a registration when one of them was",
+      "simply speeding. It is a physical ceiling, not an enforcement threshold, and this detector is",
+      "not a speed-enforcement tool.",
+      "",
+      "graphSpeedTolerance 1.35 asks the second question: did the vehicle beat OSRM's free-flow",
+      "estimate for the fastest path by more than 35 percent? Free-flow already assumes no traffic,",
+      "no signals and no stops, so beating it at all is unusual; beating it by a third is not",
+      "driving. It catches the short, dense hop that maxPlausibleKmh cannot — 2 km in 20 s is only",
+      "360 km/h over a distance where the road graph says 180 s, and both tests fire, but 2 km in",
+      "70 s is 103 km/h through city streets the graph prices at 180 s, which only this test sees.",
+      "",
+      "minElapsedSeconds 5 is a guard, not a tolerance. Below it the elapsed time is dominated by",
+      "PTS quantisation and frame cadence rather than by travel, and a divide-by-almost-zero would",
+      "manufacture an impossible speed out of arithmetic. Such a segment is reported as",
+      "`indeterminate`, never as feasible and never as impossible."
+    ],
+    "maxPlausibleKmh": 140,
+    "graphSpeedTolerance": 1.35,
+    "minElapsedSeconds": 5
+  },
+
+  "disambiguation": {
+    "$comment": [
+      "Which explanation is more likely, once the transition is impossible. The thresholds are the",
+      "estate's measured OCR range, not round numbers: D2-01 read 0 plates exactly across a",
+      "120-instance hand-labelled sample, and the five legible strings the live run produced scored",
+      "0.449, 0.503, 0.732, 0.627 and 0.56. A 'high confidence' bar of 0.9 would never be met by",
+      "anything this estate produces and the clone branch would be dead code; a bar of 0.5 would",
+      "call the whole estate high-confidence. 0.75 and 0.60 straddle the measured range.",
+      "",
+      "maxNeighbourDistance 2 is D2-04's measured operating point and the ceiling this project does",
+      "not cross: docs/fuzzy-matching.md section 6 measures d<=2 at 99.9 percent recall and 100",
+      "percent precision, d<=3 at 91.2 percent precision, and d<=4 collapsing to 54.8 percent with",
+      "unrelated plates matching. Two vehicles accused of sharing a registration because a matcher",
+      "was generous is the failure this project cannot afford.",
+      "",
+      "truncationDominanceRatio 0.5: when at least half a candidate's weighted distance came from",
+      "`tailChars` rather than substitution, the shorter read is a clean prefix of the longer one —",
+      "the same vehicle read badly, which D2-04 measured as this estate's dominant failure and",
+      "prices at 0.35 per character. That is a misread every time and never a clone.",
+      "",
+      "repeatPairsForClone 2: one impossible transition is an anomaly, two on the same pair of",
+      "cameras with the same reads is a pattern. Cloning is a standing arrangement — the same",
+      "registration on two vehicles both in daily use — so it recurs, while a single OCR accident",
+      "does not. Below the threshold the verdict is `undetermined`, which is an honest third state",
+      "and not a euphemism for clean."
+    ],
+    "highOcrConfidence": 0.75,
+    "lowOcrConfidence": 0.6,
+    "maxNeighbourDistance": 2,
+    "truncationDominanceRatio": 0.5,
+    "repeatPairsForClone": 2
+  },
+
+  "alert": {
+    "$comment": [
+      "Cloning suspicion is escalated as its own alert type, separate from the watchlist queue in",
+      "`alerts`: a watchlist hit says 'this vehicle is wanted', and this says 'these two sightings",
+      "cannot both be one vehicle'. Different claim, different evidence, different action.",
+      "",
+      "severity 'medium' by default, and configurable. Deliberately not 'high': the identification",
+      "on this estate is fuzzy far more often than not, and D2-06's rule applies unchanged — a",
+      "severity is never raised by a model's opinion. `minLinkConfidence` is the second guard.",
+      "D2-08 measured mean link confidence for recoverable reads at 0.34 to 0.59, so an alert built",
+      "on two links at 0.34 is two possibilities rather than two identifications. 0.5 keeps the",
+      "alert for the upper half of that measured range and reports the rest as a finding without",
+      "escalating it.",
+      "",
+      "cropUrlExpiresInS 900 matches config/alert-policy.json. The URL is minted at read time and",
+      "never stored: a stored signed URL is a credential with an expiry rotting in the database."
+    ],
+    "severity": "medium",
+    "minLinkConfidence": 0.5,
+    "cropUrlExpiresInS": 900
+  }
+}
