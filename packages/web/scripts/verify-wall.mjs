@@ -423,8 +423,11 @@ async function main() {
       `WHEP connected and is decoding ${String(parsed.w)}×${String(parsed.h)} from the edge gateway`,
     );
     await cdp.evaluate(`new Promise((r) => setTimeout(r, 4000))`);
-    await screenshot(cdp, path.join(SHOTS, 'video-wall-whep-vs-hls.png'));
-    pass('screenshot: the same source through both transports, side by side');
+    // A different file from `measure-latency.mjs`'s: that one is the *instrument* — two bare
+    // players and two readable clocks — and this one is the **product**, the panel an operator
+    // actually sees. Overwriting one with the other loses the clearer of the two.
+    await screenshot(cdp, path.join(SHOTS, 'video-wall-whep-panel.png'));
+    pass('screenshot: the in-product comparison panel');
   }
   });
 
