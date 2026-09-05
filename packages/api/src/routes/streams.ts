@@ -621,5 +621,15 @@ function sendRelayError(
     reply.code(499).send({ error: 'client_closed', message: 'the client closed the connection' });
     return;
   }
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    // The relay's own deadline fired. **504, not 500** — D1-03's taxonomy again: "wait and retry"
+    // and "stop trying and investigate the camera" are opposite responses, and a slow gateway
+    // reported as an internal error sends someone to read our logs instead of the estate's.
+    reply.code(504).send({
+      error: 'stream_upstream_timeout',
+      message: `${externalId}: the department gateway did not answer within the relay's deadline`,
+    });
+    return;
+  }
   throw error;
 }
