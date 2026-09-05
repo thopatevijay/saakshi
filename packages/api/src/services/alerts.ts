@@ -64,6 +64,8 @@ import type { Db, DbLike } from '../db/client.js';
 import type { Principal } from '../auth.js';
 import { writeAudit } from '../audit.js';
 import { evidenceStoreFromEnv, type EvidenceStore } from './evidence.js';
+import { presignerFor } from './crop-url.js';
+import type { CropPresigner } from './trace.js';
 import type { WatchlistHit, WatchlistRegistry } from '../watchlist/index.js';
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -244,6 +246,18 @@ export function identificationStrength(
   if (combined >= 0.55) return 'probable';
   if (combined >= 0.3) return 'possible';
   return 'weak';
+}
+
+/**
+ * `file://` out of `file:///Users/…/100-plate.jpg` — the scheme only, never the path (D2-11).
+ *
+ * The caveat has to say *why* a crop could not be signed, and the scheme is the whole answer. The
+ * path is not: a `file://` crop URI is an absolute path on the analytics worker's disk, and putting
+ * one in an alert payload that leaves the building leaks the layout of a police server for nothing.
+ */
+function uriScheme(uri: string): string {
+  const end = uri.indexOf('://');
+  return end === -1 ? 'no scheme' : `${uri.slice(0, end + 3)}…`;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -559,6 +573,11 @@ export class AlertEngine {
   private readonly db: Db;
   private readonly registry: WatchlistRegistry;
   private readonly evidence: EvidenceStore | null;
+  /**
+   * The same guard the trace path uses (D2-11). Never `presignGet` directly: a `crop_uri` that is
+   * not an object in *this* bucket must yield `null`, not a signed link that 400s.
+   */
+  private readonly presignCrop: CropPresigner;
   private readonly cameras = new Map<string, CameraContext>();
 
   constructor(options: AlertEngineOptions) {
@@ -567,6 +586,7 @@ export class AlertEngine {
     this.policy = options.policy ?? loadAlertPolicy();
     this.bus = options.bus ?? new AlertBus();
     this.evidence = options.evidence === undefined ? evidenceStoreFromEnv() : options.evidence;
+    this.presignCrop = presignerFor(this.evidence, this.policy.evidence.cropUrlExpiresInS);
     this.gate = new DeliveryGate(this.policy, options.now ?? Date.now);
   }
 
@@ -875,13 +895,7 @@ export class AlertEngine {
     sighting: SightingContext,
   ): AlertReason {
     const cropUri = sighting.cropUri;
-    const cropUrl =
-      cropUri === null || this.evidence === null
-        ? null
-        : this.evidence.presignGet(
-            cropUri.replace(/^s3:\/\/[^/]+\//, ''),
-            this.policy.evidence.cropUrlExpiresInS,
-          );
+    const cropUrl = cropUri === null ? null : this.presignCrop(cropUri);
 
     const caveats: string[] = [];
 
@@ -938,10 +952,18 @@ export class AlertEngine {
       caveats.push('no location on file for this camera — it cannot be placed on the map.');
     }
     if (cropUrl === null) {
+      // Three distinct reasons, and they must stay distinguishable (D2-11): "no crop was taken",
+      // "there is no store to sign against", and "there is a crop URI but it is not an object in
+      // this bucket". The third is what a `file://` crop from D2-01's local store looks like, and
+      // conflating it with the second is how a reader concludes MinIO is down when it is not.
       caveats.push(
         cropUri === null
           ? 'no crop URL — no crop was stored for this sighting; only about 1 sighting in 30 is a best shot.'
-          : 'no crop URL — no evidence store is configured, so the crop cannot be signed for viewing.',
+          : this.evidence === null
+            ? 'no crop URL — no evidence store is configured, so the crop cannot be signed for viewing.'
+            : `no crop URL — the stored crop URI is not an object in this evidence store ` +
+              `(${uriScheme(cropUri)}), so it cannot be signed. A link that cannot be served is ` +
+              'never emitted.',
       );
     }
     if (!sighting.isBestShot) {
@@ -1128,6 +1150,12 @@ interface AlertRow {
   status_changed_by: string | null;
   created_at: string;
   created: boolean;
+  /**
+   * The crop URI as it stands **now** on the alert's latest sighting, not as it stood the
+   * millisecond the alert was raised (D2-11). Selected by `SELECT_ALERT`; absent on rows built
+   * elsewhere, in which case the stored reason's own `cropUri` is used unchanged.
+   */
+  current_crop_uri?: string | null;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -1205,8 +1233,46 @@ export async function transitionAlert(
 }
 
 /** Shared row → wire mapping, so the routes and the engine cannot describe an alert differently. */
-export function rowToRecord(row: AlertRow): AlertRecord {
-  const reason = row.reason;
+/** A caveat that exists only to explain a missing crop. Dropped once the crop is there (D2-11). */
+const NO_CROP_CAVEAT = 'no crop URL';
+
+/**
+ * The why-payload with its crop link minted **now** (D2-11).
+ *
+ * D2-02's rule is that a signed URL is never persisted, because it is a credential with an expiry
+ * and a stored one is dead by the time anyone opens it. The alert path persisted one anyway: the
+ * whole `reason` object is written to `alerts.reason` at correlation time, signed URL included. Two
+ * consequences, and both are the failure this ticket exists to remove —
+ *
+ * 1. **It expires.** A queue opened sixteen minutes after the alert served a link that 403s.
+ * 2. **It is signed too early to be right.** The plate crop travels on the `evidence` stream and is
+ *    uploaded by a different process; at correlation time nothing has been uploaded yet, so the
+ *    stored `cropUri` is the worker's `file://` path and the honest answer at that instant is
+ *    `null`. The object lands seconds later and the alert would carry that `null` forever.
+ *
+ * So the URI is re-read from the sighting (`current_crop_uri`) and the URL re-minted on every read.
+ * The stored `cropUri` remains the fallback for a row selected without it.
+ */
+function reasonWithCurrentCrop(row: AlertRow, presign: CropPresigner): AlertReason {
+  const stored = row.reason.evidence;
+  const current = typeof row.current_crop_uri === 'string' ? row.current_crop_uri : null;
+  const cropUri = current ?? stored.cropUri;
+  const cropUrl = cropUri === null ? null : presign(cropUri);
+  if (cropUri === stored.cropUri && cropUrl === stored.cropUrl) return row.reason;
+  return {
+    ...row.reason,
+    // A "no crop URL — …" caveat written when there was no crop would now be false. Every other
+    // caveat is a statement about the *match* and stays exactly as it was recorded.
+    caveats:
+      cropUrl === null
+        ? row.reason.caveats
+        : row.reason.caveats.filter((c) => !c.startsWith(NO_CROP_CAVEAT)),
+    evidence: { ...stored, cropUri, cropUrl },
+  };
+}
+
+export function rowToRecord(row: AlertRow, presign?: CropPresigner): AlertRecord {
+  const reason = presign === undefined ? row.reason : reasonWithCurrentCrop(row, presign);
   return {
     id: row.id,
     watchlistEntryId: row.watchlist_entry_id,

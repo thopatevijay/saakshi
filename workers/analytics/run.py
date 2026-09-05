@@ -258,6 +258,11 @@ def summarise(
             "low_confidence": attribute_stats.low_confidence,
             "low_confidence_rate": attribute_stats.low_confidence_rate,
             "by_color": dict(sorted(attribute_stats.by_color.items(), key=lambda kv: -kv[1])),
+            # D2-11. Plate crops ride the same stream to the same bucket, one per *voted* track —
+            # counted separately from the vehicle best shots because the two rates differ by ~50x
+            # and one number covering both would hide either.
+            "plate_crops": sum(s.plate_crops for s in stats),
+            "plate_crop_bytes": sum(s.plate_crop_bytes for s in stats),
             "publish_failures": getattr(evidence_sink, "failed", 0),
         },
         # `effective_fps` and `skip_ratio` are properties, so `asdict` does not carry them. Merged in
@@ -309,6 +314,10 @@ def render(summary: dict) -> str:
         lines.append(
             f"  colour            {ev['color_reads']} reads, "
             f"{ev['low_confidence_rate']:.1%} low-confidence -> unknown  {ev['by_color']}"
+        )
+        lines.append(
+            f"  plate crops       {ev['plate_crops']} objects, {ev['plate_crop_bytes']} B "
+            "published to the evidence stream"
         )
     anpr = summary.get("anpr")
     if anpr is not None:
@@ -384,7 +393,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--plate-model", default=DEFAULT_PLATE_MODEL)
     parser.add_argument(
         "--crop-dir", default=DEFAULT_CROP_DIR,
-        help="where best-shot plate crops are written (gitignored; D2-02 replaces this with MinIO)",
+        help="local copy of each best-shot plate crop (gitignored). With --evidence the crop also "
+        "goes to MinIO via the evidence stream, and that is the copy the API can sign (D2-11)",
     )
     parser.add_argument(
         "--anpr-every-frame", action="store_true",
@@ -419,6 +429,10 @@ def main(argv: list[str] | None = None) -> int:
             LocalCropStore(args.crop_dir),
             anpr_thresholds,
             every_frame=args.anpr_every_frame,
+            # D2-11. With `--evidence` the plate crop also rides the evidence stream into MinIO,
+            # where the API can sign it. Without it the local `file://` copy is all there is, and
+            # an alert honestly reports "no crop stored" rather than a link that 400s.
+            collect_evidence=args.evidence,
         )
 
     sink: SightingSink = NullSink() if args.no_publish else ValkeySink()

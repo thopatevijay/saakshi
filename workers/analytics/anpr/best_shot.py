@@ -125,6 +125,14 @@ class PlateCandidate:
     #: Absolute wall time of the frame this came from, ISO 8601 with `Z`. Derived from PTS upstream.
     ts: str
     sharpness_var: float = 0.0
+    #: The plate box's top-left in the **frame's** coordinates, not the vehicle crop's (D2-11).
+    #: A bbox that only makes sense relative to a temporary crop is a bbox nobody downstream can
+    #: use, and the evidence record that carries this crop to the object store is downstream.
+    frame_x: float = 0.0
+    frame_y: float = 0.0
+    #: The tracked vehicle's class, carried so the evidence record can state what was cropped
+    #: without the engine having to hold the tracker's item alongside the buffer.
+    vehicle_class: str = "car"
 
 
 @dataclass

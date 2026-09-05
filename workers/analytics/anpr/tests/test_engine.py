@@ -299,3 +299,75 @@ def test_crop_with_padding_stays_inside_the_frame(x: float, y: float, w: float, 
     assert y0 >= 0
     assert y0 + crop.shape[0] <= image.shape[0]
     assert x0 + crop.shape[1] <= image.shape[1]
+
+
+# ── D2-11 · the plate crop's route to the object store ──────────────────────────────────────────
+
+
+def test_no_plate_evidence_is_held_unless_it_is_asked_for() -> None:
+    """The default. `bench.py` and `eval_anpr` measure throughput and accuracy, not storage, and a
+    buffer nobody drains is a leak — so collection is opt-in and `run.py` opts in with `--evidence`.
+    """
+    anpr = engine(ScriptedOcr(["GJ01AB1234"]), FakePlateDetector())
+
+    for _ in range(20):
+        anpr.observe(frame(), [tracked(7)], camera_external_id="cam06", ts=TS, frame_pts_ms=0)
+
+    assert anpr.stats.votes_emitted == 1
+    assert anpr.take_plate_evidence() == []
+
+
+def test_a_voted_track_holds_exactly_one_plate_crop_keyed_to_the_emitting_frame(tmp_path) -> None:
+    """D2-11. The crop must carry the tuple the evidence consumer matches on — and it must be the
+    tuple of the frame the **vote fired on**, because that is the frame `pipeline.py` attaches the
+    read to, and therefore the frame whose sighting owns the `plate_reads` row.
+    """
+    store = LocalCropStore(tmp_path)
+    anpr = engine(ScriptedOcr(["GJ01AB1234"]), FakePlateDetector(), store, collect_evidence=True)
+
+    emitted: dict[int, dict] = {}
+    frame_pts_ms = 0
+    for step in range(20):
+        frame_pts_ms = step * 250
+        result = anpr.observe(
+            frame(), [tracked(7)], camera_external_id="cam06", ts=TS, frame_pts_ms=frame_pts_ms
+        )
+        if result:
+            emitted.update(result)
+            break
+
+    assert emitted
+    held = anpr.take_plate_evidence()
+    assert len(held) == 1
+    crop = held[0]
+    assert crop.camera_external_id == "cam06"
+    assert crop.track_id == 7
+    assert crop.ts == TS
+    assert crop.frame_pts_ms == frame_pts_ms
+    assert crop.vehicle_class == "car"
+    assert crop.crop.size > 0
+    # The plate box in the FRAME's coordinates, not the vehicle crop's: the vehicle box starts at
+    # (40, 40) with 20% padding, and `FakePlateDetector` puts the plate at (4, 4) inside that.
+    assert crop.bbox["x"] > 0
+    assert crop.bbox["y"] > 0
+    assert crop.bbox["w"] == 48.0
+    assert crop.bbox["h"] == 16.0
+    # Drained, not accumulated — a second call must not re-publish the same crop.
+    assert anpr.take_plate_evidence() == []
+
+    # The local copy is still written. It is the fallback when there is no object store, and the
+    # `file://` URI it produces is what the API's guard turns into an honest `null`.
+    assert store.written == 1
+    assert emitted[7]["cropUri"].startswith("file://")
+
+
+def test_a_vote_below_the_floor_holds_no_plate_crop() -> None:
+    """No read, no row, no crop. An object with no `plate_reads` row to point at is an orphan."""
+    ocr = ScriptedOcr(["GJ01AB1234"], confidence=ANPR_DEFAULTS.ocr_conf_min - 0.1)
+    anpr = engine(ocr, FakePlateDetector(), collect_evidence=True)
+
+    for _ in range(20):
+        anpr.observe(frame(), [tracked(7)], camera_external_id="cam06", ts=TS, frame_pts_ms=0)
+
+    assert anpr.stats.votes_below_floor >= 1
+    assert anpr.take_plate_evidence() == []

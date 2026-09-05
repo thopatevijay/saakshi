@@ -18,6 +18,7 @@ import {
   type AlertBus,
   type AlertRow,
 } from '../services/alerts.js';
+import type { CropPresigner } from '../services/trace.js';
 import {
   AlertDigestListResponse,
   AlertListQuery,
@@ -69,13 +70,32 @@ const SELECT_ALERT = sql`
          a.sighting_count, a.last_observed_plate,
          a.status, a.acked_by::text as acked_by, a.acked_at,
          a.status_changed_at, a.status_changed_by::text as status_changed_by,
-         a.created_at, false as created
+         a.created_at, false as created,
+         /* D2-11. The crop as it stands NOW, not as it stood the millisecond the alert was
+            raised: the plate crop rides the evidence stream and is uploaded by a different
+            process, so at correlation time there is nothing to sign and it lands seconds later.
+            The plate crop wins over the vehicle crop — it is the thing the alert is about. */
+         coalesce(
+           (select p.crop_uri from plate_reads p
+             where p.sighting_id = a.last_sighting_id and p.sighting_ts = a.last_sighting_ts
+               and p.crop_uri is not null
+             order by p.created_at desc limit 1),
+           (select s.crop_uri from sightings s
+             where s.id = a.last_sighting_id and s.ts = a.last_sighting_ts
+               and s.crop_uri is not null)
+         ) as current_crop_uri
     from alerts a`;
 
 export interface AlertRouteOptions {
   db: Db;
   /** The engine whose bus this stream serves. Built here when omitted. */
   engine?: AlertEngine;
+  /**
+   * Mints the crop URL on read (D2-11). Injected from the composition root for the reason
+   * `services/crop-url.ts` documents; omitted, every crop renders as "no crop stored", which is
+   * the honest answer on a machine with no object store.
+   */
+  presign?: CropPresigner;
   /**
    * A raw connection used only for `LISTEN`. Supplied by `index.ts`; omitted in tests, where the
    * engine and the routes already share one process and one bus.
@@ -91,6 +111,8 @@ function frame(event: string, data: unknown, id?: string): string {
 
 export function registerAlertRoutes(app: App, options: AlertRouteOptions): void {
   const { db } = options;
+  const presign: CropPresigner = options.presign ?? (() => null);
+  const toRecord = (row: AlertRow): AlertRecord => rowToRecord(row, presign);
   const engine =
     options.engine ??
     new AlertEngine({
@@ -128,7 +150,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
             if (row === undefined) return;
             bus.publish({
               type: 'alert',
-              alert: rowToRecord(row),
+              alert: toRecord(row),
               deduped: parsed.deduped === true,
             });
           } catch (error) {
@@ -283,7 +305,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
       const page = rows.slice(0, q.limit);
       const last = page.at(-1);
       return {
-        data: page.map(rowToRecord),
+        data: page.map(toRecord),
         nextCursor:
           rows.length > q.limit && last !== undefined
             ? new Date(last.last_seen_at).toISOString()
@@ -392,7 +414,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
       if (row === undefined) {
         return reply.code(404).send({ error: 'not_found', message: 'no such alert' });
       }
-      return rowToRecord(row);
+      return toRecord(row);
     },
   );
 

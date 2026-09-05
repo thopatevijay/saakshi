@@ -6,13 +6,18 @@ by earlier tickets, so each test names the finding it protects.
 
 from __future__ import annotations
 
+import base64
+import inspect
 import types
 
+import numpy as np
 import pytest
 
+from workers.analytics.anpr.engine import PlateEvidence
 from workers.analytics.backoff import backoff_delay_ms, backoff_sequence_ms
 from workers.analytics.capabilities import CameraCapabilities, inference_size
 from workers.analytics.device import select_device
+from workers.analytics.evidence import to_plate_record, to_record
 from workers.analytics.pipeline import measured_fps
 from workers.analytics.thresholds import DEFAULTS
 
@@ -137,3 +142,64 @@ def test_measured_fps_divides_by_a_floored_span_so_a_zero_delta_cannot_produce_i
 
 def test_measured_fps_over_a_clean_window_is_the_stream_rate() -> None:
     assert measured_fps(2.0, 22.0, 500) == 25.0
+
+
+# ── D2-11: the plate crop's wire record ─────────────────────────────────────────────────────────
+
+def _plate_evidence() -> PlateEvidence:
+    return PlateEvidence(
+        camera_external_id="cam06",
+        track_id=100_007,
+        ts="2026-09-05T04:30:00Z",
+        frame_pts_ms=37_280,
+        vehicle_class="car",
+        det_confidence=0.6123,
+        bbox={"x": 42.5, "y": 61.25, "w": 96.0, "h": 31.0},
+        score=0.41371,
+        focus=184.6234,
+        observations=5,
+        crop=np.full((32, 96, 3), 127, dtype=np.uint8),
+    )
+
+
+def test_a_plate_record_carries_the_same_wire_shape_as_a_vehicle_record() -> None:
+    """One `EvidenceRecord`, one consumer, one uploader.
+
+    D2-02's consumer validates every entry on the `evidence` stream against one zod schema. If the
+    plate builder ever grows or loses a field relative to the vehicle builder, every plate crop is
+    counted `invalidPayloads` and silently dropped — the alert reverts to "no crop stored" and
+    nothing says why. Asserting the key sets are identical is what makes that drift a test failure.
+    """
+    record = to_plate_record(_plate_evidence())
+    vehicle_keys = {
+        line.strip().split('"')[1]
+        for line in inspect.getsource(to_record).splitlines()
+        if line.strip().startswith('"') and '":' in line
+    }
+    assert vehicle_keys, "could not read to_record's wire keys"
+    assert set(record) == vehicle_keys
+
+
+def test_a_plate_record_is_kind_plate_and_claims_no_colour_it_did_not_measure() -> None:
+    """A plate crop has had no colour classifier over it. `unknown` with the flag set is the honest
+    value for a measurement nobody made — and the consumer's plate branch writes none of them, so a
+    plate crop can never erase a vehicle crop's real colour read.
+    """
+    record = to_plate_record(_plate_evidence())
+    assert record["kind"] == "plate"
+    assert record["vehicleColor"] == "unknown"
+    assert record["vehicleColorConfidence"] == 0.0
+    assert record["attributesLowConfidence"] is True
+    assert record["vehicleType"] is None
+    # The tuple the consumer matches on to find the `plate_reads` row.
+    assert record["cameraId"] == "cam06"
+    assert record["trackId"] == 100_007
+    assert record["framePtsMs"] == 37_280
+    # Within the schema's bounds: `bestShotScore` is 0..1 and `detConfidence` is 0..1, and a value
+    # outside either is dropped by the consumer as an invalid payload.
+    assert 0.0 <= record["bestShotScore"] <= 1.0
+    assert 0.0 <= record["detConfidence"] <= 1.0
+    # A real JPEG, base64'd, and the byte count agrees with it.
+    decoded = base64.b64decode(record["cropBase64"])
+    assert decoded[:2] == b"\xff\xd8"
+    assert len(decoded) == record["cropBytes"]
