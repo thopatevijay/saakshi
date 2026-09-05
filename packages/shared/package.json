@@ -20,6 +20,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run --root ../..",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist"
   },
