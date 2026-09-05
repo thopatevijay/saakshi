@@ -4,6 +4,7 @@ import {
   AlertRecord,
   AlertSeverity,
   AlertStatus,
+  RetentionStatus,
   WatchlistCategory,
 } from '@saakshi/shared';
 
@@ -47,8 +48,23 @@ export const AlertListQuery = z.object({
 });
 export type AlertListQuery = z.infer<typeof AlertListQuery>;
 
+/**
+ * An alert, plus the retention clock on the footage behind it (D3-05).
+ *
+ * Extended here rather than in `@saakshi/shared`'s `AlertRecord` on purpose. Retention is a
+ * *rendered read* — computed against the moment of the request, from the department's declared
+ * window — and `AlertRecord` is also the shape the engine writes and the SSE bus republishes. Baking
+ * a countdown into the stored record would put a value in the pipeline that is stale the instant
+ * after it is produced, which is the same mistake as persisting a signed URL (D2-02).
+ *
+ * "This evidence expires in N days" is the sentence the ticket asks the alert detail to show, and
+ * this is the field it reads.
+ */
+export const AlertWithRetention = AlertRecord.extend({ retention: RetentionStatus });
+export type AlertWithRetention = z.infer<typeof AlertWithRetention>;
+
 export const AlertListResponse = z.object({
-  data: z.array(AlertRecord),
+  data: z.array(AlertWithRetention),
   nextCursor: z.string().nullable(),
   limit: z.number().int(),
   /** Repeated on the body rather than left in a README — a screenshot has to carry it. */

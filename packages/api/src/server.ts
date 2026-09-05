@@ -233,10 +233,12 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       // D3-01's road graph. Constructed here rather than inside the route so a test can hand in a
       // stub, and so a deployment with no OSRM simply routes nothing rather than failing to boot.
       osrm: new HttpOsrmClient({ baseUrl: env.OSRM_URL, timeoutMs: env.OSRM_TIMEOUT_MS }),
+      expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
     registerAlertRoutes(app, {
       db,
+      expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),

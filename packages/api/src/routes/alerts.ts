@@ -1,6 +1,12 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
-import { AlertRecord, type AlertDigest, type AlertStatus } from '@saakshi/shared';
+import {
+  AlertRecord,
+  DEFAULT_EXPIRING_SOON_HOURS,
+  describeRetention,
+  type AlertDigest,
+  type AlertStatus,
+} from '@saakshi/shared';
 import type { App } from '../server.js';
 import { authenticate, requireRole, userRoles, type UserRole } from '../auth.js';
 import { can } from '@saakshi/shared';
@@ -26,6 +32,7 @@ import {
   AlertListResponse,
   AlertStatsResponse,
   AlertTransitionBody,
+  AlertWithRetention,
 } from './alert-contracts.js';
 
 /**
@@ -97,7 +104,12 @@ const SELECT_ALERT = sql`
            (select s.crop_uri from sightings s
              where s.id = a.last_sighting_id and s.ts = a.last_sighting_ts
                and s.crop_uri is not null)
-         ) as current_crop_uri
+         ) as current_crop_uri,
+         /* D3-05. The owning department's declared retention window, so the alert can say how long
+            the evidence behind it survives. A sub-select rather than a join for the same reason the
+            department filter above is one: a join must not be able to multiply the keyset page. */
+         (select cam.retention_days from cameras cam where cam.id = a.camera_id)
+           as camera_retention_days
     from alerts a`;
 
 export interface AlertRouteOptions {
@@ -115,6 +127,11 @@ export interface AlertRouteOptions {
    * engine and the routes already share one process and one bus.
    */
   listenSql?: Sql;
+  /**
+   * The retention warning threshold, from `RETENTION_EXPIRING_SOON_HOURS` (D3-05). Passed in rather
+   * than read here so this module still has no dependency on `Env`.
+   */
+  expiringSoonHours?: number;
 }
 
 /** One SSE frame. `event:` first so a client can branch before parsing the payload. */
@@ -127,6 +144,23 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
   const { db } = options;
   const presign: CropPresigner = options.presign ?? (() => null);
   const toRecord = (row: AlertRow): AlertRecord => rowToRecord(row, presign);
+  const expiringSoonHours = options.expiringSoonHours ?? DEFAULT_EXPIRING_SOON_HOURS;
+
+  /**
+   * The alert, plus how long the footage behind it survives (D3-05).
+   *
+   * Computed against the alert's **first** sighting — the oldest footage the alert covers, and so
+   * the first part of it to be overwritten. Timing it from `lastSeenAt` would report an alert as
+   * safe while the approach, which is usually the useful part, had already gone.
+   */
+  const toRecordWithRetention = (row: AlertRow): AlertWithRetention => ({
+    ...toRecord(row),
+    retention: describeRetention({
+      footageAt: new Date(row.ts),
+      retentionDays: row.camera_retention_days ?? null,
+      expiringSoonHours,
+    }),
+  });
   const engine =
     options.engine ??
     new AlertEngine({
@@ -319,7 +353,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
       const page = rows.slice(0, q.limit);
       const last = page.at(-1);
       return {
-        data: page.map(toRecord),
+        data: page.map(toRecordWithRetention),
         nextCursor:
           rows.length > q.limit && last !== undefined
             ? new Date(last.last_seen_at).toISOString()
@@ -413,7 +447,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
         summary: 'One alert with its complete why-payload',
         params: z.object({ id: z.uuid() }),
         response: {
-          200: AlertRecord,
+          200: AlertWithRetention,
           401: ErrorResponse,
           403: ErrorResponse,
           404: ErrorResponse,
@@ -428,7 +462,7 @@ export function registerAlertRoutes(app: App, options: AlertRouteOptions): void 
       if (row === undefined) {
         return reply.code(404).send({ error: 'not_found', message: 'no such alert' });
       }
-      return toRecord(row);
+      return toRecordWithRetention(row);
     },
   );
 
