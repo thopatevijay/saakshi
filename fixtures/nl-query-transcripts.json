@@ -1,6 +1,6 @@
 {
   "$comment": "D3-09 · real provider responses, recorded by `npm run demo:provider-swap -- --all --record`. Replayed offline by query-compiler.test.ts so the parse-and-validate path is exercised against genuine model output with no network and no credential.",
-  "recordedAt": "2026-09-05T15:53:27.131Z",
+  "recordedAt": "2026-09-05T16:09:35.840Z",
   "transcripts": {
     "plate-exact": {
       "ollama": "{\n  \"version\": 1,\n  \"entity\": \"sightings\",\n  \"filters\": {\n    \"plate\": {\n      \"pattern\": \"GJ01AB1234\",\n      \"mode\": \"exact\",\n      \"maxDistance\": 0\n    },\n    \"classes\": [],\n    \"colours\": [],\n    \"place\": {\n      \"cameraExternalIds\": [],\n      \"districts\": [],\n      \"nearName\": null,\n      \"radius\": null\n    },\n    \"time\": {\n      \"from\": null,\n      \"to\": null\n    },\n    \"minConfidence\": 0,\n    \"bestShotOnly\": false\n  },\n  \"sequence\": null,\n  \"limit\": 100\n}"

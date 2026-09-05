@@ -219,7 +219,9 @@ describe('ollama adapter — the leg that makes nothing proprietary load-bearing
     const sent = capture.sent();
     expect(sent.url).toBe('http://ollama.test/api/chat');
     expect(sent.body['format']).toEqual(queryDslJsonSchema());
-    expect(sent.body['options']).toEqual({ temperature: 0 });
+    // num_ctx explicitly, because ollama's default window silently truncates a long system prompt
+    // and the symptom is an intermittent schema rejection that reads as model variance.
+    expect(sent.body['options']).toEqual({ temperature: 0, num_ctx: 8192 });
     expect(sent.body['stream']).toBe(false);
     // No credential exists to send. That is the point of this provider.
     expect(sent.headers['authorization']).toBeUndefined();

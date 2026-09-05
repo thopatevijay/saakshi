@@ -54,9 +54,18 @@ async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   const all = argv.includes('--all');
   const record = argv.includes('--record');
+  // Everything after `--question` up to the next flag. npm strips the shell's quoting, so a
+  // multi-word question arrives as several argv entries and taking only the next one would silently
+  // compile the single word "White" — which the model then reads as a registration.
   const questionArg = argv.indexOf('--question');
   const question =
-    questionArg >= 0 ? (argv[questionArg + 1] ?? DEFAULT_QUESTION) : DEFAULT_QUESTION;
+    questionArg >= 0
+      ? argv
+          .slice(questionArg + 1)
+          .filter((a) => !a.startsWith('--'))
+          .join(' ')
+          .trim() || DEFAULT_QUESTION
+      : DEFAULT_QUESTION;
 
   const corpus = loadNlQueryFixtures();
   const secrets = providerSecretsFromEnv();
@@ -74,7 +83,11 @@ async function main(): Promise<number> {
 
   const transcripts: Record<string, Record<string, string>> = {};
   const perProvider = new Map<QueryProvider, { ran: number; matched: number; totalMs: number }>();
-  let anyRan = false;
+  // Three different outcomes that a lesser script would collapse into one. "Nobody had a
+  // credential", "a model ran and produced nothing valid" and "models disagree" have three
+  // different remedies and three different meanings for the claim being demonstrated.
+  let anyAttempted = false;
+  let anyCompiled = false;
   let anyDisagreement = false;
 
   for (const testCase of cases) {
@@ -87,6 +100,7 @@ async function main(): Promise<number> {
         legs.push({ provider, model: null, outcome: null, unavailable: reason });
         continue;
       }
+      anyAttempted = true;
       const compiler = createQueryCompiler(provider, { secrets });
       const outcome = await compiler.compile({
         text: testCase.question,
@@ -107,7 +121,7 @@ async function main(): Promise<number> {
       }
       perProvider.set(provider, stats);
       if (outcome.ok) {
-        anyRan = true;
+        anyCompiled = true;
         transcripts[testCase.id] = { ...transcripts[testCase.id], [provider]: outcome.raw };
       }
     }
@@ -201,8 +215,25 @@ async function main(): Promise<number> {
     console.log('');
   }
 
-  if (!anyRan) {
-    console.log('  No provider could run.');
+  if (anyAttempted && !anyCompiled) {
+    console.log('  A provider ran and produced no valid filter.');
+    console.log('');
+    console.log(
+      '  That is the schema doing its job, not the pipeline failing: out-of-schema output',
+    );
+    console.log(
+      '  is rejected rather than guessed at, and the rejection names the offending field.',
+    );
+    console.log(
+      '  A small local model does this on the harder questions — docs/nl-query.md § 5 has',
+    );
+    console.log('  the measured rate and the failure analysis.');
+    console.log('');
+    return 1;
+  }
+
+  if (!anyAttempted) {
+    console.log('  No provider could be attempted.');
     console.log('  · openai    — set OPENAI_API_KEY');
     console.log('  · anthropic — set ANTHROPIC_API_KEY');
     console.log('  · ollama    — start ollama and `ollama pull` the model in OLLAMA_MODEL');

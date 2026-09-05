@@ -65,7 +65,25 @@ export class OllamaCompiler implements QueryCompiler {
         { role: 'user', content: userPrompt(input.text) },
       ],
       format: providerSchema(),
-      options: { temperature: 0 },
+      options: {
+        // A translation, not a composition: the same question must produce the same filter, and an
+        // officer re-running a query should not get a different answer.
+        temperature: 0,
+        /**
+         * **Set explicitly, because the default silently truncates.**
+         *
+         * ollama defaults `num_ctx` to a small window (2–4k) and *quietly drops* whatever does not
+         * fit. Our system prompt carries the estate vocabulary — up to 200 camera ids — plus the
+         * grounding rules and a worked example, and it comfortably exceeds that. The failure mode
+         * is the worst kind: the rules at the end of the prompt vanish, the model invents a plate
+         * pattern, and the only symptom is an intermittent schema rejection that looks like model
+         * variance rather than a truncated prompt.
+         *
+         * Observed directly: the same question compiled cleanly, then failed after the prompt grew
+         * by a dozen lines. 8192 holds the whole prompt with room for the answer.
+         */
+        num_ctx: 8192,
+      },
     };
   }
 
