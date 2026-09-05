@@ -19,7 +19,7 @@
 import { z } from 'zod';
 import type { App } from '../server.js';
 import { authenticate, requireRole, userRoles, type Principal } from '../auth.js';
-import { can } from '@saakshi/shared';
+import { RetentionStatus, can } from '@saakshi/shared';
 import type { Db } from '../db/client.js';
 import { ErrorResponse } from './camera-contracts.js';
 import { CaseReference, PurposeStatement } from './audit-contracts.js';
@@ -111,6 +111,14 @@ const TraceSighting = z.object({
   matchStrength: z.number().nullable(),
   explanation: z.string(),
   basis: z.literal('observed'),
+  /**
+   * How long the source footage behind this sighting survives (D3-05).
+   *
+   * Per sighting, not per camera: a trace can span days, and the same camera's footage from Monday
+   * and from Thursday are on different clocks. `state: 'unknown'` when the owning department
+   * declared no retention period — never a default window nobody stated.
+   */
+  retention: RetentionStatus,
 });
 
 const TraceSegment = z.object({
@@ -317,10 +325,14 @@ export interface TraceRouteOptions {
    * it in full. Absent, every `cropUrl` is `null` — which is the truth on a machine with no MinIO.
    */
   presign?: CropPresigner;
+  /** `RETENTION_EXPIRING_SOON_HOURS` (D3-05), for the per-sighting retention clock. */
+  expiringSoonHours?: number;
 }
 
 export function registerTraceRoutes(app: App, options: TraceRouteOptions): void {
-  const service = options.service ?? new TraceService(options.db, undefined, options.presign);
+  const service =
+    options.service ??
+    new TraceService(options.db, undefined, options.presign, options.expiringSoonHours);
   const routes = new RouteService(options.db, options.osrm ?? new NullOsrmClient());
 
   /**

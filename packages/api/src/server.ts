@@ -31,6 +31,7 @@ import type { CropPresigner } from './services/trace.js';
 import { registerAlertRoutes } from './routes/alerts.js';
 import { registerStreamRoutes } from './routes/streams.js';
 import { registerAuditRoutes } from './routes/audit.js';
+import { registerRetentionRoutes } from './routes/retention.js';
 import type { AlertEngine } from './services/alerts.js';
 
 /**
@@ -187,6 +188,14 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'The tamper-evident chain: search it, verify it, and package evidence as a bundle ' +
             'anyone can re-check offline. Append-only in the database, not merely in this API.',
         },
+        {
+          name: 'evidence',
+          description:
+            'The retention clock: which cameras covered a place at a time, whether that footage ' +
+            'is still within its declared retention window, and the audited preservation queue. ' +
+            'A preservation request is an instruction to the owning department, not an automatic ' +
+            'retention extension — SAAKSHI does not operate any department’s recorder.',
+        },
         { name: 'health', description: 'Liveness' },
         { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
@@ -224,15 +233,18 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       // D3-01's road graph. Constructed here rather than inside the route so a test can hand in a
       // stub, and so a deployment with no OSRM simply routes nothing rather than failing to boot.
       osrm: new HttpOsrmClient({ baseUrl: env.OSRM_URL, timeoutMs: env.OSRM_TIMEOUT_MS }),
+      expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
     registerAlertRoutes(app, {
       db,
+      expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
     registerStreamRoutes(app, { db, env });
+    registerRetentionRoutes(app, { db, env });
     registerAuditRoutes(app, {
       db,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),

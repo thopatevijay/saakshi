@@ -17,6 +17,7 @@
  * instead of silently drawing three.
  */
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
+import type { RetentionStatus } from '@saakshi/shared';
 
 export type LinkMethod = 'plate_exact' | 'plate_fuzzy' | 'reid_bridge';
 
@@ -33,6 +34,14 @@ export interface TraceablePoint {
   located: boolean;
   linkMethod: LinkMethod;
   linkConfidence: number;
+  /**
+   * The retention clock on this sighting's source footage (D3-05).
+   *
+   * Carried on the point rather than looked up per render: the scrubber already holds the sighting
+   * the officer is looking at, and "how long have I got" belongs next to it. Per sighting, because
+   * a trace can span days and two sightings on the same camera are on two different clocks.
+   */
+  retention: RetentionStatus;
 }
 
 /** The properties every trace pin carries. Typed, so the map expressions and the tests agree. */

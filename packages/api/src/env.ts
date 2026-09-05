@@ -67,6 +67,10 @@ const EnvSchema = z.object({
   // Wall-clock ceiling on one upstream request. Without one, a gateway that stops answering holds
   // a concurrency slot forever and the relay wedges — observed live on 2026-09-05.
   STREAM_RELAY_TIMEOUT_S: z.coerce.number().int().min(5).max(900).default(180),
+  // How close to expiry counts as "expiring soon" on the retention clock (D3-05). Two working days
+  // by default — about the shortest notice on which a request to another department can realistically
+  // be actioned. A district with a slower evidence desk needs a longer fuse, hence the knob.
+  RETENTION_EXPIRING_SOON_HOURS: z.coerce.number().min(1).max(8760).default(48),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

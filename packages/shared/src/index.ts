@@ -3,6 +3,7 @@ export * from './sighting.js';
 export * from './evidence.js';
 export * from './alert.js';
 export * from './rbac.js';
+export * from './retention.js';
 export * from './canonical-json.js';
 export * from './plate/index.js';
 
