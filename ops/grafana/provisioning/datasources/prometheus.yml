@@ -1,0 +1,19 @@
+# The one datasource, provisioned as code so a fresh `docker compose up` needs no console click.
+#
+# `uid` is fixed and every dashboard panel references it by that uid. Letting Grafana mint a random
+# one would make the committed dashboard JSON depend on the order the container happened to start
+# in — the classic reason a provisioned dashboard renders empty on somebody else's machine.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: saakshi-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Matches `global.scrape_interval` in ops/prometheus/prometheus.yml. Grafana uses it to pick a
+      # sane minimum step, so a panel cannot ask for finer resolution than the data has.
+      timeInterval: 15s

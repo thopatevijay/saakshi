@@ -32,7 +32,11 @@ import { registerAlertRoutes } from './routes/alerts.js';
 import { registerQueryRoutes } from './routes/query.js';
 import { createQueryCompiler, type QueryCompiler } from './query/index.js';
 import { registerStreamRoutes } from './routes/streams.js';
+import type { StreamRelay } from './services/stream-relay.js';
 import { registerAuditRoutes } from './routes/audit.js';
+import { registerMetricsRoutes } from './routes/metrics.js';
+import type { BusInspector } from './metrics.js';
+import { registerRetentionRoutes } from './routes/retention.js';
 import type { AlertEngine } from './services/alerts.js';
 
 /**
@@ -81,6 +85,12 @@ export interface ServerOptions {
    * tests so a provider can be exercised without a credential or a network.
    */
   queryCompiler?: QueryCompiler;
+  /**
+   * Read-only Valkey introspection for the bus-lag gauges on `/metrics` (D3-10). Omitted in tests
+   * and on a machine with no bus — the endpoint then reports the bus as unreachable rather than
+   * failing, which is the honest answer.
+   */
+  busInspector?: BusInspector;
 }
 
 export async function buildServer(options: ServerOptions): Promise<App> {
@@ -201,6 +211,14 @@ export async function buildServer(options: ServerOptions): Promise<App> {
             'The tamper-evident chain: search it, verify it, and package evidence as a bundle ' +
             'anyone can re-check offline. Append-only in the database, not merely in this API.',
         },
+        {
+          name: 'evidence',
+          description:
+            'The retention clock: which cameras covered a place at a time, whether that footage ' +
+            'is still within its declared retention window, and the audited preservation queue. ' +
+            'A preservation request is an instruction to the owning department, not an automatic ' +
+            'retention extension — SAAKSHI does not operate any department’s recorder.',
+        },
         { name: 'health', description: 'Liveness' },
         { name: 'auth', description: 'Session issuance and the signed-in user' },
       ],
@@ -221,6 +239,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     }),
   );
 
+  let relay: StreamRelay | undefined;
   if (db !== undefined) {
     registerCameraRoutes(app, {
       db,
@@ -238,10 +257,12 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       // D3-01's road graph. Constructed here rather than inside the route so a test can hand in a
       // stub, and so a deployment with no OSRM simply routes nothing rather than failing to boot.
       osrm: new HttpOsrmClient({ baseUrl: env.OSRM_URL, timeoutMs: env.OSRM_TIMEOUT_MS }),
+      expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
     });
     registerAlertRoutes(app, {
       db,
+      expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
@@ -250,13 +271,23 @@ export async function buildServer(options: ServerOptions): Promise<App> {
       db,
       compiler: options.queryCompiler ?? createQueryCompiler(env.QUERY_COMPILER),
     });
-    registerStreamRoutes(app, { db, env });
+    relay = registerStreamRoutes(app, { db, env });
+    registerRetentionRoutes(app, { db, env });
     registerAuditRoutes(app, {
       db,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
       ...(options.exportDir !== undefined ? { exportDir: options.exportDir } : {}),
     });
   }
+
+  // Last, so the onResponse hook it installs wraps every route above it, and so it can export the
+  // relay's own counters rather than a second copy of them (D3-10).
+  registerMetricsRoutes(app, {
+    env,
+    ...(db !== undefined ? { db } : {}),
+    ...(relay !== undefined ? { relay } : {}),
+    ...(options.busInspector !== undefined ? { bus: options.busInspector } : {}),
+  });
 
   return app;
 }

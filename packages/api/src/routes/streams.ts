@@ -153,7 +153,11 @@ export interface StreamRouteOptions {
   relay?: StreamRelay;
 }
 
-export function registerStreamRoutes(app: App, options: StreamRouteOptions): void {
+/**
+ * Returns the relay it registered, so `/metrics` can export its counters (D3-10) rather than
+ * re-instrumenting a component that already counts upstream fetches, hits and queue depth.
+ */
+export function registerStreamRoutes(app: App, options: StreamRouteOptions): StreamRelay {
   const { db, env } = options;
 
   const relay =
@@ -599,6 +603,8 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): voi
       return { layout };
     },
   );
+
+  return relay;
 }
 
 /**

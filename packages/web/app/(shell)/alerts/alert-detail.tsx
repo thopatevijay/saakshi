@@ -36,6 +36,8 @@ import {
   formatScore,
   traceWindow,
 } from '@/src/lib/alerts/present';
+import { evidenceClockSentence } from '@/src/lib/evidence/retention';
+import { RetentionChip } from '../evidence/retention-chip';
 import { reloadAlert } from './actions';
 import type { AlertRecord } from './types';
 
@@ -122,7 +124,24 @@ export function AlertDetail({ alert, mayTrace, onRefreshed }: AlertDetailProps) 
 
         {/* ── the payload ──────────────────────────────────────────────────────────────── */}
         <div className="min-w-0 space-y-5">
-          {/* Caveats first. They are the thing most likely to change an officer's mind. */}
+          {/* The clock, above the caveats. D3-05: the second question an officer asks after "is
+              this really the vehicle" is "how long have I got", and it has a deadline attached —
+              a caveat can be read tomorrow, an expiry cannot. */}
+          {alert.retention === null ? null : (
+            <div
+              className={`flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-xs ${
+                alert.retention.state === 'expired' || alert.retention.state === 'expiring_soon'
+                  ? 'border-amber-900/60 bg-amber-950/20 text-amber-100'
+                  : 'border-slate-800 bg-slate-900/40 text-slate-300'
+              }`}
+              data-testid="alert-retention"
+            >
+              <RetentionChip retention={alert.retention} showWindow />
+              <span>{evidenceClockSentence(alert.retention)}</span>
+            </div>
+          )}
+
+          {/* Caveats. They are the thing most likely to change an officer's mind. */}
           <div>
             <h3 className="text-[10px] font-semibold tracking-wide text-amber-400 uppercase">
               Read this before acting

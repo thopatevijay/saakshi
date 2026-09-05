@@ -113,6 +113,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/trace', label: 'Trace', capability: 'trace:run' },
   { href: '/alerts', label: 'Alerts', capability: 'alerts:view' },
   { href: '/audit', label: 'Audit', capability: 'audit:read' },
+  /**
+   * The retention clock (D3-05). Gated on `registry:read` rather than a new capability, because
+   * everything it reads *is* the registry — `cameras.retention_days`, `cameras.location` and the
+   * departments that own them. Every role holds `registry:read`, which is the right answer: "how
+   * long does this footage last" is a question an auditor needs to ask as much as an officer does,
+   * and answering it exposes no footage. Creating a preservation request is a separate matter and
+   * the API requires a write role for it.
+   */
+  { href: '/evidence', label: 'Evidence', capability: 'registry:read' },
   { href: '/sizing', label: 'Sizing', capability: 'sizing:use' },
 ];
 
@@ -128,6 +137,7 @@ export const ROUTE_CAPABILITIES: readonly { prefix: string; capability: Capabili
   { prefix: '/trace', capability: 'trace:run' },
   { prefix: '/alerts', capability: 'alerts:view' },
   { prefix: '/audit', capability: 'audit:read' },
+  { prefix: '/evidence', capability: 'registry:read' },
   { prefix: '/sizing', capability: 'sizing:use' },
 ];
 

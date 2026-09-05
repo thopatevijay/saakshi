@@ -34,7 +34,11 @@
  * stream.
  */
 import { useState } from 'react';
-import { canTransition, type AlertRecord, type AlertStatus } from '@saakshi/shared';
+import {
+  canTransition,
+  type AlertWithRetention as AlertRecord,
+  type AlertStatus,
+} from '@saakshi/shared';
 import {
   CATEGORY_LABEL,
   MATCH_STYLE,

@@ -2896,6 +2896,21 @@ export interface paths {
                                 explanation: string;
                                 /** @enum {string} */
                                 basis: "observed";
+                                retention: {
+                                    /** @enum {string} */
+                                    state: "available" | "expiring_soon" | "expired" | "unknown";
+                                    retentionDays: number | null;
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    remainingMs: number | null;
+                                    remainingDays: number | null;
+                                    remainingHours: number | null;
+                                    expiringSoonHours: number;
+                                    /** Format: date-time */
+                                    computedAt: string;
+                                    expiresOnIstDate: string | null;
+                                    label: string;
+                                };
                             }[];
                             segments: {
                                 fromSeq: number;
@@ -3406,6 +3421,21 @@ export interface paths {
                                 statusChangedAt: string | null;
                                 /** Format: date-time */
                                 createdAt: string;
+                                retention: {
+                                    /** @enum {string} */
+                                    state: "available" | "expiring_soon" | "expired" | "unknown";
+                                    retentionDays: number | null;
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    remainingMs: number | null;
+                                    remainingDays: number | null;
+                                    remainingHours: number | null;
+                                    expiringSoonHours: number;
+                                    /** Format: date-time */
+                                    computedAt: string;
+                                    expiresOnIstDate: string | null;
+                                    label: string;
+                                } | null;
                             }[];
                             nextCursor: string | null;
                             limit: number;
@@ -3798,6 +3828,21 @@ export interface paths {
                             statusChangedAt: string | null;
                             /** Format: date-time */
                             createdAt: string;
+                            retention: {
+                                /** @enum {string} */
+                                state: "available" | "expiring_soon" | "expired" | "unknown";
+                                retentionDays: number | null;
+                                /** Format: date-time */
+                                expiresAt: string | null;
+                                remainingMs: number | null;
+                                remainingDays: number | null;
+                                remainingHours: number | null;
+                                expiringSoonHours: number;
+                                /** Format: date-time */
+                                computedAt: string;
+                                expiresOnIstDate: string | null;
+                                label: string;
+                            } | null;
                         };
                     };
                 };
@@ -5025,6 +5070,561 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evidence/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Which cameras covered a location at a time, and whether that footage still exists
+         * @description Coverage is proximity to the registered position, not a viewshed. Cameras with no registered position cannot be ruled in or out and are returned in `unassessable` rather than dropped. A camera whose department declared no retention period is `unknown`, never assumed to be available or expired.
+         */
+        get: {
+            parameters: {
+                query: {
+                    lat: number;
+                    lon: number;
+                    radius_m?: number;
+                    at?: string;
+                    expiring_soon_hours?: number;
+                    department_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            query: {
+                                lat: number;
+                                lon: number;
+                                radiusM: number;
+                                at: string;
+                                expiringSoonHours: number;
+                            };
+                            /** @enum {string} */
+                            coverageModel: "proximity";
+                            coverageModelNote: string;
+                            covering: {
+                                /** Format: uuid */
+                                cameraId: string;
+                                externalId: string;
+                                name: string;
+                                district: string | null;
+                                /** Format: uuid */
+                                departmentId: string | null;
+                                departmentCode: string | null;
+                                departmentName: string | null;
+                                lat: number | null;
+                                lon: number | null;
+                                located: boolean;
+                                distanceM: number | null;
+                                retention: {
+                                    /** @enum {string} */
+                                    state: "available" | "expiring_soon" | "expired" | "unknown";
+                                    retentionDays: number | null;
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    remainingMs: number | null;
+                                    remainingDays: number | null;
+                                    remainingHours: number | null;
+                                    expiringSoonHours: number;
+                                    /** Format: date-time */
+                                    computedAt: string;
+                                    expiresOnIstDate: string | null;
+                                    label: string;
+                                };
+                            }[];
+                            unassessable: {
+                                /** Format: uuid */
+                                cameraId: string;
+                                externalId: string;
+                                name: string;
+                                district: string | null;
+                                /** Format: uuid */
+                                departmentId: string | null;
+                                departmentCode: string | null;
+                                departmentName: string | null;
+                                lat: number | null;
+                                lon: number | null;
+                                located: boolean;
+                                distanceM: number | null;
+                                retention: {
+                                    /** @enum {string} */
+                                    state: "available" | "expiring_soon" | "expired" | "unknown";
+                                    retentionDays: number | null;
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    remainingMs: number | null;
+                                    remainingDays: number | null;
+                                    remainingHours: number | null;
+                                    expiringSoonHours: number;
+                                    /** Format: date-time */
+                                    computedAt: string;
+                                    expiresOnIstDate: string | null;
+                                    label: string;
+                                };
+                            }[];
+                            counts: {
+                                covering: number;
+                                unassessable: number;
+                                byState: {
+                                    [key: string]: number;
+                                };
+                                truncated: boolean;
+                            };
+                            legend: {
+                                [key: string]: string;
+                            };
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evidence/retention/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How much of the estate is on which retention window, by declared period and department
+         * @description The `retentionDays: null` bucket is cameras whose department declared no retention period. It is a real bucket and is never folded into a default.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            totalCameras: number;
+                            declared: number;
+                            undeclared: number;
+                            shortestDeclaredDays: number | null;
+                            longestDeclaredDays: number | null;
+                            buckets: {
+                                retentionDays: number | null;
+                                cameras: number;
+                            }[];
+                            byDepartment: {
+                                /** Format: uuid */
+                                departmentId: string | null;
+                                departmentCode: string | null;
+                                departmentName: string | null;
+                                cameras: number;
+                                declared: number;
+                                undeclared: number;
+                                minRetentionDays: number | null;
+                                maxRetentionDays: number | null;
+                            }[];
+                            located: number;
+                            unlocated: number;
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evidence/preservation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The preservation queue, most urgent first
+         * @description Ordered on the retention state recomputed against now, not on the figure snapshotted when the request was made — urgency is a function of the current time. A preservation request is an instruction to the owning department, recorded and audited here. It does NOT extend retention automatically: SAAKSHI does not operate the recorder and cannot stop it overwriting. The owning department must act on this request before the expiry shown.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "open" | "acknowledged" | "preserved" | "declined";
+                    case_ref?: string;
+                    camera_id?: string;
+                    limit?: number;
+                    expiring_soon_hours?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                cameraId: string;
+                                cameraExternalId: string;
+                                cameraName: string;
+                                /** Format: uuid */
+                                departmentId: string | null;
+                                departmentCode: string | null;
+                                departmentName: string | null;
+                                windowStart: string;
+                                windowEnd: string;
+                                caseRef: string;
+                                purpose: string;
+                                /** Format: uuid */
+                                requestedBy: string | null;
+                                requestedByBadgeNo: string | null;
+                                requestedAt: string;
+                                /** @enum {string} */
+                                status: "open" | "acknowledged" | "preserved" | "declined";
+                                retentionDaysAtRequest: number | null;
+                                expiresAtAtRequest: string | null;
+                                auditHash: string;
+                                notes: string | null;
+                                retention: {
+                                    /** @enum {string} */
+                                    state: "available" | "expiring_soon" | "expired" | "unknown";
+                                    retentionDays: number | null;
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    remainingMs: number | null;
+                                    remainingDays: number | null;
+                                    remainingHours: number | null;
+                                    expiringSoonHours: number;
+                                    /** Format: date-time */
+                                    computedAt: string;
+                                    expiresOnIstDate: string | null;
+                                    label: string;
+                                };
+                            }[];
+                            limit: number;
+                            counts: {
+                                open: number;
+                                acknowledged: number;
+                                preserved: number;
+                                declined: number;
+                            };
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Record a request that the owning department preserve footage past its retention window
+         * @description A preservation request is an instruction to the owning department, recorded and audited here. It does NOT extend retention automatically: SAAKSHI does not operate the recorder and cannot stop it overwriting. The owning department must act on this request before the expiry shown.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        cameraId: string;
+                        /** Format: date-time */
+                        windowStart: string;
+                        /** Format: date-time */
+                        windowEnd: string;
+                        caseRef: string;
+                        purpose: string;
+                        notes?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            request: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                cameraId: string;
+                                cameraExternalId: string;
+                                cameraName: string;
+                                /** Format: uuid */
+                                departmentId: string | null;
+                                departmentCode: string | null;
+                                departmentName: string | null;
+                                windowStart: string;
+                                windowEnd: string;
+                                caseRef: string;
+                                purpose: string;
+                                /** Format: uuid */
+                                requestedBy: string | null;
+                                requestedByBadgeNo: string | null;
+                                requestedAt: string;
+                                /** @enum {string} */
+                                status: "open" | "acknowledged" | "preserved" | "declined";
+                                retentionDaysAtRequest: number | null;
+                                expiresAtAtRequest: string | null;
+                                auditHash: string;
+                                notes: string | null;
+                                retention: {
+                                    /** @enum {string} */
+                                    state: "available" | "expiring_soon" | "expired" | "unknown";
+                                    retentionDays: number | null;
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    remainingMs: number | null;
+                                    remainingDays: number | null;
+                                    remainingHours: number | null;
+                                    expiringSoonHours: number;
+                                    /** Format: date-time */
+                                    computedAt: string;
+                                    expiresOnIstDate: string | null;
+                                    label: string;
+                                };
+                            };
+                            auditHash: string;
+                            disclaimer: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            message: string;
+                            allowed?: string[];
+                            details?: {
+                                field: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

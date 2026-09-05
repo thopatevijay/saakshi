@@ -9,6 +9,7 @@
  */
 import { Redis } from 'ioredis';
 import type { SightingStreamReader, StreamEntry } from './sightings.js';
+import type { BusInspector } from '../metrics.js';
 
 /** ioredis returns `[ [stream, [ [id, [field, value, …] ], … ] ], … ]` — or null on a block timeout. */
 type XReadGroupReply = [string, [string, string[]][]][] | null;
@@ -57,6 +58,96 @@ export function createValkeyReader(url: string): SightingStreamReader {
     async ack(stream, group, ids) {
       if (ids.length === 0) return;
       await client.xack(stream, group, ...ids);
+    },
+
+    async close() {
+      await client.quit();
+    },
+  };
+}
+
+/**
+ * Read-only stream introspection for the bus-lag gauges (D3-10).
+ *
+ * Separate from the reader because it must *never* create a group or consume an entry: a monitoring
+ * client that joined `sightings-writer` would silently steal entries from the real consumer. It
+ * calls `XINFO` only.
+ *
+ * `enableOfflineQueue: false` so a scrape against a down Valkey fails immediately instead of
+ * queueing commands until the scrape times out — the metrics endpoint must answer even when a
+ * dependency is unreachable, because "unreachable" is exactly what it is there to report.
+ */
+export interface BusInspectorHandle extends BusInspector {
+  close(): Promise<void>;
+}
+
+/** ioredis returns XINFO replies as a flat `[field, value, field, value, …]` array. */
+function fieldsOf(reply: unknown): Map<string, unknown> {
+  const out = new Map<string, unknown>();
+  if (!Array.isArray(reply)) return out;
+  for (let i = 0; i + 1 < reply.length; i += 2) {
+    out.set(String(reply[i]), reply[i + 1]);
+  }
+  return out;
+}
+
+function toNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** ioredis hands back `Buffer | string | number | null` per field; only a string is a group name. */
+function toText(value: unknown, fallback: string): string {
+  if (typeof value === 'string') return value;
+  if (Buffer.isBuffer(value)) return value.toString('utf8');
+  return fallback;
+}
+
+/** `ERR no such key` — a stream nobody has published to yet. Zero entries, not an error. */
+function isMissingStream(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('no such key');
+}
+
+export function createValkeyInspector(url: string): BusInspectorHandle {
+  const client = new Redis(url, {
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+  });
+  // A metrics client must never crash the process it is measuring.
+  client.on('error', () => {});
+
+  return {
+    async streamLength(stream) {
+      try {
+        return toNumber(fieldsOf(await client.xinfo('STREAM', stream)).get('length'));
+      } catch (error) {
+        if (isMissingStream(error)) return 0;
+        throw error;
+      }
+    },
+
+    async groups(stream) {
+      let reply: unknown;
+      try {
+        reply = await client.xinfo('GROUPS', stream);
+      } catch (error) {
+        if (isMissingStream(error)) return [];
+        throw error;
+      }
+      if (!Array.isArray(reply)) return [];
+      return reply.map((entry) => {
+        const fields = fieldsOf(entry);
+        return {
+          name: toText(fields.get('name'), 'unknown'),
+          pending: toNumber(fields.get('pending')),
+          // `lag` is null when Valkey cannot compute it (entries trimmed away beneath the group's
+          // cursor). Reported as 0 rather than invented, and the pending gauge still tells the
+          // "stuck consumer" half of the story.
+          lag: toNumber(fields.get('lag')),
+          consumers: toNumber(fields.get('consumers')),
+        };
+      });
     },
 
     async close() {

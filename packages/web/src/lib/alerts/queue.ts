@@ -23,7 +23,12 @@
  * put it. D2-06: **`categoryRank` first, severity second** — five categories map onto four severity
  * values, and severity alone silently loses the ticket's ordering.
  */
-import { SEVERITY_ORDER, canTransition, type AlertRecord, type AlertStatus } from '@saakshi/shared';
+import {
+  SEVERITY_ORDER,
+  canTransition,
+  type AlertWithRetention as AlertRecord,
+  type AlertStatus,
+} from '@saakshi/shared';
 import type { AlertSort } from './query';
 
 export interface QueueState {
