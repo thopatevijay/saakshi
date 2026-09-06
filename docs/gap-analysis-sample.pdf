@@ -21,12 +21,12 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 8 0 R >>
 endobj
 8 0 obj
-<< /Length 13819 >>
+<< /Length 13807 >>
 stream
 q 0 g BT /F2 16 Tf 1 0 0 1 44 797.89 Tm (SAAKSHI · Camera coverage gap analysis) Tj ET Q
 q 0.4 g BT /F1 8.5 Tf 1 0 0 1 44 781.89 Tm (Gujarat Police Innovation Challenge 2026 - Pillar 1, Model 1 deliverable) Tj ET Q
 q 0.6 G 1 w 44 773.89 m 551.28 773.89 l S Q
-q 0.45 g BT /F1 8 Tf 1 0 0 1 44 755.89 Tm (Generated 2026-09-05T19:27:32.418Z from database saakshi_d3_06) Tj ET Q
+q 0.45 g BT /F1 8 Tf 1 0 0 1 44 755.89 Tm (Generated 2026-09-06T05:03:33.501Z from database saakshi) Tj ET Q
 q 0 g BT /F2 12 Tf 1 0 0 1 44 739.89 Tm (1 · Read this before any percentage) Tj ET Q
 q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 723.89 Tm (This report covers 50 of 80 registered cameras. The other 30 are unassessable, not uncovered: the upstream catalogue publishes {id,) Tj ET Q
 q 0.2 g BT /F1 8.5 Tf 1 0 0 1 44 712.89 Tm (name} only, so they carry no coordinates and no district, and no spatial question can be asked of them at all. They are counted in) Tj ET Q
@@ -63,8 +63,8 @@ q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 496.89 Tm (\(D1-09, #13\). A coverage polygon f
 q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 485.89 Tm (is why the trust band, not the polygon, decides whether a metre of road counts as covered. Likewise 8 of 30 measured cameras fail) Tj ET Q
 q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 474.89 Tm (night usability \(D1-05, #9\): a junction covered only by a night-blind camera is uncovered for half of every day.) Tj ET Q
 q 0 g BT /F2 12 Tf 1 0 0 1 44 457.89 Tm (3 · Method) Tj ET Q
-q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 441.89 Tm (Cell radius by geometry class, all assumed: anpr_viable 60 m, detection_only 120 m, unclassified 60 m. Denominator: 218026.20 km) Tj ET Q
-q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 430.89 Tm (over 5,40,584 ways; service, track, path, footway and cycleway were excluded at import \(D3-01, #24\). ST_Intersection and) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 441.89 Tm (Cell radius by geometry class, all assumed: anpr_viable 60 m, detection_only 120 m, unclassified 60 m. Denominator: 218137.50 km) Tj ET Q
+q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 430.89 Tm (over 5,40,711 ways; service, track, path, footway and cycleway were excluded at import \(D3-01, #24\). ST_Intersection and) Tj ET Q
 q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 419.89 Tm (ST_Difference are evaluated independently in EPSG:32643 and reconciled to 1 m; the generator refuses to publish if a slice falls) Tj ET Q
 q 0.3 g BT /F1 8.5 Tf 1 0 0 1 44 408.89 Tm (outside that.) Tj ET Q
 q 0.35 g BT /F2 7.5 Tf 1 0 0 1 44 391.89 Tm (slice) Tj ET Q
@@ -203,7 +203,7 @@ q 0 g BT /F1 7.5 Tf 1 0 0 1 98.56 72.89 Tm (72.562200) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 168.56 72.89 Tm (23.009330) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 239.83 72.89 Tm (5) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 248 72.89 Tm (Ashram Road) Tj ET Q
-q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-05T19:27:32.418Z · saakshi_d3_06 · not a survey) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-06T05:03:33.501Z · saakshi · not a survey) Tj ET Q
 q 0.55 g BT /F1 6.5 Tf 1 0 0 1 538.63 28 Tm (1 / 2) Tj ET Q
 endstream
 endobj
@@ -211,7 +211,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 10 0 R >>
 endobj
 10 0 obj
-<< /Length 46719 >>
+<< /Length 46713 >>
 stream
 q 0.35 g BT /F2 7.5 Tf 1 0 0 1 59.58 797.89 Tm (#) Tj ET Q
 q 0.35 g BT /F2 7.5 Tf 1 0 0 1 123.39 797.89 Tm (lon) Tj ET Q
@@ -1092,12 +1092,12 @@ q 0 g BT /F1 7.5 Tf 1 0 0 1 464 224.89 Tm (D3-05 \(#28\)) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 44 214.89 Tm (Road network) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 224 214.89 Tm (540,584 GiST-indexed ways from Geofabrik western-zone, clipped to...) Tj ET Q
 q 0 g BT /F1 7.5 Tf 1 0 0 1 464 214.89 Tm (D3-01 \(#24\)) Tj ET Q
-q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-05T19:27:32.418Z · saakshi_d3_06 · not a survey) Tj ET Q
+q 0.55 g BT /F1 6.5 Tf 1 0 0 1 44 28 Tm (SAAKSHI gap analysis · generated 2026-09-06T05:03:33.501Z · saakshi · not a survey) Tj ET Q
 q 0.55 g BT /F1 6.5 Tf 1 0 0 1 538.63 28 Tm (2 / 2) Tj ET Q
 endstream
 endobj
 11 0 obj
-<< /Title (SAAKSHI - camera coverage gap analysis) /Author (SAAKSHI) /Subject (Generated from live data. Coverage cells are radius discs, not measured fields of view; the radii are assumptions. Cameras without coordinates are unassessable, not uncovered.) /Producer (SAAKSHI) /CreationDate (D:20260905192732Z) >>
+<< /Title (SAAKSHI - camera coverage gap analysis) /Author (SAAKSHI) /Subject (Generated from live data. Coverage cells are radius discs, not measured fields of view; the radii are assumptions. Cameras without coordinates are unassessable, not uncovered.) /Producer (SAAKSHI) /CreationDate (D:20260906050333Z) >>
 endobj
 xref
 0 12
@@ -1110,11 +1110,11 @@ xref
 0000000425 00000 n 
 0000000520 00000 n 
 0000000682 00000 n 
-0000014554 00000 n 
-0000014717 00000 n 
-0000061490 00000 n 
+0000014542 00000 n 
+0000014705 00000 n 
+0000061472 00000 n 
 trailer
 << /Size 12 /Root 1 0 R /Info 11 0 R >>
 startxref
-61819
+61801
 %%EOF
