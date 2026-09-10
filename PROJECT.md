@@ -5,25 +5,26 @@
 
 ---
 
-## 0. Hard facts (verified from the official portal, 3 Sep 2026)
+## 0. Hard facts (verified from the official portal, 3 Sep 2026 · dates re-verified 10 Sep 2026)
 
 | Item | Value |
 |---|---|
 | Organiser | Home Department, Govt. of Gujarat / State Crime Records Bureau (SCRB) |
 | Portal | https://sentinel.gujarat.gov.in |
 | Tech partner | i-Hub Gujarat · Knowledge partners: NFSU, DA-IICT (Dhirubhai Ambani University) |
-| **Registration + submission close** | **7 Sep 2026** |
-| Shortlisting | 7 Sep 2026, evening |
-| Grand Finale (in person) | 10–11 Sep 2026, i-Hub Gujarat, Gandhinagar |
-| Results | 11 Sep 2026 |
+| **Registration + submission close** | **15 Sep 2026** — *extended; the portal labels this "NEW DEADLINE"* |
+| Shortlisting | 15 Sep 2026, evening |
+| Grand Finale (in person) | **22–23 Sep 2026**, i-Hub Gujarat, Gandhinagar — *portal labels this "EXTENDED"* |
+| Results | 23 Sep 2026 |
+| *Superseded dates* | *Originally 7 Sep close · 10–11 Sep finale · 11 Sep results. The organisers extended "due to the overwhelming response and numerous requests from participants."* |
 | Prize pool | ₹51,00,000 (Phase 1 ₹18L + Phase 2 ₹31L + ₹2L additional) |
 | Our category | **Category 1** — Student / Researcher / **Professional** / DPIIT startup |
 | Our entry | **Solo** (Vijay Thopate), registered as Professional |
 | Helpdesk | +91 95370 89982 · sentinel.hackathon@gujarat.gov.in (Mon–Sat 10:00–18:00) |
 
 **Phase 1 is remote.** Submission is entirely by link (unlisted YouTube / Drive / hosted URL / Git repo).
-Travel to Gandhinagar is required **only if we place in the top 6**. Shortlist drops 7 Sep evening,
-event starts 10 Sep — roughly 2.5 days of travel notice. *Confirm by phone; the portal never states
+Travel to Gandhinagar is required **only if we place in the top 6**. Shortlist drops 15 Sep evening,
+event starts 22 Sep — roughly a week of travel notice, comfortably more than the original 2.5 days. *Confirm by phone; the portal never states
 this in words.*
 
 ### Non-negotiable requirements pulled from the problem statement
@@ -537,7 +538,7 @@ onboarding_responses (department_id, questionnaire jsonb, submitted_at)
 - [ ] Scalability Strategy
 - [ ] Future Roadmap
 
-### Submission artefacts (due 7 Sep)
+### Submission artefacts (due 15 Sep)
 
 - [ ] Solution Presentation (PPT/PDF)
 - [ ] Technical Proposal / HLD
@@ -632,7 +633,7 @@ weighting changes.
 - [ ] NL → query compiler *(optional, only if the above is done)*
 - [ ] **Record the own-feed demo video (2–3 min)**
 
-### Day 4 — 7 Sep · submit **in the morning**
+### Day 4 — submit **in the morning** of 15 Sep
 - [ ] Government-feed demo recording + output report (plates & timestamps, CSV + PDF)
 - [ ] Deck covering all 10 dimensions, including "What this system does not do"
 - [ ] HLD finalised; diagrams exported
@@ -674,7 +675,7 @@ believed on everything else.
 | Local hardware can't sustain 10+ streams | Thin demo | Motion gating, frame sampling, best-shot-only OCR; state measured throughput and let the sizing model do the scaling argument |
 | A Model 5 exists in a document behind the login | Non-compliant submission | Day 0 check + helpdesk call |
 | Time — solo, 4 days | Incomplete submission | Gates are empirical and per-day; anything unfinished is closed as *deferred* with a reason and a roadmap entry, never silently dropped. No feature is pre-cut. |
-| Portal fails at deadline | Total loss | Submit midday 7 Sep, not evening |
+| Portal fails at deadline | Total loss | Submit midday 15 Sep, not evening |
 | Shortlisted with 2.5 days' travel notice | Miss the finale | Decide travel feasibility **now**, before Day 1 |
 
 ---

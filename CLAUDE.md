@@ -15,7 +15,7 @@ AI-powered CCTV integration and video analytics for the **Gujarat Police Innovat
 | `.github/plan/*.md` | All 44 tickets (AC, deliverables, validation gates) |
 | `.github/plan/issue-map.json` | Ticket id → GitHub issue number |
 
-**Deadline: 7 September 2026, submit by midday.** Repo: `thopatevijay/saakshi`.
+**Deadline: 15 September 2026, submit by midday** (extended from 7 Sep; finale 22–23 Sep). Repo: `thopatevijay/saakshi`.
 
 ## How to work
 
