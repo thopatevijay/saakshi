@@ -51,6 +51,7 @@ import {
   cameraCount,
   psqlFor,
   realFilterMatches,
+  realUnscoredPlaced,
   removeMapFixtures,
   seedMapFixtures,
   unplacedCount,
@@ -78,6 +79,7 @@ console.log('\nEstate-independent fixtures\n');
 const camerasBefore = cameraCount(sql);
 const unplacedBefore = unplacedCount(sql);
 const realMatches = realFilterMatches(sql);
+const realUnscored = realUnscoredPlaced(sql);
 let fixturesLive = false;
 
 const cleanupFixtures = () => {
@@ -385,10 +387,15 @@ check(
 // The first check is what stops the second from being vacuous. `hiddenLeaked === 0` is trivially
 // true on a map holding no unscored pins at all, which is precisely the state this script used to
 // run in — so the unfiltered load is asserted to have held them first.
+// Counted as `real + fixture`, the same way the filter expectation above is, and for the same
+// reason: the real estate now contributes placed cameras of its own, and an expectation written
+// against the fixtures alone measures how the estate happens to be seeded rather than what the map
+// did with it. `> 0` is the half that keeps the next check from being vacuous.
 const unscoredOnMap = onMap.filter((f) => f.band === 'unscored').length;
+const expectedUnscored = realUnscored + UNSCORED_COUNT;
 check(
-  unscoredOnMap === UNSCORED_COUNT,
-  `the unfiltered map held ${String(unscoredOnMap)} never-probed pins, so hiding the band is a real removal (${String(UNSCORED_COUNT)} fixtures carry no score)`,
+  unscoredOnMap === expectedUnscored && expectedUnscored > 0,
+  `the unfiltered map held ${String(unscoredOnMap)} never-probed pins, so hiding the band is a real removal (the ${String(expectedUnscored)} PostGIS predicted — ${String(realUnscored)} real + ${String(UNSCORED_COUNT)} fixture)`,
 );
 
 const hiddenLeaked = await cdp.evaluate(`(() => {

@@ -274,6 +274,23 @@ export function realFilterMatches(psql) {
 }
 
 /**
+ * How many *real* placed cameras the API bands `unscored`, so the expected count stays exact.
+ *
+ * D2-09 wrote the unscored assertion against `UNSCORED_COUNT` alone, which was right at the time:
+ * the catalogue published no coordinates, so **no real camera reached the map** and every unscored
+ * pin on it was a fixture. That is no longer true — the estate has placed cameras now — and the
+ * assertion started failing on every run for a reason that has nothing to do with the map. Same
+ * shape as `realFilterMatches`, and the same reason: compare against what PostGIS actually holds.
+ */
+export function realUnscoredPlaced(psql) {
+  return Number(
+    psql(`select count(*) from cameras
+           where deleted_at is null and location is not null and trust_score is null
+             and external_id not like '${FIXTURE_PREFIX}%'`),
+  );
+}
+
+/**
  * Insert the fixture estate. Idempotent: a previous crashed run is removed first, so a stale row
  * can never inflate a count or a cluster.
  */
