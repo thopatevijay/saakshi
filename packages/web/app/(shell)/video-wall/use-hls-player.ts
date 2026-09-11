@@ -36,6 +36,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type Hls from 'hls.js';
 import { rollingDeliveryRate, type FragmentTiming } from '@/src/lib/wall/delivery';
 import { playerClosed, playerOpened, playerUpdated, requestCounted } from '@/src/lib/wall/debug';
+import { registerConnectionCloser } from '@/src/lib/nav-teardown';
 
 /** How many fragments the rolling delivery rate is computed over. */
 const RATE_WINDOW = 6;
@@ -201,7 +202,14 @@ export function useHlsPlayer(options: {
 
     void open();
 
-    return () => {
+    // The same teardown, extracted so it can also be called from outside React — see
+    // `src/lib/wall/teardown.ts`. Leaving via a link must free the socket *before* the router
+    // issues its RSC fetch, or that fetch queues behind our own 120 s fragment loads and the
+    // whole app appears frozen for ~20 s. Guarded so the two callers cannot double-close.
+    let closed = false;
+    const close = (): void => {
+      if (closed) return;
+      closed = true;
       cancelled = true;
       if (hls !== null) {
         hls.destroy();
@@ -213,6 +221,13 @@ export function useHlsPlayer(options: {
       video.load();
       playerClosed(cameraId);
       setState(INITIAL);
+    };
+
+    const deregister = registerConnectionCloser(close);
+
+    return () => {
+      deregister();
+      close();
     };
   }, [videoRef, cameraId, externalId, slot, playlistUrl, enabled]);
 
