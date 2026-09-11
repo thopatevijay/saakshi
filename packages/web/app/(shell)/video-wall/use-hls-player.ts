@@ -203,7 +203,7 @@ export function useHlsPlayer(options: {
     void open();
 
     // The same teardown, extracted so it can also be called from outside React — see
-    // `src/lib/wall/teardown.ts`. Leaving via a link must free the socket *before* the router
+    // `src/lib/nav-teardown.ts`. Leaving via a link must free the socket *before* the router
     // issues its RSC fetch, or that fetch queues behind our own 120 s fragment loads and the
     // whole app appears frozen for ~20 s. Guarded so the two callers cannot double-close.
     let closed = false;
