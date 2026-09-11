@@ -2,7 +2,7 @@
   "name": "saakshi",
   "private": true,
   "version": "0.1.0",
-  "description": "SAAKSHI — AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
+  "description": "SAAKSHI \u2014 AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -14,6 +14,8 @@
   "scripts": {
     "predev": "npm run build --workspace @saakshi/shared",
     "dev": "npm run dev --workspace @saakshi/api & npm run dev --workspace @saakshi/web",
+    "start": "./scripts/start.sh",
+    "stop": "./scripts/stop.sh",
     "pretest": "npm run build --workspace @saakshi/shared",
     "build": "npm run build --workspace @saakshi/shared && npm run build --workspace @saakshi/api && npm run build --workspace @saakshi/web",
     "typecheck": "npm run build --workspace @saakshi/shared && npm run typecheck --workspace @saakshi/api && npm run typecheck --workspace @saakshi/web",

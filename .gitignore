@@ -37,3 +37,6 @@ exports/*
 # artefact is the upload, not the file.
 docs/recordings/d3-11-own-feed-master.mp4
 docs/recordings/*.marks.json
+
+# Local process pids and logs from scripts/start.sh
+.run/
