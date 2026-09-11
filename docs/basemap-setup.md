@@ -144,6 +144,44 @@ DATABASE_URL=… node scripts/verify-map.mjs    /tmp/token http://localhost:3100
 node scripts/verify-drawer.mjs                /tmp/token http://localhost:3100 http://localhost:4000  # the full trust breakdown
 ```
 
+### Two ways to make the map look permanently broken when it is not (D3-13)
+
+Both of these cost a full ticket. Neither produces a single error message anywhere, which is what
+makes them worth the space.
+
+**1 · Never run `next build` while `npm start`'s dev server is up — and if the map is blank, suspect
+this first.** `next dev` and `next build` used to share `packages/web/.next`. A production build
+writes a *clean* output into it and deletes the running dev server's chunk graph; the dev server
+keeps serving HTML that points at its now-deleted chunks, and every one 404s. `next/dynamic` swallows
+the rejected import, so the map sits on `Loading map…` **forever with nothing logged** — and the
+server-rendered shell still paints around it, so it reads as "the map broke" rather than "the client
+bundle is dead". Hydration never ran at all: the whole page is inert.
+
+It is now structurally impossible — `next build`/`next start` write `.next-prod`, `next dev` writes
+`.next` (see `packages/web/src/lib/dist-dir.ts`). Two things about the old failure are worth
+remembering anyway, because they are what made it look like a dependency problem:
+
+- **`npm ci` cannot fix it.** The damage is in the build output, not in `node_modules`.
+- **Restarting the dev server cannot fix it either.** `next dev` reuses the poisoned directory. Only
+  `rm -rf .next` recovered, so whichever server compiled last worked and the other was broken —
+  which is why it appeared to reproduce in dev *and* production at the same time.
+
+Anything that copies build output — a Dockerfile, a Railway deploy — must copy **`.next-prod`**.
+
+**2 · Never verify the map through a background browser tab.** Chrome **suspends
+`requestAnimationFrame` entirely** in a tab whose `visibilityState` is `hidden`, and clamps
+`setTimeout` to roughly 1 Hz. Measured on a hidden tab over 18.4 s: **0 rAF callbacks** where ~1,100
+were due, and 18 timer callbacks where ~368 were due.
+
+MapLibre drives its whole load and render pipeline from rAF, so in a hidden tab the map constructs
+and then does nothing: `styleLoaded` stays false, no `styledata`, no `dataloading`, no `sourcedata`,
+no `error`, no tiles — and `__saakshiMapErrors` stays empty. It is indistinguishable from a genuinely
+broken map in a screenshot, and it is *not* a bug. A minimised, occluded, or automation-driven window
+counts as hidden, and so does a devtools-driven tab that is not the foreground one.
+
+This is why the scripts below launch their own Chrome with an explicit `--window-size` rather than
+attaching to a browser you already have open. Drive the map with `cdp.mjs`, not by hand.
+
 `verify-map.mjs` **seeds its own placed cameras** (D2-09). The Sentinel catalogue publishes no
 coordinates, so without them four of its checks — clustering, street-zoom pins, the filter, and
 filter restoration from the URL — have nothing to assert against and fail on every run. It inserts

@@ -9,6 +9,9 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/.next/**',
+      // `next build`'s output, kept separate from `.next` so a build cannot delete the chunks a
+      // running `next dev` is serving — see packages/web/src/lib/dist-dir.ts (D3-13).
+      '**/.next-prod/**',
       '**/build/**',
       '**/*.d.ts',
       '.venv/**',

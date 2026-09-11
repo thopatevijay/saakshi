@@ -9,6 +9,22 @@
  * Why CDP at all, rather than jsdom: the acceptance criteria are about a **WebGL map** and about
  * **what the network tab shows**. Neither exists outside a real browser, and a test that asserts on
  * a mocked MapLibre would prove only that the mock was written to agree with the test.
+ *
+ * ## Why this launches its own Chrome instead of attaching to yours (D3-13)
+ *
+ * Chrome **suspends `requestAnimationFrame` completely** in a tab whose `visibilityState` is
+ * `hidden`, and clamps `setTimeout` to about 1 Hz. Measured on a hidden tab over 18.4 s: **0 rAF
+ * callbacks** where ~1,100 were due, and 18 timer callbacks where ~368 were due.
+ *
+ * MapLibre runs its entire load and render pipeline off rAF, so a map in a hidden tab constructs and
+ * then emits nothing at all — no `styledata`, no `dataloading`, no `sourcedata`, no `error`, no
+ * tiles, and an empty `__saakshiMapErrors`. That is indistinguishable from a genuinely broken map,
+ * and D3-13 lost a day to exactly that mistake: a blank map was investigated as a dependency, CSP
+ * and worker fault when the tab driving it was simply backgrounded.
+ *
+ * A minimised, occluded or automation-driven window counts as hidden. So the browser is launched
+ * here with an explicit `--window-size` and owned by the script, and map verification goes through
+ * these helpers rather than through a browser a human already has open.
  */
 import * as chromeLauncher from 'chrome-launcher';
 
