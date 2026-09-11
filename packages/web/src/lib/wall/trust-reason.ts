@@ -18,6 +18,7 @@
  * camera cannot be amber on one screen and red on another.
  */
 import { BAND_STYLE, bandKeyOf, type BandKey, type TrustBand } from '@/src/lib/registry/trust';
+import { istStamp } from '@/src/lib/time';
 
 export interface TrustFacts {
   readonly band: TrustBand | null;
@@ -74,7 +75,9 @@ const humanSignal: Record<string, string> = {
 function whenChecked(checkedAt: string | null): string {
   if (checkedAt === null) return '';
   const when = new Date(checkedAt);
-  return Number.isNaN(when.getTime()) ? '' : ` (last probed ${when.toLocaleString()})`;
+  // IST, not the runtime's zone — a bare `toLocaleString()` differs between server and browser
+  // and fails hydration. See `src/lib/time.ts`.
+  return Number.isNaN(when.getTime()) ? '' : ` (last probed ${istStamp(checkedAt)})`;
 }
 
 export function presentTrust(trust: TrustFacts): TrustPresentation {

@@ -34,6 +34,7 @@ import {
   bandKeyOf,
 } from '@/src/lib/registry/trust';
 import { Spinner } from '@/src/components/states';
+import { istStampWithSeconds } from '@/src/lib/time';
 import type { CameraDetailPayload } from './registry-screen';
 
 const CHIP = 'inline-block rounded border px-2 py-0.5 text-[11px] font-medium';
@@ -294,7 +295,7 @@ export function CameraDrawer({
                 </p>
               ) : (
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                  <Field label="Checked at" value={new Date(health.checkedAt).toLocaleString()} />
+                  <Field label="Checked at" value={istStampWithSeconds(health.checkedAt)} />
                   <Field label="Connectable" value={health.connectable ? 'yes' : 'no'} />
                   <Field label="Decodable" value={health.decodable ? 'yes' : 'no'} />
                   <Field
