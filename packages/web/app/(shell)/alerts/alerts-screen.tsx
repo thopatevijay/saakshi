@@ -56,6 +56,11 @@ import {
   windowFor,
   type QueueState,
 } from '@/src/lib/alerts/queue';
+import {
+  closeAllConnections,
+  isLeavingSection,
+  registerConnectionCloser,
+} from '@/src/lib/nav-teardown';
 import { AlertDetail } from './alert-detail';
 import { AlertFilters } from './alert-filters';
 import { AlertRow, ROW_HEIGHT } from './alert-row';
@@ -223,12 +228,38 @@ export function AlertsScreen({
       });
     };
 
-    return () => {
+    // Closed on navigation *intent*, not on unmount. React unmounts this screen only after the
+    // router commits the next route, and the router cannot commit until its RSC fetch returns —
+    // which queues behind this very connection, because the browser allows ~6 sockets per origin on
+    // HTTP/1.1 and an SSE stream holds one open indefinitely. Measured before this existed: leaving
+    // /alerts took over 25 s regardless of destination.
+    let closed = false;
+    const close = (): void => {
+      if (closed) return;
+      closed = true;
       source.close();
+    };
+    const deregister = registerConnectionCloser(close);
+
+    return () => {
+      deregister();
+      close();
     };
     // Opened once for the life of the screen, deliberately. Filters are applied to the *table*, not
     // to the wire: the stream carries everything, and re-subscribing on a filter change would drop
     // every alert raised during the gap. Volatile state reaches the handlers through refs.
+  }, []);
+
+  // Runs before Next's own click handler, so the socket is free by the time the router asks for the
+  // next route. Links within /alerts — filters, an expanded row — are deliberately ignored.
+  useEffect(() => {
+    const onClick = (event: MouseEvent): void => {
+      if (isLeavingSection(event, '/alerts')) closeAllConnections();
+    };
+    document.addEventListener('click', onClick, { capture: true });
+    return () => {
+      document.removeEventListener('click', onClick, { capture: true });
+    };
   }, []);
 
   /* ── measuring the expanded panel, so virtualisation stays exact ────────────────────────── */

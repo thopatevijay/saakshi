@@ -29,6 +29,7 @@ import { WallToolbar } from './wall-toolbar';
 import { SingleCameraView, type GatewaySelfTest } from './single-camera';
 import { loadManifest, saveLayout } from './actions';
 import type { RelayStats, StreamManifest, WallCamera } from './types';
+import { closeAllConnections, isLeavingSection } from '@/src/lib/nav-teardown';
 
 const SAVE_DEBOUNCE_MS = 800;
 const RELAY_POLL_MS = 5000;
@@ -62,6 +63,27 @@ export function WallScreen({
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   const saved = useRef<WallLayout>(initialLayout);
+
+  // ── Release the sockets on navigation intent, not on unmount ─────────────────────────────────
+  //
+  // React unmounts this page only *after* the router commits the next route, and the router cannot
+  // commit until its RSC fetch returns — which, on a throttled feed, queues behind our own in-flight
+  // segment loads (same origin, ~6 sockets, `fragLoadingTimeOut` deliberately 120 s). Measured:
+  // leaving a wall of 11 tiles took 20.6-21.1 s with the tab unresponsive throughout.
+  //
+  // Capture phase is the whole trick: this runs before Next's own click handler, so every player is
+  // closed and every socket free by the time the RSC fetch is issued. `isLeavingWall` deliberately
+  // ignores tile swaps, layout changes, modified clicks and new-tab clicks — closing the wall
+  // because someone re-arranged it would be a worse bug than the one being fixed.
+  useEffect(() => {
+    const onClick = (event: MouseEvent): void => {
+      if (isLeavingSection(event, '/video-wall')) closeAllConnections();
+    };
+    document.addEventListener('click', onClick, { capture: true });
+    return () => {
+      document.removeEventListener('click', onClick, { capture: true });
+    };
+  }, []);
 
   const byId = useMemo(() => new Map(cameras.map((camera) => [camera.id, camera])), [cameras]);
   const { rows, columns } = gridDimensions(layout.grid);
