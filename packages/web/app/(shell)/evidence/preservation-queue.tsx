@@ -10,6 +10,7 @@
  * a spreadsheet.
  */
 import { RetentionChip } from './retention-chip';
+import { istStamp } from '@/src/lib/time';
 import type { PreservationQueue as Queue } from './types';
 
 const LABEL = 'text-[11px] font-semibold tracking-wide text-slate-400 uppercase';
@@ -20,14 +21,6 @@ const STATUS_CHIP: Record<string, string> = {
   preserved: 'border-emerald-800 bg-emerald-950/60 text-emerald-300',
   declined: 'border-slate-700 bg-slate-800/60 text-slate-400',
 };
-
-function istStamp(iso: string): string {
-  return new Date(iso).toLocaleString('en-GB', {
-    timeZone: 'Asia/Kolkata',
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
-}
 
 export function PreservationQueue({ queue }: { queue: Queue | null }) {
   if (queue === null) {

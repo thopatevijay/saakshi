@@ -30,6 +30,7 @@
  * real estate and a panel full of "nothing wrong here" rows would bury the two that matter — the
  * count of what was assessable is in the header instead, so nothing is hidden by being omitted.
  */
+import { istStampWithSeconds } from '@/src/lib/time';
 import type { TracePayload } from './types';
 
 type Route = NonNullable<TracePayload['route']>;
@@ -219,7 +220,10 @@ function CropSide({ side, which }: { side: EvidenceSide; which: 'left' | 'right'
       )}
       <figcaption className="mt-1 text-[11px] text-slate-400">
         <span className="block font-medium text-slate-200">{side.cameraName}</span>
-        <span className="block tabular-nums">{new Date(side.ts).toLocaleString()}</span>
+        {/* Pinned to IST, not the runtime's zone: a bare `toLocaleString()` renders differently on
+            the server and in the browser, which fails hydration and makes React re-render this
+            whole page on the client. See `src/lib/time.ts`. */}
+        <span className="block tabular-nums">{istStampWithSeconds(side.ts)}</span>
         <span className="block tabular-nums">
           read <span className="text-slate-200">{side.plateNormalized}</span> · OCR{' '}
           {side.ocrConfidence.toFixed(2)} · link {side.linkConfidence.toFixed(2)}
