@@ -45,7 +45,7 @@ if (source !== undefined) {
 }
 
 try {
-  await app.listen({ port: env.API_PORT, host: '0.0.0.0' });
+  await app.listen({ port: env.API_PORT, host: env.API_HOST });
 } catch (err) {
   app.log.error(err);
   await listenSql.end();

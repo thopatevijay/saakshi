@@ -7,6 +7,14 @@ import { z } from 'zod';
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().positive().default(4000),
+  // The bind address. `0.0.0.0` is IPv4-only, which is the right default everywhere except one
+  // place: a Railway environment created before 16 October 2025 has an **IPv6-only** private
+  // network, so `<service>.railway.internal` resolves to an AAAA record that an IPv4 socket never
+  // answers. The web service then cannot reach the API at all, and the symptom is a connection
+  // timeout rather than a refusal, which reads like a firewall rather than a bind address. Newer
+  // environments are dual-stack and need nothing. Set `API_HOST=::` there — on Linux that accepts
+  // IPv4 on the same socket. See docs/deployment.md § Private networking.
+  API_HOST: z.string().min(1).default('0.0.0.0'),
   DATABASE_URL: z.string().min(1).default('postgres://saakshi:saakshi@localhost:5432/saakshi'),
   // Connections per API instance. Sized against expected concurrency: at ~1 ms per query, N
   // connections serve roughly N,000 req/s, and anything beyond that queues — which is latency the

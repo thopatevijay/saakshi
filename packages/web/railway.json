@@ -1,0 +1,17 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "packages/web/Dockerfile",
+    "watchPatterns": ["packages/web/**", "packages/shared/**", "packages/api/**", "package-lock.json"]
+  },
+  "deploy": {
+    "startCommand": "sh -c '/app/node_modules/.bin/next start --port ${PORT:-3000} --hostname 0.0.0.0'",
+    "healthcheckPath": "/login",
+    "healthcheckTimeout": 120,
+    "numReplicas": 1,
+    "sleepApplication": false,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
