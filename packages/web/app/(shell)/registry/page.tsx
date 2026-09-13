@@ -5,6 +5,7 @@ import { RegistryScreen } from './registry-screen';
 import { loadCameras } from './actions';
 import { parseRegistryState } from '@/src/lib/registry/query';
 import { can, UserRole } from '@saakshi/shared';
+import { StartHere } from '@/src/components/start-here';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,8 +66,17 @@ export default async function RegistryPage({
     );
   }
 
+  // The "Start here" panel's deep links are built from state that actually exists rather than from
+  // constants: a link to a plate with no sightings, or a camera id that was never onboarded, is
+  // worse than no link at all. `DEMO_TRACE_PLATE` is the registration `npm run demo:trace` seeds a
+  // full route for; the camera is the first placed one on this page, so the pin opens on the map.
+  const demoPlate = process.env['DEMO_TRACE_PLATE'] ?? 'GJ01AB1234';
+  const placed = page.cameras.find((camera) => camera.lat !== null && camera.lon !== null) ?? null;
+
   return (
-    <RegistryScreen
+    <div className="space-y-6">
+      <StartHere role={role} plate={demoPlate} cameraId={placed?.id ?? null} />
+      <RegistryScreen
       initialCameras={page.cameras}
       initialCapped={page.capped}
       initialElapsedMs={page.elapsedMs}
@@ -77,6 +87,7 @@ export default async function RegistryPage({
       canWrite={can(role, 'registry:write')}
       canImport={can(role, 'registry:import')}
       canDelete={can(role, 'registry:delete')}
-    />
+      />
+    </div>
   );
 }

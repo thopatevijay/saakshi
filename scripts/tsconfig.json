@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // `check-links.ts` uses `fetch`, which lives in the DOM lib rather than in @types/node's
+    // globals. These CLIs are run with `tsx` and never bundled, so widening the lib here costs
+    // nothing and keeps type-aware linting working on them.
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["*.ts"]
+}

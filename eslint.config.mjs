@@ -29,6 +29,9 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         // Root-level tooling config is in no package's tsconfig; type-aware linting still applies.
+        // The `scripts/*.ts` CLIs have their own `scripts/tsconfig.json` instead of living here:
+        // they import workspace dependencies (`postgres`), and `allowDefaultProject` cannot resolve
+        // those, which turns every call into a no-unsafe-* error.
         projectService: {
           allowDefaultProject: ['vitest.config.ts'],
         },
