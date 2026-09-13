@@ -150,7 +150,7 @@ who can pull it and `docker history` outlives a later `rm`).
 | `DATABASE_URL` | `postgres://saakshi:…@db.railway.internal:5432/saakshi` | private network |
 | `DATABASE_POOL_MAX` | `20` | one replica; leaves headroom under `max_connections=300` for the local workers |
 | `VALKEY_URL` | `redis://:…@valkey.railway.internal:6379` | private network |
-| `MINIO_ENDPOINT` | `http://minio.railway.internal:9000` | private network; the console is never exposed |
+| `MINIO_ENDPOINT` | `https://<minio-domain>` — the **public S3 host**, not the private one | see § 3.1. The console is still never exposed |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | Railway variables | never in the repo |
 | `MINIO_BUCKET` | `saakshi-evidence` | |
 | `JWT_SECRET` | a generated 48-byte secret | the code's default is a development value and **must** be overridden |
@@ -158,6 +158,39 @@ who can pull it and `docker history` outlives a later `rm`).
 | `QUERY_COMPILER` | `none` (or `openai` with a key) | with `none` the console is fully functional and fully open source |
 | `STREAM_RELAY_*` | defaults | `STREAM_RELAY_TIMEOUT_S=180` sits **under** Railway's 300 s edge cap — see § 5 |
 | `SENTINEL_*` | set only if the hosted API should reach the sandbox directly | optional |
+
+### 3.1 · Why `MINIO_ENDPOINT` is the public host
+
+This looks like a mistake and is not. Evidence crops are served to the browser as **presigned S3
+URLs**: `services/crop-url.ts` mints one per sighting on read, and
+`packages/web/src/lib/alerts/present.ts` puts it straight into an `<img src>`. There is no proxy in
+between and no separate "public endpoint" setting — `evidenceStoreFromEnv` signs against
+`MINIO_ENDPOINT`, and **SigV4 binds the Host header**, so the signing host and the host the browser
+dials have to be the same string.
+
+With `MINIO_ENDPOINT` pointing at `minio.railway.internal`, every crop in the deployed console is a
+broken image: the URL is correctly signed for a hostname no browser outside the private network can
+resolve.
+
+So MinIO is given a public domain bound to **port 9000 only**. A Railway domain targets one port, so
+the console on **9001 is not routed at all** — which is what the acceptance criterion actually
+protects. Measured on the deployment:
+
+| Request | Result |
+|---|---|
+| a presigned crop URL | `HTTP 200`, `image/jpeg`, 2,864 bytes — a real 52×56 plate crop |
+| the same object with no signature | `HTTP 403` |
+| the domain root | `HTTP 403` with an S3 `AccessDenied` document — the **S3 API** answering, not a console |
+
+The bucket stays private; only time-limited signatures work, and `CROP_URL_TTL_SECONDS` is 900, so a
+URL in a screenshot rots within fifteen minutes. The cost of the arrangement is that the API's own
+object traffic now leaves the private network. Under Topology B the workers that write crops are
+outside it anyway, so this is the same trip either way.
+
+The alternative — a route handler in `packages/web` that streams the object server-side, the way the
+video-wall stream proxy already does — keeps MinIO entirely private and is the better long-term
+design. It is a change to how evidence is served rather than to how it is deployed, so it is logged
+to `BL-01` rather than made here.
 
 ### `web`
 
