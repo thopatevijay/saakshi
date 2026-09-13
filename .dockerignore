@@ -1,0 +1,58 @@
+# The build context is the repo root for both images (they share a lockfile and a workspace).
+# Everything below either cannot be in an image or must not be: secrets, 4 GB of local OSM
+# working files, and build output that the image rebuilds itself.
+
+.git
+.github
+node_modules
+**/node_modules
+
+# Build output — every image builds its own. `.next-prod` in particular must never be copied
+# from the host: D3-13 split it from `.next` precisely so a stale copy cannot be served.
+dist
+**/dist
+.next
+**/.next
+.next-prod
+**/.next-prod
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Secrets and local-only state. `.env` must never enter a layer — an image layer is readable by
+# anyone who can pull the image, and `docker history` survives a later `rm`.
+.env
+.env.*
+!.env.example
+.dev-refs.md
+.prp
+.run
+.claude
+
+# 4+ GB of OSM extracts and OSRM graphs used only by scripts/import-osm.sh. The basemap the web
+# image needs is rebuilt inside that image by scripts/build-basemap.sh, so nothing here is lost.
+data
+recon-out
+models
+*.pt
+*.onnx
+*.pmtiles
+*.osm.pbf
+
+# Evidence crops and export bundles are runtime artefacts of a *running* system, reproducible
+# from the database. Baking a local copy into an image would ship one operator's working set.
+evidence
+exports
+
+# Python local state. The workers are not containerised by D4-01 (Topology B — they run locally).
+.venv
+.pytest_cache
+__pycache__
+**/__pycache__
+*.pyc
+
+# Recordings and screenshots: submission artefacts, tens of MB, and of no use to a server.
+docs/recordings
+docs/screenshots
+
+.DS_Store
+*.log
