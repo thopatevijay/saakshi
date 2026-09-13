@@ -209,41 +209,50 @@ replica halves that benefit. `numReplicas: 1` in `packages/api/railway.json` is 
 
 ---
 
-## 5.1 · `railway.json` is deprecated — read this before trusting it
+## 5.1 · Config as code: `railway.json` is deprecated, `.railway/railway.ts` is not
 
-`packages/api/railway.json` and `packages/web/railway.json` are committed, and they are **not
-currently applied**. Railway now rejects config-as-code outright:
+Railway rejects config-as-code outright:
 
 > *Config as Code (railway.json / railway.toml) is deprecated. Use Infrastructure as Code
 > (`.railway/railway.ts`) instead.*
 
-That is the API's own error, returned when pointing a service at its config file. The files are kept
-because they are the **declarative record of the intended service configuration** — replicas,
-healthcheck, `sleepApplication: false`, and the migration release step — and because they are the
-shortest path to the IaC migration. They are not a description of what the platform is doing today.
+That is the API's own error. Two per-package `railway.json` files were written first and were
+**never applied** — which is exactly why the migration release step silently did not exist. They have
+been **deleted** rather than kept as a record: a config file the platform refuses is worse than no
+config file, because it reads as configuration that is in force. **`.railway/railway.ts`** replaces
+them, and the platform does read it.
 
-What is actually in force:
-
-| Intent | Expressed by |
-|---|---|
-| Which Dockerfile builds a service | `RAILWAY_DOCKERFILE_PATH` variable, per service |
-| Start command | each image's own `CMD` |
-| Volumes | `railway volume --service <id> add --mount-path …` |
-| Public domain | `railway domain --service <name>` — only for `api` and `web` |
-| Migrations | **run explicitly** (see below), not as a `preDeployCommand` |
-
-**The migration release step is the one real casualty.** `preDeployCommand` cannot be set without
-config-as-code, and the CLI has no command for it (installed 4.30.2; `railway config` arrives in
-5.x). Migrations are therefore run as an explicit step after a deploy that changes the schema:
+It was produced with `railway config pull` against the running project rather than written from
+scratch — so it describes the deployment that exists, and `railway config plan` reported *"already up
+to date"* before anything was added to it. Secrets are `preserve()`: pulled without
+`--include-variables`, every value stays in Railway's variable store and none is in git.
 
 ```bash
-railway ssh --service api node packages/api/dist/db/migrate.js migrate
+npm install railway          # the SDK the authoring file imports
+railway config plan          # preview
+railway config apply         # apply
 ```
 
-This is safe here — `numReplicas` is 1, so there is no concurrent-migration race for a release step
-to prevent — but it is a manual step that a second replica would turn into a real hazard. Migrating
-to `.railway/railway.ts` restores it and is the first thing to do on this deployment. Logged to
-`BL-01`.
+Two things worth knowing before relying on it:
+
+- **`railway config apply` did not commit the change here.** It returned a change-set reference and
+  `plan` still showed the same diff afterwards, with the service instances unchanged
+  (`healthcheckPath: null`). The settings were applied through `serviceInstanceUpdate` on the
+  GraphQL API instead, and verified by reading them back. Logged to `BL-01`.
+- **`preDeployCommand` is a string, not an array.** An array is rejected with
+  `Error in preDeployCommand - Invalid input`.
+
+**The migration release step now exists**, which was the one real casualty of the deprecation:
+
+```
+preDeployCommand  node packages/api/dist/db/migrate.js migrate
+healthcheckPath   /health (api) · /login (web — `/` is a 307 to the login screen)
+numReplicas       1
+sleepApplication  false
+```
+
+Migrations therefore run once, before the new container takes traffic, and a failed migration fails
+the deployment instead of leaving a half-migrated database serving requests.
 
 ## 6 · Deploy runbook
 
@@ -283,7 +292,7 @@ for s in db valkey minio api web; do railway up --service "$s" --detach --ci; do
 railway ssh --service minio mc alias set local http://127.0.0.1:9000 saakshi "$MINIO_ROOT_PASSWORD"
 railway ssh --service minio mc mb --ignore-existing local/saakshi-evidence
 
-# ── 7 · migrations (see § 5.1 — explicit, not a release step)
+# ── 7 · migrations run themselves, as api's preDeployCommand (§ 5.1). To run one by hand:
 railway ssh --service api node packages/api/dist/db/migrate.js migrate
 
 # ── 8 · public domains for api and web ONLY.
@@ -367,10 +376,11 @@ What that returned:
 | Persistence | db and valkey redeployed; 20 migrations and every seed row intact, no re-`initdb`, Valkey's `appendonlydir` preserved |
 | Response time | api `/health` 1.08–1.25 s · web `/login` 1.15–1.20 s |
 
-**Latency is geography, not the application.** TTFB is 1.10 s, of which ~0.50 s is TCP + TLS from
-India to Railway's US region. `uptimeS 1669` on a cold request shows the container is warm — a judge
-meets a running app, not a boot screen. Moving the project to `asia-southeast1` would roughly halve
-the round trip and costs a volume recreation, because volumes are region-pinned.
+**Latency is geography, not the application.** TTFB is 1.10 s, of which ~0.50 s is TCP + TLS
+handshaking. The project already runs in **`asia-southeast1-eqsg3a` (Singapore)** — confirmed from
+the imported infrastructure graph, which is the nearest Railway region to Gujarat, so there is no
+region change worth making. `uptimeS 1669` on a cold request shows the container is warm: a judge
+meets a running app, not a boot screen.
 
 ### 7.1 · The registry is empty, and that is not a deployment fault
 

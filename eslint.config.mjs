@@ -17,6 +17,10 @@ export default tseslint.config(
       '.venv/**',
       'recon-out/**',
       'data/**',
+      // Railway's Infrastructure-as-Code authoring file (D4-01). It imports `railway/iac` and is
+      // evaluated by Railway's own runtime, not by anything this repo builds, so it sits outside
+      // every tsconfig — type-aware linting can only report it as an unmatched file.
+      '.railway/**',
     ],
   },
   js.configs.recommended,

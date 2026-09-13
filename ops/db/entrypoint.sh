@@ -70,4 +70,86 @@ chown -R "$PG_UID:$PG_GID" "$DATA"
 chmod 0700 "$DATA"
 echo "saakshi: PGDATA prepared (owner $(stat -c %u:%g "$DATA"), mode $(stat -c %a "$DATA")) - dropping to postgres"
 
+# ── TLS ───────────────────────────────────────────────────────────────────────────────────────────
+# Postgres ships with `ssl = off`, and Railway's TCP proxy is a **raw TCP forwarder** - it terminates
+# no TLS of its own. So a database reached over that proxy with SSL off carries its credentials and
+# every row of a police estate across the public internet in clear text. `sslmode=require` does not
+# save you: the client asks, the server says it cannot, and the connection is refused
+# (`server does not support SSL, but SSL was required`) - which is at least a loud failure, but it
+# means Topology B simply cannot run until the server has a certificate.
+#
+# This has to happen AFTER the cluster exists: on a first boot PGDATA is empty, `postgresql.auto.conf`
+# has not been written yet, and there is nothing to configure. Hence a background task that waits for
+# the socket, writes the settings with ALTER SYSTEM and reloads - `ssl` is a SIGHUP parameter, so no
+# restart is needed.
+#
+# The certificate is self-signed, and the honest consequence is stated rather than hidden: it gives
+# **encryption in transit, not server authentication**. Clients therefore use `sslmode=require`, which
+# encrypts without verifying the issuer. `verify-full` needs a certificate from a real CA, which is a
+# production concern for a department deployment; see docs/deployment.md.
+configure_tls() {
+  local crt="$DATA/server.crt"
+  local key="$DATA/server.key"
+  local sock=""
+
+  # NOT $PGSOCKET. The image sets PGSOCKET=/home/postgres/pgdata, but the running server actually
+  # listens on /var/run/postgresql (symlinked from /run/postgresql) - verified in the container:
+  #     srwxrwxrwx 1 postgres postgres 0 /var/run/postgresql/.s.PGSQL.5432
+  # Trusting PGSOCKET made every psql here fail with `No such file or directory`, and because the
+  # wait loop used the same wrong path it burned its full timeout before reporting. Probe instead of
+  # believing a variable.
+  for _ in $(seq 1 180); do
+    for candidate in /var/run/postgresql /run/postgresql "$PGSOCKET" /tmp; do
+      if [ -S "$candidate/.s.PGSQL.5432" ]; then sock="$candidate"; break; fi
+    done
+    if [ -n "$sock" ]; then
+      if gosu postgres psql -h "$sock" -U postgres -d "${POSTGRES_DB:-saakshi}" -Atc 'select 1' >/dev/null 2>&1; then break; fi
+      if gosu postgres psql -h "$sock" -U "${POSTGRES_USER:-saakshi}" -d "${POSTGRES_DB:-saakshi}" -Atc 'select 1' >/dev/null 2>&1; then break; fi
+    fi
+    sleep 1
+  done
+
+  if [ -z "$sock" ]; then
+    echo "saakshi: no postgres socket found - leaving ssl off" >&2
+    return 0
+  fi
+
+  if [ ! -f "$key" ]; then
+    echo "saakshi: generating a self-signed server certificate for TLS"
+    openssl req -new -x509 -days 3650 -nodes -text -out "$crt" -keyout "$key" -subj "/CN=saakshi-db" >/dev/null 2>&1
+    # Postgres refuses to start with a key any wider than 0600, and refuses one it does not own.
+    chown "$PG_UID:$PG_GID" "$crt" "$key"
+    chmod 0600 "$key"
+    chmod 0644 "$crt"
+  fi
+
+  if [ ! -f "$key" ]; then
+    echo "saakshi: certificate generation failed - leaving ssl off" >&2
+    return 0
+  fi
+
+  # ALTER SYSTEM needs a superuser. In this image the bootstrap superuser is `postgres`; the role
+  # named by POSTGRES_USER is the application role and may not have the privilege, so try the
+  # superuser first and fall back. Errors are logged rather than swallowed - the previous revision
+  # hid the real reason behind `2>&1 >/dev/null` and cost a deploy to diagnose.
+  local out rc=1
+  for role in postgres "${POSTGRES_USER:-saakshi}"; do
+    out="$(gosu postgres psql -h "$sock" -U "$role" -d "${POSTGRES_DB:-saakshi}" \
+      -v ON_ERROR_STOP=1 \
+      -c "alter system set ssl = 'on'" \
+      -c "alter system set ssl_cert_file = '$crt'" \
+      -c "alter system set ssl_key_file = '$key'" \
+      -c "select pg_reload_conf()" 2>&1)"
+    rc=$?
+    if [ "$rc" = 0 ]; then
+      echo "saakshi: TLS enabled as role '$role' (self-signed; clients use sslmode=require)"
+      return 0
+    fi
+    echo "saakshi: enabling TLS as role '$role' failed: $(echo "$out" | tr '\n' ' ' | cut -c1-300)" >&2
+  done
+  return 0
+}
+
+configure_tls &
+
 exec gosu postgres /docker-entrypoint.sh "$@"
