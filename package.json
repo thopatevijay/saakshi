@@ -2,7 +2,7 @@
   "name": "saakshi",
   "private": true,
   "version": "0.1.0",
-  "description": "SAAKSHI \u2014 AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
+  "description": "SAAKSHI — AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -57,6 +57,7 @@
     "eslint-config-prettier": "^10.1.8",
     "lighthouse": "^12.8.2",
     "prettier": "^3.6.2",
+    "railway": "^3.11.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.44.0",
     "vitest": "^3.2.4"
