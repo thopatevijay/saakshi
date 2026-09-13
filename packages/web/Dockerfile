@@ -76,6 +76,22 @@ RUN npm ci --omit=dev \
       --workspace @saakshi/shared \
       --include-workspace-root
 
+# `next start` loads `next.config.ts`, and loading a TypeScript config requires the `typescript`
+# package at RUNTIME — not just at build time. The production install above prunes it, and Next's
+# response to that is to install it itself, on boot, with yarn:
+#
+#     ⚠ Installing TypeScript as it was not found while loading "next.config.ts".
+#     Installing devDependencies (yarn): - typescript@5.8.2
+#     yarn add v1.22.22 / info No lockfile found.
+#
+# A production container that reaches the network on boot to install a compiler is wrong three
+# times over: it is slow (cold start is one of this ticket's acceptance criteria), it fails closed
+# on an air-gapped or egress-restricted network — which is precisely the deployment this project
+# argues for — and it introduces yarn into an npm repository with no lockfile to pin it.
+#
+# `--no-save` keeps package.json untouched; this is an image detail, not a dependency change.
+RUN npm install --no-save --omit=optional typescript
+
 # ── runner ────────────────────────────────────────────────────────────────────────────────────────
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app

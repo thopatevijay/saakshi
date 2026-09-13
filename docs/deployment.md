@@ -71,13 +71,51 @@ over HTTP.
 
 ## 2 · The five services
 
-| Service | Source | Volume (mount) | Public domain |
+| Service | Built from | Volume (mount) | Public domain |
 |---|---|---|---|
-| `db` | image `timescale/timescaledb-ha:pg16` | `/home/postgres/pgdata/data` | **no** |
-| `valkey` | image `valkey/valkey:8-alpine` | `/data` | **no** |
-| `minio` | image `minio/minio` | `/data` | **no** |
+| `db` | `ops/db/Dockerfile` → `timescale/timescaledb-ha:pg16` | `/home/postgres/pgdata/data` | **no** |
+| `valkey` | `ops/valkey/Dockerfile` → `valkey/valkey:8-alpine` | `/data` | **no** |
+| `minio` | `ops/minio/Dockerfile` → `quay.io/minio/minio` | `/data` | **no** |
 | `api` | `packages/api/Dockerfile` | — | yes |
 | `web` | `packages/web/Dockerfile` | — | yes |
+
+**Every service is built from a Dockerfile in this repository**, selected per service with the
+`RAILWAY_DOCKERFILE_PATH` variable. The three datastores could have been plain image services, and
+were at first — but Railway takes an image service's **start command from a dashboard field the CLI
+cannot set**, and not one of the three runs correctly on its image default:
+
+- `minio` without `server /data` prints its help text and exits;
+- `valkey` without `--appendonly yes` keeps the stream in memory, so the attached volume is
+  decorative and a redeploy silently starts from empty;
+- `db` needs a wrapper for the volume-ownership problem described in § 2.1.
+
+Wrapping each in a two-line Dockerfile keeps the whole deployment reproducible from a clone, with no
+step that depends on someone remembering to click something.
+
+**MinIO is pulled from quay.io, not Docker Hub.** `docker.io/minio/minio:latest` now refuses an
+anonymous pull (`insufficient_scope: authorization failed`). A laptop holding a cached copy never
+notices; a clean builder fails outright. `docker-compose.yml` still names the Docker Hub path and
+has the same exposure — logged to `BL-01`.
+
+### 2.1 · Why `db` needs an entrypoint wrapper
+
+Three facts collide, and the resulting error message points at none of them:
+
+1. **The image runs as `postgres` (uid 1000) from PID 1.** The official postgres image starts its
+   entrypoint as root, prepares the data directory and drops privileges with gosu. This one never
+   gets that chance.
+2. **Railway chowns a volume to the container user only when it first provisions it.** Measured over
+   five deploys at two different mount paths: `dir_owner=0 writable=n`, unchanged after 150 s.
+   `RAILWAY_RUN_UID=0` does not override it — with that variable set the process still reported
+   uid 1000.
+3. **ext4 puts `lost+found` in the root of every volume**, and `initdb` refuses a non-empty
+   directory. Its own hint — *"Create a subdirectory under the mount point"* — cannot be followed,
+   because creating that subdirectory is blocked by (1) and (2).
+
+`ops/db/entrypoint.sh` sets `USER root`, takes ownership of the volume, removes the one entry
+`initdb` objects to, and `exec gosu postgres`es into the base image's entrypoint unchanged.
+**Postgres itself never runs as root.** On the second and every later boot it finds `PG_VERSION`
+and changes nothing — verified across a redeploy, with no re-`initdb`.
 
 Railway's **managed Postgres plugin is unusable here**: it ships neither PostGIS nor TimescaleDB.
 The custom image is not a preference, it is the only option — and migration `0001_extensions` says
@@ -171,33 +209,103 @@ replica halves that benefit. `numReplicas: 1` in `packages/api/railway.json` is 
 
 ---
 
-## 6 · Deploy runbook
+## 5.1 · `railway.json` is deprecated — read this before trusting it
 
-Prerequisites: `railway login`, and a project with the five services above.
+`packages/api/railway.json` and `packages/web/railway.json` are committed, and they are **not
+currently applied**. Railway now rejects config-as-code outright:
+
+> *Config as Code (railway.json / railway.toml) is deprecated. Use Infrastructure as Code
+> (`.railway/railway.ts`) instead.*
+
+That is the API's own error, returned when pointing a service at its config file. The files are kept
+because they are the **declarative record of the intended service configuration** — replicas,
+healthcheck, `sleepApplication: false`, and the migration release step — and because they are the
+shortest path to the IaC migration. They are not a description of what the platform is doing today.
+
+What is actually in force:
+
+| Intent | Expressed by |
+|---|---|
+| Which Dockerfile builds a service | `RAILWAY_DOCKERFILE_PATH` variable, per service |
+| Start command | each image's own `CMD` |
+| Volumes | `railway volume --service <id> add --mount-path …` |
+| Public domain | `railway domain --service <name>` — only for `api` and `web` |
+| Migrations | **run explicitly** (see below), not as a `preDeployCommand` |
+
+**The migration release step is the one real casualty.** `preDeployCommand` cannot be set without
+config-as-code, and the CLI has no command for it (installed 4.30.2; `railway config` arrives in
+5.x). Migrations are therefore run as an explicit step after a deploy that changes the schema:
 
 ```bash
-# ── 1 · datastores first; they own the volumes
-railway up --service db          # image service: set the image, volume and max_connections in the UI
-railway up --service valkey
-railway up --service minio
-
-# ── 2 · create the evidence bucket, once (compose does this with the minio-init one-shot)
-railway run --service api -- sh -c '
-  apt-get install -y curl >/dev/null 2>&1
-  curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /tmp/mc && chmod +x /tmp/mc
-  /tmp/mc alias set r "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
-  /tmp/mc mb --ignore-existing r/"$MINIO_BUCKET" && /tmp/mc ls r'
-
-# ── 3 · api. Migrations run as a preDeployCommand, NOT on boot — a boot-time migration races
-#        every replica against the same ledger. See packages/api/railway.json.
-railway up --service api
-railway domain --service api
-
-# ── 4 · web, pointed at the api over the private network
-railway variables --service web --set "API_BASE_URL=http://api.railway.internal:4000"
-railway up --service web
-railway domain --service web
+railway ssh --service api node packages/api/dist/db/migrate.js migrate
 ```
+
+This is safe here — `numReplicas` is 1, so there is no concurrent-migration race for a release step
+to prevent — but it is a manual step that a second replica would turn into a real hazard. Migrating
+to `.railway/railway.ts` restores it and is the first thing to do on this deployment. Logged to
+`BL-01`.
+
+## 6 · Deploy runbook
+
+Prerequisites: `railway login`, and a Railway plan that allows volumes (Hobby or above).
+
+```bash
+# ── 1 · project and services
+railway init --name saakshi
+for s in db valkey minio api web; do railway add --service "$s"; done
+
+# ── 2 · point each service at its Dockerfile
+railway variable --service db     set "RAILWAY_DOCKERFILE_PATH=ops/db/Dockerfile"
+railway variable --service valkey set "RAILWAY_DOCKERFILE_PATH=ops/valkey/Dockerfile"
+railway variable --service minio  set "RAILWAY_DOCKERFILE_PATH=ops/minio/Dockerfile"
+railway variable --service api    set "RAILWAY_DOCKERFILE_PATH=packages/api/Dockerfile"
+railway variable --service web    set "RAILWAY_DOCKERFILE_PATH=packages/web/Dockerfile"
+
+# ── 3 · volumes. NOTE: --service takes a service ID here, not a name; given a name the CLI
+#        panics with `called Option::unwrap() on a None value`.
+railway volume --service <db-id>     add --mount-path /home/postgres/pgdata/data
+railway volume --service <valkey-id> add --mount-path /data
+railway volume --service <minio-id>  add --mount-path /data
+
+# ── 4 · secrets. Use `variable set` or `--set-from-stdin`, NEVER `add --variables`:
+#        `railway add` replays its prompts to stdout, so a password passed that way is echoed
+#        into the terminal (and into any transcript). One had to be rotated for exactly this.
+railway variable --service db  set "POSTGRES_USER=saakshi"
+railway variable --service db  set "POSTGRES_DB=saakshi"
+openssl rand -hex 24 | railway variables --service db --set-from-stdin POSTGRES_PASSWORD
+# …likewise VALKEY_PASSWORD, MINIO_ROOT_PASSWORD, JWT_SECRET
+
+# ── 5 · deploy, datastores first
+for s in db valkey minio api web; do railway up --service "$s" --detach --ci; done
+
+# ── 6 · the evidence bucket, once. `mc` ships inside the MinIO image, so no extra service is
+#        needed — this is the Railway equivalent of compose's `minio-init` one-shot.
+railway ssh --service minio mc alias set local http://127.0.0.1:9000 saakshi "$MINIO_ROOT_PASSWORD"
+railway ssh --service minio mc mb --ignore-existing local/saakshi-evidence
+
+# ── 7 · migrations (see § 5.1 — explicit, not a release step)
+railway ssh --service api node packages/api/dist/db/migrate.js migrate
+
+# ── 8 · public domains for api and web ONLY.
+#        `railway domain` CREATES a domain when none exists rather than merely reporting one, so
+#        running it "just to look" against minio publishes it. If that happens, delete it:
+#        serviceDomainDelete over the GraphQL API — the CLI has no removal command.
+railway domain --service api --port 8080
+railway domain --service web --port 8080
+```
+
+### A trap in `railway ssh`
+
+It re-joins its arguments through a remote shell **without quoting them**, so any argument
+containing a space or a parenthesis is mangled before it arrives:
+
+```
+$ railway ssh --service api psql "$URL" -c "select postgis_version();"
+sh: 1: Syntax error: "(" unexpected
+```
+
+Commands whose arguments are individually space-free work fine. For anything else, put it in a file
+the image already carries — which is why `db/checks/deployment.sql` exists and is run with `-f`.
 
 ### Loading the estate (Topology B, from the local machine)
 
@@ -232,19 +340,54 @@ D4-02 issues the judge-facing credentials proper.
 
 ---
 
-## 7 · Verification
+## 7 · Verification — measured, 2026-09-13
+
+The deployed URLs are in the gitignored `.dev-refs.md`, and on the D4-01 issue.
 
 ```bash
-railway status
 curl -fsS  https://<api-domain>/health
-curl -fsSI https://<web-domain> | head -1
-
-railway run --service api -- psql "$DATABASE_URL" -c \
-  "select postgis_version(); select extversion from pg_extension where extname='timescaledb';"
-railway run --service api -- psql "$DATABASE_URL" -c "select count(*) from cameras;"
-
+curl -fsSI https://<web-domain>/login | head -1
+railway ssh --service api psql "$DATABASE_URL" -P pager=off -f /app/db/checks/deployment.sql
 curl -fsSI https://<minio-domain> || echo "minio correctly not public"
 ```
+
+What that returned:
+
+| Check | Result |
+|---|---|
+| api `/health` | `{"status":"ok","service":"saakshi-api","version":"0.1.0","uptimeS":1669}` |
+| web `/login` | `HTTP/2 200`; `/` → 307 to the login screen |
+| PostGIS | **3.6.4** — `3.6 USE_GEOS=1 USE_PROJ=1 USE_STATS=1` |
+| TimescaleDB | **2.30.0**, hypertables `camera_health_checks` and `sightings` |
+| Migrations | 20 of 20 applied |
+| Registry | 5 departments, 4 users, **0 cameras** (see § 7.1) |
+| MinIO | no public domain; the generated hostname 404s at the edge |
+| Basemap | `/basemap/gujarat.pmtiles` → `HTTP/2 206`, `content-range: bytes 0-16383/29690528` |
+| Console routes | `/login` `/registry` `/alerts` `/trace` all 200 with a session cookie |
+| Persistence | db and valkey redeployed; 20 migrations and every seed row intact, no re-`initdb`, Valkey's `appendonlydir` preserved |
+| Response time | api `/health` 1.08–1.25 s · web `/login` 1.15–1.20 s |
+
+**Latency is geography, not the application.** TTFB is 1.10 s, of which ~0.50 s is TCP + TLS from
+India to Railway's US region. `uptimeS 1669` on a cold request shows the container is warm — a judge
+meets a running app, not a boot screen. Moving the project to `asia-southeast1` would roughly halve
+the round trip and costs a volume recreation, because volumes are region-pinned.
+
+### 7.1 · The registry is empty, and that is not a deployment fault
+
+`cameras = 0` because `SENTINEL_INGEST_URL` / `SENTINEL_PORTAL_COOKIE` are not set on the `api`
+service, so nothing has synced the upstream catalogue yet. The consequence is visible: **the
+registry map renders its basemap and no pins.** Model 1's compulsory deliverable is therefore only
+half-demonstrated on the hosted instance until the estate is loaded, by either:
+
+```bash
+# from the cloud, once the sandbox variables are set on the api service
+railway ssh --service api node packages/api/dist/jobs/catalogue-sync-cli.js
+
+# or from a local machine (Topology B), which needs a TCP proxy on the db service
+DATABASE_URL='postgres://…?sslmode=require' npm run sync:catalogue
+```
+
+Do not claim a working map before this is done — see the claims discipline in `CLAUDE.md`.
 
 **Never verify the map through a backgrounded browser tab.** Chrome suspends `requestAnimationFrame`
 entirely when `visibilityState` is `hidden` — measured **0 callbacks in 18.4 s** where ~1,100 were
@@ -255,8 +398,6 @@ launches its own Chrome with an explicit window size (D3-13).
 A `/trace` or `/registry` page that paints and then freezes for about a second is a **hydration
 failure**, not a network fault. Check the browser console for `Hydration failed` before suspecting
 the server — it logs nothing server-side (D3-14).
-
----
 
 ## 8 · Redeploy, rollback, recovery
 
