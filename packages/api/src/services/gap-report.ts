@@ -37,7 +37,8 @@ const MARGIN = 44;
  * Figures another ticket measured against the live feed, which this run cannot re-measure because
  * the sandbox gateway is not held. Cited, never silently absorbed into a number computed here.
  */
-export const MEASURED_ELSEWHERE = [
+export function measuredElsewhere(network: { ways: number; extract: string }) {
+  return [
   {
     fact: 'Per-camera sighting yield, same city, same hour',
     value:
@@ -67,10 +68,14 @@ export const MEASURED_ELSEWHERE = [
   { fact: 'Cameras declaring a retention period', value: '0 of 30', source: 'D3-05 (#28)' },
   {
     fact: 'Road network',
-    value: '540,584 GiST-indexed ways from Geofabrik western-zone, clipped to Gujarat',
-    source: 'D3-01 (#24)',
+    // Generated, not fixed. It read `540,584` as a literal until D4-10, by which point the table
+    // had been re-imported and the real count was 540,711 — a generated report contradicting its
+    // own §3 while telling the reader not to hand-edit it.
+    value: `${network.ways.toLocaleString('en-IN')} GiST-indexed ways from ${network.extract}`,
+    source: 'D3-01 (#24) · re-imported D4-10 (#89)',
   },
-] as const;
+  ] as const;
+}
 
 const km = (v: number): string => `${v.toFixed(2)} km`;
 const pct = (v: number): string => `${(v * 100).toFixed(4)}%`;
@@ -360,7 +365,7 @@ export function gapAnalysisMarkdown(a: GapAnalysis): string {
   p(
     'Three states, rendered as their own MapLibre source and layers inserted beneath the camera ' +
       'pins: **covered (trusted)** in green, **covered (untrusted or never probed)** in amber, and ' +
-      '**uncovered** as bare basemap. The third state has no layer — drawing 540,584 uncovered ways ' +
+      `**uncovered** as bare basemap. The third state has no layer — drawing ${a.network.ways.toLocaleString('en-IN')} uncovered ways ` +
       'grey would cost tens of megabytes to render a negative, so uncovered road is simply road with ' +
       'no cell over it, and the legend says so rather than leaving a reader to infer it.',
   );
@@ -410,7 +415,7 @@ export function gapAnalysisMarkdown(a: GapAnalysis): string {
   p();
   p('| fact | value | source |');
   p('|---|---|---|');
-  for (const m of MEASURED_ELSEWHERE) p(`| ${m.fact} | ${m.value} | ${m.source} |`);
+  for (const m of measuredElsewhere(a.network)) p(`| ${m.fact} | ${m.value} | ${m.source} |`);
   p();
 
   p('## 8 · What would make this report better');
@@ -801,7 +806,7 @@ export function gapAnalysisPdf(a: GapAnalysis): Buffer {
       { header: 'value', width: 240 },
       { header: 'source', width: 87 },
     ],
-    MEASURED_ELSEWHERE.map((m) => [m.fact, m.value, m.source]),
+    measuredElsewhere(a.network).map((m) => [m.fact, m.value, m.source]),
   );
 
   footer(pages, a);

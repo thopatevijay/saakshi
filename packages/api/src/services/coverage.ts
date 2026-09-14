@@ -35,6 +35,7 @@
  * `covered_road_ids`, and a recorded reason — and every result here carries `assessed` beside
  * `unassessable` so no caller can print one without the other.
  */
+import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import type { DbLike } from '../db/client.js';
 import { bandSql, focusDisqualifiedSql, type ResolvedBand } from './trust-band-sql.js';
@@ -299,6 +300,28 @@ export interface NetworkTotals {
   ways: number;
   km: number;
   byClass: { highwayClass: string; ways: number; km: number }[];
+  /**
+   * Where these ways came from, for the provenance table (D4-10).
+   *
+   * `scripts/import-osm.sh` writes `data/osm-extract.txt` at import time, because the OSM
+   * replication timestamp is a property of the *download* and cannot be recovered from the rows
+   * afterwards. A checkout without that file — a deployment, where `data/` is gitignored — gets the
+   * region without a date rather than a guess, so the report never states a date it cannot support.
+   */
+  extract: string;
+}
+
+/** The fallback when `data/osm-extract.txt` is absent: true, and honestly incomplete. */
+export const EXTRACT_UNKNOWN = 'Geofabrik western-zone, clipped to Gujarat (extract date unrecorded)';
+
+function readExtractProvenance(): string {
+  try {
+    const text = readFileSync(new URL('../../../../data/osm-extract.txt', import.meta.url), 'utf8');
+    const line = text.trim().split('\n')[0];
+    return line === undefined || line === '' ? EXTRACT_UNKNOWN : line;
+  } catch {
+    return EXTRACT_UNKNOWN;
+  }
 }
 
 /** The denominator, and the class breakdown that makes the percentage interpretable. */
@@ -320,6 +343,7 @@ export async function networkTotals(db: DbLike): Promise<NetworkTotals> {
     ways: byClass.reduce((a, b) => a + b.ways, 0),
     km: byClass.reduce((a, b) => a + b.km, 0),
     byClass,
+    extract: readExtractProvenance(),
   };
 }
 
