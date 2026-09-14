@@ -1,5 +1,5 @@
 ---
-title: "D4-SUBMIT · Final submission gate — submit by midday 7 Sep"
+title: "D4-SUBMIT · Final submission gate — submit by midday 15 Sep"
 milestone: "Day 4 — Deploy & Submit"
 labels: ["day-4", "gate", "submission", "critical"]
 blocked_by: ["D4-01","D4-02","D4-03","D4-04","D4-05","D4-06","D4-07","D4-08"]
@@ -8,7 +8,15 @@ estimate: "2h"
 
 ## Context
 
-**Registration and submission both close 7 September 2026.**
+**Registration and submission both close 15 September 2026.**
+
+> **This ticket said 7 September until 14 Sep 2026.** The organisers extended the deadline — the
+> portal labels it "NEW DEADLINE" — and `PROJECT.md` and `CLAUDE.md` were updated while this file was
+> not. It is the one document most likely to be read under pressure on the morning itself, so the
+> correction is recorded here rather than only in the commit.
+>
+> **No time of day is published.** The portal states a date and nothing else. The 13:00 IST gate
+> below is ours, for the reason in the next paragraph.
 
 Submit in the **morning**. Government portals fail at 23:00 on deadline day, and there is no appeal.
 A submission at 11:00 with one rough edge beats a perfect one that never uploads.
@@ -58,20 +66,23 @@ It is **multi-page**. Page 1 is email + participant category
 (`Academic, Research & DPIIT Recognised Startup / Individual Participant` — that is us). Later pages
 are unwalked by design.
 
-- [ ] **Walk the full form early on 7 Sep — before assembling final links — and record every field.**
+- [ ] **Walk the full form early on 15 Sep — before assembling final links — and record every field.**
       Discovering a required field at 11:00 on deadline day is an avoidable failure.
 - [ ] Google Forms has no draft-save: have every link in a scratch file and paste in one pass
 - [ ] Every form field completed
 - [ ] Every link pasted from `.dev-refs.md`, **not retyped from memory**
-- [ ] **Submitted before 13:00 IST on 7 Sep**
+- [ ] **Submitted before 13:00 IST on 15 Sep**
 - [ ] Confirmation screenshot / acknowledgement email saved to `submission/`
 - [ ] A comment on this issue recording the submission timestamp and every submitted link
 
 ## Post-submission
 
-- [ ] Keep the deployed instance up and the workers running through 11 Sep
-- [ ] Shortlist announcement is 7 Sep **evening** — watch email and the portal
-- [ ] If shortlisted: travel to Gandhinagar for 10–11 Sep. Only ~2.5 days of notice, so have the
+- [ ] Keep the deployed instance up and the workers running through **23 Sep** — the judge-facing URL
+      is a submitted artefact, and it has to survive screening *and* the Grand Finale, not just the
+      submission day. This said "11 Sep", the results date under the original schedule.
+- [ ] Shortlist announcement is 15 Sep **evening** — watch email and the portal
+- [ ] If shortlisted: travel to Gandhinagar for the Grand Finale, **22–23 Sep**. The extension turned
+      ~2.5 days of notice into roughly a week, but have the
       decision and the logistics already settled.
 - [ ] Prepare the Phase 2 story: what the ₹18L Phase 1 grant would build, straight from `docs/roadmap.md`
 
