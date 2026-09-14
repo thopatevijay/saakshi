@@ -15,7 +15,7 @@ import {
   deltaStatement,
   gapAnalysisMarkdown,
   gapAnalysisPdf,
-  MEASURED_ELSEWHERE,
+  measuredElsewhere,
   splitStatement,
 } from './gap-report.js';
 import { DEFAULT_RANGES, type CoverageSlice, type GapAnalysis } from './coverage.js';
@@ -42,6 +42,7 @@ function analysis(over: Partial<GapAnalysis> = {}): GapAnalysis {
     network: {
       ways: 540_584,
       km: 218_026.2,
+      extract: 'Geofabrik western-zone, clipped to Gujarat, OSM data of 2026-09-05T20:22:06Z',
       byClass: [
         { highwayClass: 'residential', ways: 420_160, km: 73_719.2 },
         { highwayClass: 'primary', ways: 12_222, km: 18_935.4 },
@@ -117,7 +118,12 @@ describe('the report is generated, not written (AC 6)', () => {
       analysis({
         databaseName: 'other_db',
         generatedAt: '2027-01-01T00:00:00.000Z',
-        network: { ways: 12, km: 34.5, byClass: [{ highwayClass: 'primary', ways: 12, km: 34.5 }] },
+        network: {
+          ways: 12,
+          km: 34.5,
+          byClass: [{ highwayClass: 'primary', ways: 12, km: 34.5 }],
+          extract: 'a different extract',
+        },
         split: {
           total: 7,
           assessed: 3,
@@ -136,10 +142,13 @@ describe('the report is generated, not written (AC 6)', () => {
       }),
     );
 
-    // `5,40,584` is the Indian-grouped rendering of the *computed* way count. The ungrouped
-    // `540,584` also appears, in §7's citation of D3-01 — that one is fixed prose about another
-    // ticket's measurement and is supposed to survive, which is exactly the distinction §7 exists
-    // to draw.
+    // `5,40,584` is the Indian-grouped rendering of the computed way count.
+    //
+    // **This block used to assert the opposite**, and the comment explained why: an ungrouped
+    // `540,584` in §7 was fixed prose citing D3-01's measurement, and was "supposed to survive".
+    // D4-10 re-imported the table and the real count became 540,711 — so the report cited a way
+    // count contradicting its own §3, in a document whose header tells the reader not to hand-edit
+    // it. §7's road-network row is generated now, and nothing in the report may outlive its data.
     for (const stale of [
       'saakshi_test',
       '2026-09-06',
@@ -151,7 +160,9 @@ describe('the report is generated, not written (AC 6)', () => {
       expect(a).toContain(stale);
       expect(b).not.toContain(stale);
     }
-    expect(b).toContain('540,584');
+    // The stale literal must NOT survive into a report generated from different data.
+    expect(b).not.toContain('540,584');
+    expect(b).toContain('a different extract');
     for (const fresh of ['other_db', '2027-01-01', '34.50 km', '5.50 km', '4.25 km', '1.25 km']) {
       expect(b).toContain(fresh);
     }
@@ -246,7 +257,8 @@ describe('the report states its own method and does not overclaim (AC 7)', () =>
   it('separates figures this run measured from figures it merely cites', () => {
     expect(md).toContain('Figures this run did not measure');
     expect(md).toContain('cited, not recomputed');
-    for (const m of MEASURED_ELSEWHERE) expect(md).toContain(m.source);
+    for (const m of measuredElsewhere({ ways: 540_584, extract: 'test extract' }))
+    expect(md).toContain(m.source);
   });
 });
 

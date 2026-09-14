@@ -196,6 +196,16 @@ select distinct on (id) id, nullif(name, ''), nullif(highway_class, ''), geom
 commit;
 SQL
 
+# Provenance, written where the report can read it (D4-10). The OSM replication timestamp is a
+# property of the download and cannot be recovered from the rows afterwards, so if it is not
+# recorded here it is not recoverable at all — and `docs/gap-analysis-sample.md` then cites a way
+# count nobody can reproduce. `data/` is gitignored, so a deployment simply has no file and the
+# report says the date is unrecorded rather than inventing one.
+EXTRACT_TS="$("$OSMIUM_BIN" fileinfo -e -g header.option.osmosis_replication_timestamp "$SRC" 2>/dev/null || true)"
+printf 'Geofabrik %s, clipped to Gujarat %s, OSM data of %s\n' \
+  "$REGION" "$BBOX" "${EXTRACT_TS:-an unrecorded date}" > "$DATA/osm-extract.txt"
+say "provenance: $(cat "$DATA/osm-extract.txt")"
+
 ROWS="$(psql "$DATABASE_URL" -tAc 'select count(*) from road_network;')"
 say "road_network: $ROWS ways"
 psql "$DATABASE_URL" -tAc "
