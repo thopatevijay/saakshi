@@ -79,13 +79,15 @@ async function estate(db: Db): Promise<{
   plateReadsIdentified: number;
   cameras: number;
   camerasPlaced: number;
+  roadNetworkWays: number;
 }> {
   const rows = await db.execute<Record<string, string>>(sql`
     select (select count(*)::text from sightings)                                    as sightings,
            (select count(*)::text from plate_reads)                                  as plate_reads,
            (select count(*)::text from plate_reads where normalized_text <> '')      as identified,
            (select count(*)::text from cameras)                                      as cameras,
-           (select count(*)::text from cameras where location is not null)           as placed
+           (select count(*)::text from cameras where location is not null)           as placed,
+           (select count(*)::text from road_network)                                 as ways
   `);
   const r = rows[0] ?? {};
   return {
@@ -94,6 +96,10 @@ async function estate(db: Db): Promise<{
     plateReadsIdentified: Number(r['identified'] ?? '0'),
     cameras: Number(r['cameras'] ?? '0'),
     camerasPlaced: Number(r['placed'] ?? '0'),
+    // D4-12. Without this the zero-evaluable message could only guess at its own cause, and it
+    // guessed wrong: it blamed the camera catalogue while the actual fault was an unreachable
+    // router, which is what happened in D4-10 and cost an hour.
+    roadNetworkWays: Number(r['ways'] ?? '0'),
   };
 }
 
@@ -239,12 +245,45 @@ function interpretation(measured: Awaited<ReturnType<typeof estate>>, totals: To
     );
   }
   if (totals.evaluable === 0) {
+    // Why the cause is *listed* rather than asserted.
+    //
+    // This branch used to state that the camera count was the reason: "N of M cameras carry
+    // coordinates, SO no road distance exists between any pair". That sentence is self-contradictory
+    // the moment N is above zero, and in D4-10 it was actively misleading — every camera in the pair
+    // was placed and the real fault was an OSRM the job could not reach, then a route cache still
+    // holding the unroutable segments written while it could not. An hour went into the catalogue
+    // before the router was suspected.
+    //
+    // A transition is assessable only if **all** of these hold, so any one of them can be the cause
+    // and the report should say which are in doubt rather than pick one.
+    const causes: string[] = [];
+    if (measured.camerasPlaced < 2) {
+      causes.push(
+        `only ${String(measured.camerasPlaced)} of ${String(measured.cameras)} cameras carry coordinates, so there is no placed\n` +
+          '       pair for a road distance to exist between',
+      );
+    }
+    if (measured.roadNetworkWays === 0) {
+      causes.push(
+        '`road_network` is empty — no road distance can be computed against it.\n' +
+          '       Run `./scripts/import-osm.sh` (see docs/road-network-setup.md)',
+      );
+    }
+    if (measured.camerasPlaced >= 2 && measured.roadNetworkWays > 0) {
+      causes.push(
+        'cameras are placed and the road graph is loaded, so the fault is downstream:\n' +
+          '       the router may be unreachable, or `route_segments` may still hold `inferred_unroutable`\n' +
+          '       rows cached from when it was. `routes` is keyed on a sightings fingerprint, so re-running\n' +
+          '       a trace returns the cached answer — clear `route_segments` and `routes`, then re-run the\n' +
+          '       trace with `?reconstruct=true` (it defaults to false)',
+      );
+    }
     return (
       `interpretation: ${String(totals.segments)} transitions were examined and NONE could be assessed.\n` +
-      `  ${String(measured.camerasPlaced)} of ${String(measured.cameras)} cameras carry coordinates, so no road distance exists between\n` +
-      '  any pair and no travel time can be required of one. "0 impossible transitions" here means\n' +
-      '  "0 transitions were testable", not "the estate is clean". Impossible-transition detection\n' +
-      '  cannot fire on this estate until the camera catalogue carries positions.'
+      '  "0 impossible transitions" here means "0 transitions were testable", not "the estate is\n' +
+      '  clean" — the detector did not run, so it found nothing, and that is not a result.\n' +
+      '  Candidate causes, in the order worth checking:\n' +
+      causes.map((c, i) => `    ${String(i + 1)}. ${c}`).join('\n')
     );
   }
   if (totals.impossible === 0) {
