@@ -108,10 +108,16 @@ async function main(): Promise<void> {
   const traceUrl = `${api}/api/v1/trace?plate=${encodeURIComponent(plate)}&purpose=${encodeURIComponent('D4-02 link sweep')}`;
   const traceRes = await fetch(traceUrl, { headers: bearer });
   if (traceRes.ok) {
-    const body = (await traceRes.json()) as { sightings?: { id: string; cropUrl?: string | null }[] };
-    for (const s of body.sightings ?? []) {
-      if (s.cropUrl !== undefined && s.cropUrl !== null && s.cropUrl !== '') {
-        await check(`trace crop ${s.id.slice(0, 8)}`, s.cropUrl);
+    // `id` is not guaranteed on a trace stop - the shape carries the sighting's identity under
+    // different keys depending on how it was linked - so the label falls back to an index rather
+    // than assuming a field and throwing on the one response that lacks it.
+    const body = (await traceRes.json()) as {
+      sightings?: { id?: string; sightingId?: string; cropUrl?: string | null }[];
+    };
+    for (const [i, stop] of (body.sightings ?? []).entries()) {
+      if (stop.cropUrl !== undefined && stop.cropUrl !== null && stop.cropUrl !== '') {
+        const label = (stop.id ?? stop.sightingId ?? String(i)).slice(0, 8);
+        await check(`trace crop ${label}`, stop.cropUrl);
       }
     }
   }

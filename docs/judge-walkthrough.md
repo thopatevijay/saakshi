@@ -58,9 +58,14 @@ use of it.
 - On this hosted instance the segments read **`inferred_unroutable`**: OSRM is not deployed here
   (see *Limitations*), so travel time cannot be snapped to the road graph. The trace itself is
   unaffected, and the label says exactly why rather than drawing a straight line and hoping.
-- **The cloned-plate finding.** Two sightings of `GJ01AB1234` are 9.24 km apart with 30 seconds
-  between them. No vehicle does that, so the system says so — *"most likely a duplicated
-  registration"*. The second vehicle is synthetic and the screen says so on its face.
+- **The cloned-plate case is in the data, and the detector cannot assess it here.** Two sightings of
+  `GJ01AB1234` sit 9.24 km apart with 30 seconds between them — physically impossible for one
+  vehicle. Impossible-transition detection needs a **road graph** to say how long that journey should
+  take, and the road network is not loaded on this hosted instance (same reason OSRM is absent). So
+  the analyser reports, in its own words: *"10 transitions were examined and NONE could be assessed…
+  '0 impossible transitions' here means '0 transitions were testable', not 'the estate is clean'."*
+  That is the product refusing to claim a clean result it did not earn. The detector is demonstrated
+  against the road graph in `docs/cloning-detection.md`.
 - The evidence strip shows **real plate crops**, served as presigned URLs that expire in 15 minutes.
 
 ## 3 · Inspect an alert and why it fired  →  `/alerts`
@@ -129,5 +134,7 @@ npm ci && npm run db:migrate
 npm start                     # API on :4000, console on :3000
 ```
 
-`docs/deployment.md` is the full runbook, including the Cloudflare Tunnel fallback that exposes a
-local stack — live feeds and all — without migrating any data.
+`docs/deployment.md` is the full runbook. Its § 9.1 covers the **Cloudflare Tunnel fallback** —
+one binary, no account — which exposes a local stack, live feeds and all, without migrating any
+data. That is how a live-video demonstration is given if the hosted instance cannot show one:
+tested end to end, including `Range` requests for the basemap.

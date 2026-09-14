@@ -86,19 +86,21 @@ export function StartHere({
   plate: string | null;
   cameraId: string | null;
 }) {
-  // Rendered hidden on the server and revealed after the dismissal check, so a dismissed panel never
-  // flashes on screen before disappearing.
-  const [state, setState] = useState<'checking' | 'shown' | 'hidden'>('checking');
+  // Shown by default, and hidden by the effect only if this browser has dismissed it.
+  //
+  // The obvious alternative - start hidden, reveal after checking localStorage - renders **nothing
+  // on the server**, so the panel exists only after hydration. That makes it invisible to anything
+  // that reads the HTML (curl, a link checker, a server-rendered smoke test) and it means the judge
+  // this panel exists for sees the page paint without it and then reflow. Defaulting to shown costs
+  // a dismissed panel one frame before it disappears, which is the cheaper mistake.
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    let dismissed = false;
     try {
-      dismissed = window.localStorage.getItem(DISMISS_KEY) === '1';
+      if (window.localStorage.getItem(DISMISS_KEY) === '1') setDismissed(true);
     } catch {
       // Private window, or site data blocked. Showing the panel is the safe failure.
-      dismissed = false;
     }
-    setState(dismissed ? 'hidden' : 'shown');
   }, []);
 
   function dismiss(): void {
@@ -107,10 +109,10 @@ export function StartHere({
     } catch {
       // Nothing to do: the panel closes for this view either way.
     }
-    setState('hidden');
+    setDismissed(true);
   }
 
-  if (state !== 'shown') return null;
+  if (dismissed) return null;
 
   const all = startHereActions(plate, cameraId);
   const available = all.filter((a) => a.capability === undefined || can(role, a.capability));
