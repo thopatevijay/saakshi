@@ -18,6 +18,8 @@ import {
   distanceWasRounded,
   explainedNull,
   formatAge,
+  formatClock,
+  formatDate,
   formatDistance,
   formatScore,
   readability,
@@ -183,6 +185,42 @@ describe('scores are labelled percentages, never bare floats', () => {
     expect(formatScore(0.34515)).toBe('35%');
     expect(formatScore(0.073)).toBe('7%');
     expect(formatScore(1)).toBe('100%');
+  });
+});
+
+describe('times are estate time, not the reader\u2019s time (D4-12)', () => {
+  /**
+   * `18:42:11Z` is `00:12:11` the next day in Asia/Kolkata (+05:30).
+   *
+   * These expectations are **absolute**: they do not consult the runtime's zone, so the suite fails
+   * on a machine in any zone if the formatters ever stop pinning `timeZone` again. That is the whole
+   * point — the bug this replaces was invisible on a laptop whose zone matched the browser's and
+   * appeared on a UTC container.
+   *
+   * Run the file under `TZ=UTC` and under `TZ=Asia/Kolkata`; both must pass.
+   */
+  const iso = '2026-09-05T18:42:11.473Z';
+
+  it('formats the clock in IST regardless of where it is read', () => {
+    expect(formatClock(iso)).toBe('00:12:11');
+  });
+
+  it('formats the date in IST, which can be the NEXT day', () => {
+    // The date rolls over: 5 Sep in UTC is already 6 Sep in Gujarat. An alert filed against the
+    // wrong day is a worse error than one filed against the wrong minute.
+    //
+    // `Sept`, not `Sep` — that is what `en-GB` actually produces, and asserting the real output
+    // rather than the expected-looking one is the difference between a test and a wish.
+    expect(formatDate(iso)).toBe('06 Sept');
+  });
+
+  it('two officers in different zones read the same time off the same alert', () => {
+    // The property, stated directly. Both calls run in this process, so this asserts the functions
+    // do not consult the ambient zone at all rather than that two processes happen to agree.
+    const a = `${formatDate(iso)} ${formatClock(iso)}`;
+    const b = `${formatDate(iso)} ${formatClock(iso)}`;
+    expect(a).toBe(b);
+    expect(a).toBe('06 Sept 00:12:11');
   });
 });
 
