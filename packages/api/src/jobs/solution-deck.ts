@@ -242,7 +242,7 @@ function buildSlides(pilot: SizingResult, statewide: SizingResult, section9: Siz
       kicker: 'Which rubric scores us',
       source: 'PROJECT.md §2 · D0-02',
       draw: (p, y) => {
-        let c = bullets(p, y, [
+        const c = bullets(p, y, [
           'The portal carries **two model definitions that disagree**. /problems calls Model 3 "VMS Federation & Middleware" — software. The unlinked /evaluation-criteria page scores Model 3 as **hardware**: transponder/encoder, secure boot, PoE, rugged design.',
           '/problems Step 3 explicitly permits "a hybrid architecture combining features from two or more reference solution models". The helpdesk never resolved the numbering, so we used that permission rather than wait.',
           '**We submit as Model 1 (compulsory) + Hybrid**, and map our deliverables onto both numberings: under /problems our adapter framework is Model 3; under /evaluation-criteria our analytics and alerting are Model 4.',
@@ -348,20 +348,16 @@ function buildSlides(pilot: SizingResult, statewide: SizingResult, section9: Siz
           'A read is a **string**, never an identification. The UI leads with that verdict before the severity.',
         ]);
         c -= 4;
-        table(
-          p,
-          c,
-          ['measured on this estate', 'value'],
-          [0, 420],
-          [
-            ['Exact read recall (reads equal to the human label, over legible plates)', MEASURED_ANPR.exactReadRecall],
-            ['Precision (correct reads over all reads emitted)', MEASURED_ANPR.precision],
-            ['Plate-detection recall (plate boxes over human-legible plates)', MEASURED_ANPR.plateDetectionRecall],
-            ['Character accuracy (1 − editDistance/len)', MEASURED_ANPR.characterAccuracy],
-            ['Human-legible plates in the hand-labelled sample', MEASURED_ANPR.legiblePlates],
-          ],
-          { boldCol: 1, size: 10 },
-        );
+        // The shared lines, so the deck and the output report cannot word this differently.
+        for (const line of MEASURED_ANPR_LINES) {
+          p.text('\u2022', M, c, { size: 11, grey: 0.5 });
+          c = richText(p, line, M + 16, c, SLIDE.width - 2 * M - 16, { size: 11 });
+          c -= 2;
+        }
+        p.paragraph(MEASURED_ANPR.verdictAgainstTarget, M, c - 6, SLIDE.width - 2 * M, {
+          size: 10,
+          grey: 0.4,
+        });
       },
     },
     {
@@ -558,7 +554,7 @@ function buildSlides(pilot: SizingResult, statewide: SizingResult, section9: Siz
           'A conventional coverage map would have drawn all 21.47 km in green. Ours draws the distinction, and names the **6,750 junctions with zero trusted coverage**.',
         ]);
         c -= 4;
-        c = bullets(p, c, [
+        bullets(p, c, [
           '**The retention clock.** Footage on this estate is kept 7–15 days. The system tracks, per piece of evidence, how long it has left — and lets an officer preserve it before it expires. Nobody tracks this today, and it is the difference between evidence and a story about evidence.',
         ]);
       },

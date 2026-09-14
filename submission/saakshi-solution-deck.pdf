@@ -222,7 +222,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 960 540] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R /F4 6 0 R >> >> /Contents 20 0 R >>
 endobj
 20 0 obj
-<< /Length 2414 >>
+<< /Length 2434 >>
 stream
 q 0.15 g 0 536 960 4 re f Q
 q 0.45 g BT /F2 9 Tf 1 0 0 1 54 488 Tm (DIMENSION 3) Tj ET Q
@@ -239,19 +239,17 @@ q 0.5 g BT /F1 13 Tf 1 0 0 1 54 358 Tm (·) Tj ET Q
 q 0 g BT /F1 13 Tf 1 0 0 1 70 358 Tm (A read is a ) Tj ET Q
 q 0 g BT /F2 13 Tf 1 0 0 1 135.75 358 Tm (string) Tj ET Q
 q 0 g BT /F1 13 Tf 1 0 0 1 171.87 358 Tm (, never an identification. The UI leads with that verdict before the severity.) Tj ET Q
-q 0.45 g BT /F2 8 Tf 1 0 0 1 54 330 Tm (MEASURED ON THIS ESTATE) Tj ET Q
-q 0.45 g BT /F2 8 Tf 1 0 0 1 474 330 Tm (VALUE) Tj ET Q
-q 0.8 G 0.5 w 54 325 m 906 325 l S Q
-q 0 g BT /F1 10 Tf 1 0 0 1 54 310 Tm (Exact read recall \(reads equal to the human label, over legible plates\)) Tj ET Q
-q 0 g BT /F2 10 Tf 1 0 0 1 474 310 Tm (0 of 3 - 0%) Tj ET Q
-q 0 g BT /F1 10 Tf 1 0 0 1 54 293 Tm (Precision \(correct reads over all reads emitted\)) Tj ET Q
-q 0 g BT /F2 10 Tf 1 0 0 1 474 293 Tm (0%) Tj ET Q
-q 0 g BT /F1 10 Tf 1 0 0 1 54 276 Tm (Plate-detection recall \(plate boxes over human-legible plates\)) Tj ET Q
-q 0 g BT /F2 10 Tf 1 0 0 1 474 276 Tm (100% on n=3) Tj ET Q
-q 0 g BT /F1 10 Tf 1 0 0 1 54 259 Tm (Character accuracy \(1 ? editDistance/len\)) Tj ET Q
-q 0 g BT /F2 10 Tf 1 0 0 1 474 259 Tm (51.8%) Tj ET Q
-q 0 g BT /F1 10 Tf 1 0 0 1 54 242 Tm (Human-legible plates in the hand-labelled sample) Tj ET Q
-q 0 g BT /F2 10 Tf 1 0 0 1 474 242 Tm (3 of 120) Tj ET Q
+q 0.5 g BT /F1 11 Tf 1 0 0 1 54 330 Tm (·) Tj ET Q
+q 0 g BT /F1 11 Tf 1 0 0 1 70 330 Tm (Exact read recall \(reads equal to the human label, over legible plates\): 0 of 3 - 0%) Tj ET Q
+q 0.5 g BT /F1 11 Tf 1 0 0 1 54 312 Tm (·) Tj ET Q
+q 0 g BT /F1 11 Tf 1 0 0 1 70 312 Tm (Precision \(correct reads over all reads emitted\): 0%) Tj ET Q
+q 0.5 g BT /F1 11 Tf 1 0 0 1 54 294 Tm (·) Tj ET Q
+q 0 g BT /F1 11 Tf 1 0 0 1 70 294 Tm (Plate-detection recall \(plate boxes over human-legible plates\): 100% on n=3) Tj ET Q
+q 0.5 g BT /F1 11 Tf 1 0 0 1 54 276 Tm (·) Tj ET Q
+q 0 g BT /F1 11 Tf 1 0 0 1 70 276 Tm (Character accuracy \(1 - editDistance/len, over legible instances\): 51.8%) Tj ET Q
+q 0.5 g BT /F1 11 Tf 1 0 0 1 54 258 Tm (·) Tj ET Q
+q 0 g BT /F1 11 Tf 1 0 0 1 70 258 Tm (Human-legible plates in the hand-labelled sample: 3 of 120) Tj ET Q
+q 0.4 g BT /F1 10 Tf 1 0 0 1 54 234 Tm (MISSES the challenge's >90% detection/processing accuracy target, and is reported as missing) Tj ET Q
 q 0.85 G 0.5 w 54 40 m 906 40 l S Q
 q 0.55 g BT /F1 8 Tf 1 0 0 1 54 26 Tm (SAAKSHI · Gujarat Police Innovation Challenge 2026) Tj ET Q
 q 0.55 g BT /F1 8 Tf 1 0 0 1 763.73 26 Tm (source: docs/anpr-accuracy.md · D2-01) Tj ET Q
@@ -685,7 +683,7 @@ q 0.6 g BT /F1 9 Tf 1 0 0 1 906 488 Tm (20) Tj ET Q
 endstream
 endobj
 47 0 obj
-<< /Title (SAAKSHI - solution presentation) /Author (SAAKSHI) /Subject (Gujarat Police Innovation Challenge 2026 · mandatory submission item 1) /Producer (SAAKSHI) /CreationDate (D:20260914160338Z) >>
+<< /Title (SAAKSHI - solution presentation) /Author (SAAKSHI) /Subject (Gujarat Police Innovation Challenge 2026 · mandatory submission item 1) /Producer (SAAKSHI) /CreationDate (D:20260914160503Z) >>
 endobj
 xref
 0 48
@@ -710,35 +708,35 @@ xref
 0000012173 00000 n 
 0000014175 00000 n 
 0000014333 00000 n 
-0000016800 00000 n 
-0000016958 00000 n 
-0000019171 00000 n 
-0000019329 00000 n 
-0000021007 00000 n 
-0000021165 00000 n 
-0000023200 00000 n 
-0000023358 00000 n 
-0000025380 00000 n 
-0000025538 00000 n 
-0000027590 00000 n 
-0000027748 00000 n 
-0000029846 00000 n 
-0000030004 00000 n 
-0000032201 00000 n 
-0000032359 00000 n 
-0000034313 00000 n 
-0000034471 00000 n 
-0000036837 00000 n 
-0000036995 00000 n 
-0000038947 00000 n 
-0000039105 00000 n 
-0000041408 00000 n 
-0000041566 00000 n 
-0000044032 00000 n 
-0000044190 00000 n 
-0000046511 00000 n 
+0000016820 00000 n 
+0000016978 00000 n 
+0000019191 00000 n 
+0000019349 00000 n 
+0000021027 00000 n 
+0000021185 00000 n 
+0000023220 00000 n 
+0000023378 00000 n 
+0000025400 00000 n 
+0000025558 00000 n 
+0000027610 00000 n 
+0000027768 00000 n 
+0000029866 00000 n 
+0000030024 00000 n 
+0000032221 00000 n 
+0000032379 00000 n 
+0000034333 00000 n 
+0000034491 00000 n 
+0000036857 00000 n 
+0000037015 00000 n 
+0000038967 00000 n 
+0000039125 00000 n 
+0000041428 00000 n 
+0000041586 00000 n 
+0000044052 00000 n 
+0000044210 00000 n 
+0000046531 00000 n 
 trailer
 << /Size 48 /Root 1 0 R /Info 47 0 R >>
 startxref
-46728
+46748
 %%EOF
