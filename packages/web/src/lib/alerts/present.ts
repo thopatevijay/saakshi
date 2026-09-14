@@ -22,6 +22,7 @@
  * a ranked possibility. An operator who learns the colours on the trace screen must not have to
  * relearn them on the queue.
  */
+import { ESTATE_LOCALE, ESTATE_TIME_ZONE } from '@/src/lib/time';
 import type {
   AlertSeverity,
   AlertStatus,
@@ -297,17 +298,37 @@ export function explainedNull(value: number | null, unmeasured: string): string 
 
 /* ── time ───────────────────────────────────────────────────────────────────────────────────── */
 
-/** `14:02:31` in the browser's zone. Seconds included: a control room reads seconds. */
+/**
+ * `14:02:31` **in estate time**, not the browser's zone. Seconds included: a control room reads
+ * seconds.
+ *
+ * These two used to pin the locale and leave the zone to the runtime. That was defensible while the
+ * alert queue rendered client-side only — there was no server to disagree with — but it meant two
+ * officers in different zones read **different times off the same alert**, which is a correctness
+ * bug in an evidence product rather than a formatting preference. It would also have become a live
+ * hydration failure the moment any of this was server-rendered, which is the fault that froze
+ * `/trace` in D3-14 and is invisible on a developer laptop whose zone matches the browser's.
+ *
+ * `ESTATE_TIME_ZONE` is the single answer for the whole product: an alert raised in Gujarat is read
+ * in Gujarat time, wherever the reader happens to be sitting.
+ */
 export function formatClock(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleTimeString('en-GB', { hour12: false });
+  return date.toLocaleTimeString(ESTATE_LOCALE, {
+    timeZone: ESTATE_TIME_ZONE,
+    hour12: false,
+  });
 }
 
 export function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  return date.toLocaleDateString(ESTATE_LOCALE, {
+    timeZone: ESTATE_TIME_ZONE,
+    day: '2-digit',
+    month: 'short',
+  });
 }
 
 /** `4 s`, `12 m`, `3 h`, `2 d` — how stale the row is, for the operator's sense of urgency. */
