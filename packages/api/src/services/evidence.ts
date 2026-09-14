@@ -44,6 +44,21 @@ export interface StoredObject {
 }
 
 /**
+ * What `getObject` hands back: the bytes plus the headers a proxy must pass through.
+ *
+ * **An `ArrayBuffer`, not a stream.** `packages/web` compiles this file too — see the long note in
+ * `send()` — under `lib: DOM`, where `ReadableStream` is the DOM's and is not the Node one that
+ * `Readable.fromWeb` accepts. An evidence crop is a plate image of a few kilobytes, so buffering it
+ * costs nothing measurable and keeps this type meaningful in both compilations.
+ */
+export interface EvidenceObjectBody {
+  bytes: ArrayBuffer;
+  contentType: string;
+  contentLength: string | null;
+  etag: string | null;
+}
+
+/**
  * `evidence/<camera_id>/<yyyy-mm-dd>/<sighting_id>-<kind>.jpg`.
  *
  * `camera_id` is the camera's **external** id (`cam01`), not its uuid. The external id is what the
@@ -267,6 +282,31 @@ export class EvidenceStore {
       key,
       size: Number(response.headers.get('content-length') ?? 0),
       etag: response.headers.get('etag') ?? undefined,
+    };
+  }
+
+  /**
+   * The object's bytes, for a caller that has already been authorised (D4-09).
+   *
+   * `presignGet` hands a *browser* a URL it can fetch on its own. That only works when the signing
+   * host and the browser-facing host are the same string, because SigV4 binds the `Host` header —
+   * and on a deployment where the object store sits on a private network they are not the same, so
+   * every crop renders broken. This is the other half of that problem: the server, which *can*
+   * resolve the private host, reads the bytes itself and streams them to the caller.
+   *
+   * Returns `null` for a missing object rather than throwing, so a deleted or retention-expired
+   * crop is a 404 to the caller rather than a 500 — the same "absence is a first-class answer"
+   * choice `presignerFor` and `headObject` already make.
+   */
+  async getObject(key: string): Promise<EvidenceObjectBody | null> {
+    const response = await this.send({ method: 'GET', key });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error(`GET ${key} failed: ${response.status}`);
+    return {
+      bytes: await response.arrayBuffer(),
+      contentType: response.headers.get('content-type') ?? 'application/octet-stream',
+      contentLength: response.headers.get('content-length'),
+      etag: response.headers.get('etag'),
     };
   }
 

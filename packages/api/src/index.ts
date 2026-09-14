@@ -3,7 +3,8 @@ import { loadEnv } from './env.js';
 import { buildServer } from './server.js';
 import { createDb, createSql } from './db/client.js';
 import { startCatalogueSchedule } from './jobs/scheduler.js';
-import { presignerFromEnv } from './services/crop-url.js';
+import { cropViewUrlFromEnv, presignerFromEnv } from './services/crop-url.js';
+import { evidenceStoreFromEnv } from './services/evidence.js';
 import { createValkeyInspector } from './consumers/valkey-reader.js';
 import { enableDefaultMetrics } from './metrics.js';
 
@@ -26,7 +27,13 @@ const app = await buildServer({
   db,
   listenSql,
   busInspector,
+  // Export bundles fetch this URL to embed crop bytes, so it stays an absolute presigned URL.
   cropPresigner: presignerFromEnv(),
+  // What a browser is given: a same-origin path the web app proxies. The object store has no public
+  // domain (`docs/deployment.md` § 3.1), so a presigned URL signed against the private host is a
+  // broken image everywhere outside the private network — which is D4-09.
+  cropViewUrl: cropViewUrlFromEnv(),
+  evidenceStore: evidenceStoreFromEnv(),
 });
 
 // Scheduled catalogue re-sync. Off unless CATALOGUE_SYNC_INTERVAL_MIN is set, and never fatal —
