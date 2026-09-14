@@ -50,7 +50,7 @@ export const TRACE_CSV_COLUMNS = [
 ] as const;
 
 /** Everything a trace cell can hold. Narrow on purpose: `unknown` would stringify an object. */
-type CsvValue = string | number | boolean | null | undefined;
+export type CsvValue = string | number | boolean | null | undefined;
 
 export function traceCsv(result: TraceResult): string {
   const rows = [TRACE_CSV_COLUMNS.join(',')];
@@ -91,7 +91,11 @@ export function traceCsv(result: TraceResult): string {
   return `${rows.join('\n')}\n`;
 }
 
-function csvCell(value: CsvValue): string {
+/**
+ * Exported for D4-03's ANPR output report, which is a second CSV with the same hazard and must not
+ * grow a second escaper. D2-08 wrote the rule this enforces; a duplicate would drift from it.
+ */
+export function csvCell(value: CsvValue): string {
   if (value === null || value === undefined) return '';
   const text = typeof value === 'string' ? value : String(value);
   // A leading =, +, - or @ makes a spreadsheet evaluate the cell. Camera names come from an

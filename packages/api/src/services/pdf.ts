@@ -14,8 +14,18 @@
  * Helvetica), WinAnsi text, straight lines, filled rectangles, and multiple pages. Everything is
  * measured in PostScript points with the origin bottom-left, which is what the format uses.
  *
- * **What it does not.** No images, no unicode beyond Latin-1, no compression. A trace report is a
- * few kilobytes of text; deflating it would add a dependency to save nothing.
+ * **What it does not.** No unicode beyond Latin-1, no compression. A trace report is a few kilobytes
+ * of text; deflating it would add a dependency to save nothing.
+ *
+ * **Images, added in D4-03.** JPEG only, and embedded **as-is**: a JPEG is already DCT-compressed,
+ * and PDF's `/DCTDecode` filter takes exactly that byte stream, so the crop stored in MinIO is
+ * copied into the document without a decode or a re-encode. That is the one image case worth
+ * supporting by hand — anything else (PNG, alpha, colour management) is where an image pipeline
+ * starts, and where this file would stop being worth hand-rolling.
+ *
+ * D4-03's output report is a mandatory submission item and its acceptance criterion is explicit that
+ * the PDF carries the plate crops; a report that described crops it could not show would be the
+ * weaker artefact.
  */
 
 export const A4_PORTRAIT = { width: 595.28, height: 841.89 } as const;
@@ -106,9 +116,73 @@ export class PdfPage {
     return cursor;
   }
 
+  /**
+   * Draw a registered JPEG, scaled into a `w` x `h` box at (x, y).
+   *
+   * `name` must match a `PdfImage.name` handed to `renderPdf`. PDF draws an image by concatenating a
+   * matrix that maps the unit square to the target rectangle, so the `cm` operator carries the size
+   * and there is no scaling parameter anywhere else.
+   */
+  image(name: string, x: number, y: number, w: number, h: number): this {
+    this.ops.push(`q ${fmt(w)} 0 0 ${fmt(h)} ${fmt(x)} ${fmt(y)} cm /${name} Do Q`);
+    this.used.add(name);
+    return this;
+  }
+
+  /** Image names this page actually draws, so a page only declares the XObjects it uses. */
+  readonly used = new Set<string>();
+
   content(): string {
     return this.ops.join('\n');
   }
+}
+
+/** A JPEG to embed. The bytes are written verbatim as a `/DCTDecode` stream. */
+export interface PdfImage {
+  name: string;
+  jpeg: Buffer;
+}
+
+/**
+ * Width, height and component count from a JPEG's SOF marker.
+ *
+ * PDF needs all three up front — the dimensions for `/Width` and `/Height`, the component count to
+ * choose `/DeviceGray`, `/DeviceRGB` or `/DeviceCMYK` — and they are only discoverable by walking
+ * the marker segments. Returns `null` for anything that is not a JPEG we can describe, so a corrupt
+ * or unexpected crop is **omitted with a reason** rather than producing a PDF no reader will open.
+ */
+export function readJpegHeader(
+  jpeg: Buffer,
+): { width: number; height: number; components: number } | null {
+  if (jpeg.length < 4 || jpeg[0] !== 0xff || jpeg[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 9 < jpeg.length) {
+    if (jpeg[i] !== 0xff) {
+      i += 1;
+      continue;
+    }
+    const marker = jpeg[i + 1] ?? 0;
+    // SOF0/1/2/3, 5-7, 9-11, 13-15 all carry the frame header. DHT (c4), JPG (c8) and DAC (cc) sit
+    // in the same numeric range and do not, which is why they are excluded rather than the range
+    // being taken wholesale.
+    const isSof =
+      marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+    if (isSof) {
+      return {
+        height: jpeg.readUInt16BE(i + 5),
+        width: jpeg.readUInt16BE(i + 7),
+        components: jpeg[i + 9] ?? 3,
+      };
+    }
+    if (marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd9)) {
+      i += 2;
+      continue;
+    }
+    const length = jpeg.readUInt16BE(i + 2);
+    if (length < 2) return null;
+    i += 2 + length;
+  }
+  return null;
 }
 
 export interface PdfMeta {
@@ -118,12 +192,20 @@ export interface PdfMeta {
 }
 
 /** Serialise pages to a complete PDF 1.4 document. */
-export function renderPdf(pages: PdfPage[], meta: PdfMeta): Buffer {
+export function renderPdf(pages: PdfPage[], meta: PdfMeta, images: readonly PdfImage[] = []): Buffer {
   if (pages.length === 0) throw new Error('a PDF needs at least one page');
 
-  // Object numbering: 1 catalog, 2 pages, 3..6 fonts, then (page, contents) pairs.
+  // Object numbering: 1 catalog, 2 pages, 3..6 fonts, then one object per image, then (page,
+  // contents) pairs. Images sit before the pages because a page's /Resources has to reference them
+  // by object id, and numbering them first means that id is known without a second pass.
   const fontIds: Record<string, number> = { F1: 3, F2: 4, F3: 5, F4: 6 };
-  const firstPageObj = 7;
+  const usable = images
+    .map((img) => ({ ...img, header: readJpegHeader(img.jpeg) }))
+    .filter((img): img is PdfImage & { header: NonNullable<ReturnType<typeof readJpegHeader>> } =>
+      img.header !== null,
+    );
+  const imageIds = new Map<string, number>(usable.map((img, i) => [img.name, 7 + i]));
+  const firstPageObj = 7 + usable.length;
   const objects: string[] = [];
 
   const pageObjIds = pages.map((_, i) => firstPageObj + i * 2);
@@ -141,16 +223,41 @@ export function renderPdf(pages: PdfPage[], meta: PdfMeta): Buffer {
     );
   }
 
+  for (const img of usable) {
+    const colourSpace =
+      img.header.components === 1
+        ? '/DeviceGray'
+        : img.header.components === 4
+          ? '/DeviceCMYK'
+          : '/DeviceRGB';
+    // `latin1` round-trips every byte 0-255 to exactly one character, which is why the whole
+    // document can stay a string and still carry binary. Any other encoding mangles the stream.
+    objects.push(
+      `${String(imageIds.get(img.name) ?? 0)} 0 obj\n` +
+        `<< /Type /XObject /Subtype /Image /Width ${String(img.header.width)} ` +
+        `/Height ${String(img.header.height)} /ColorSpace ${colourSpace} ` +
+        `/BitsPerComponent 8 /Filter /DCTDecode /Length ${String(img.jpeg.length)} >>\n` +
+        `stream\n${img.jpeg.toString('latin1')}\nendstream\nendobj\n`,
+    );
+  }
+
   for (const [i, page] of pages.entries()) {
     const pageId = firstPageObj + i * 2;
     const contentId = pageId + 1;
     const stream = page.content();
+    const drawn = [...page.used].filter((name) => imageIds.has(name));
+    const xobjects =
+      drawn.length === 0
+        ? ''
+        : ` /XObject << ${drawn
+            .map((name) => `/${name} ${String(imageIds.get(name) ?? 0)} 0 R`)
+            .join(' ')} >>`;
     objects.push(
       `${String(pageId)} 0 obj\n<< /Type /Page /Parent 2 0 R ` +
         `/MediaBox [0 0 ${fmt(page.size.width)} ${fmt(page.size.height)}] ` +
         `/Resources << /Font << ${Object.entries(fontIds)
           .map(([n, id]) => `/${n} ${String(id)} 0 R`)
-          .join(' ')} >> >> ` +
+          .join(' ')} >>${xobjects} >> ` +
         `/Contents ${String(contentId)} 0 R >>\nendobj\n`,
     );
     objects.push(

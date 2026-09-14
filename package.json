@@ -2,7 +2,7 @@
   "name": "saakshi",
   "private": true,
   "version": "0.1.0",
-  "description": "SAAKSHI \u2014 AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
+  "description": "SAAKSHI — AI-powered CCTV integration and video analytics (Gujarat Police Innovation Challenge 2026)",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -49,7 +49,8 @@
     "export:bundle": "npm run export:bundle --workspace @saakshi/api --",
     "export:verify": "npm run export:verify --workspace @saakshi/api --",
     "export:sizing": "npm run export:sizing --workspace @saakshi/web --",
-    "report:gap-analysis": "npm run report:gap-analysis --workspace @saakshi/api --"
+    "report:gap-analysis": "npm run report:gap-analysis --workspace @saakshi/api --",
+    "report:anpr-output": "npm run report:anpr-output --workspace @saakshi/api --"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
