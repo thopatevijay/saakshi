@@ -55,7 +55,9 @@ cd $(mktemp -d) && git clone https://github.com/thopatevijay/saakshi && cd saaks
 docker compose up -d && npm install && npm run db:migrate && npm run seed:demo-state && npm run dev
 curl -fsS localhost:4000/health && curl -fsSI localhost:3000 | head -1
 # secret history scan:
-git log -p --all | grep -nE "(sk-ant|AKIA|BEGIN (RSA|OPENSSH) PRIVATE)" && echo LEAK || echo clean
+# The pathspec goes to `git log`, not to `grep`: this scans HISTORY, so excluding the plan files
+# from the working tree is not enough — they are in the history too, quoting the pattern verbatim.
+git log -p --all -- . ":!.github/plan" | grep -nE "(sk-ant|AKIA|BEGIN (RSA|OPENSSH) PRIVATE)" && echo LEAK || echo clean
 node scripts/check-env-sync.js     # .env.example vs process.env reads
 ```
 

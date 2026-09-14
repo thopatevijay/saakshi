@@ -62,7 +62,12 @@ curl -fsSI https://<web-domain> | head -1
 railway run psql $DATABASE_URL -c "select postgis_version(); select extversion from pg_extension where extname='timescaledb';"
 railway run psql $DATABASE_URL -c "select count(*) from cameras;"
 curl -fsSI https://<minio-domain> || echo "minio correctly not public"
-git grep -nE "(sk-ant|AKIA|BEGIN (RSA|OPENSSH) PRIVATE)" -- . && echo "SECRET LEAK" || echo "no secrets"
+# `:!.github/plan/*` — these plan files quote the pattern as literal text, so without the
+# exclusion the scan reports a leak against its own specification. It did, on a clean tree.
+# `--untracked` because `git grep` searches TRACKED files only. Verified: a planted key in an
+# untracked file is MISSED without it and found with it — and an uncommitted file is exactly
+# where a secret sits just before someone commits it.
+git grep --untracked -nE "(sk-ant|AKIA|BEGIN (RSA|OPENSSH) PRIVATE)" -- . ":!.github/plan/*" && echo "SECRET LEAK" || echo "no secrets"
 ```
 
 - [ ] Health checks green; extensions present; camera count non-zero
