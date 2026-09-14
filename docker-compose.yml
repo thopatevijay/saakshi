@@ -33,7 +33,11 @@ services:
       retries: 20
 
   minio:
-    image: minio/minio
+    # quay.io, not Docker Hub: `docker.io/minio/minio:latest` now refuses an anonymous pull
+    # (`insufficient_scope: authorization failed`), so a judge cloning this repo cannot bring the
+    # stack up at all while a laptop with a cached layer never notices. `ops/minio/Dockerfile`
+    # already pulls from quay.io for the same reason.
+    image: quay.io/minio/minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: saakshi
@@ -47,7 +51,7 @@ services:
 
   # One-shot: create the evidence bucket so a clean clone needs no console click.
   minio-init:
-    image: minio/mc
+    image: quay.io/minio/mc
     depends_on:
       minio: { condition: service_healthy }
     entrypoint: >
