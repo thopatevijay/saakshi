@@ -42,6 +42,7 @@ import { loadEnv } from '../env.js';
 import { evidenceStoreFromEnv } from '../services/evidence.js';
 import { csvCell } from '../services/trace-export.js';
 import { A4_LANDSCAPE, PdfPage, renderPdf, type PdfImage } from '../services/pdf.js';
+import { MEASURED_ANPR_LINES } from '../services/anpr-accuracy.js';
 
 /**
  * The repository root from this file, never `process.cwd()`.
@@ -278,13 +279,7 @@ function buildPdf(
     { size: 9 },
   );
   y -= 6;
-  for (const line of [
-    'Exact read recall (reads equal to the human label, over legible plates): 0 of 3 — 0%',
-    'Precision (correct reads over all reads emitted): 0%',
-    'Plate-detection recall (plate boxes over human-legible plates): 100% on n=3',
-    'Character accuracy (1 - editDistance/len, over legible instances): 51.8%',
-    'Human-legible plates in the 120-instance sample: 3',
-  ]) {
+  for (const line of MEASURED_ANPR_LINES) {
     page.text(`• ${line}`, M + 6, y, { size: 9 });
     y -= 13;
   }
