@@ -26,6 +26,12 @@ import type { CropPresigner } from './trace.js';
 export const CROP_URL_TTL_SECONDS = 900;
 
 /**
+ * Where the browser asks for a crop. Same-origin on the web app, which proxies it to the API with
+ * the session cookie the way the video wall and the alert stream already do.
+ */
+export const CROP_VIEW_BASE_PATH = '/evidence/crop';
+
+/**
  * The one guard, for every consumer of a stored `crop_uri` (D2-11).
  *
  * It exists as a shared function rather than four lines each in `routes/trace.ts` and
@@ -55,6 +61,45 @@ export function presignerFor(
     if (!cropUri.startsWith(prefix)) return null;
     return store.presignGet(cropUri.slice(prefix.length), ttlSeconds);
   };
+}
+
+/**
+ * The path a *browser* should use to fetch a crop (D4-09).
+ *
+ * ## Why this is not `presignerFor`
+ *
+ * A presigned URL is signed against `MINIO_ENDPOINT`, and SigV4 binds the `Host` header, so the
+ * host that signs and the host the browser resolves must be the same string. On the deployment the
+ * object store lives on the private network (`minio.railway.internal`), which a judge's browser
+ * cannot resolve — so every crop rendered as an `<img src>` was a broken image (BL-01 finding 18).
+ *
+ * Publishing the object store would fix the symptom and lose the argument: this project's pitch is
+ * purpose-bound access to evidence, and a 900 s presigned URL is a bearer credential that works for
+ * anyone who has it, whether or not they may see that crop. So the bytes go through the API
+ * instead, behind the session, and the store stays private.
+ *
+ * ## Why `presignerFor` still exists and must keep existing
+ *
+ * Export bundles embed crops as **bytes**, fetched at build time — `export-bundle.ts` calls
+ * `fetch()` on whatever this returns. A relative path is not fetchable from Node, and the bundle
+ * builder records a fetch failure as an *omission* rather than throwing, so handing it a proxy path
+ * would quietly empty every bundle. Audit and `export-bundle-cli` therefore keep the real
+ * presigner; only the browser-facing routes get this.
+ *
+ * The bucket-prefix guard is D2-11's and is preserved exactly: a `file://` URI, or one belonging to
+ * another bucket, yields `null` — "no crop stored", which is true — rather than a link that 4xxs.
+ */
+export function cropViewUrlFor(store: EvidenceStore | null, basePath = CROP_VIEW_BASE_PATH) {
+  if (store === null) return () => null;
+  const prefix = `s3://${store.bucket}/`;
+  return (cropUri: string): string | null => {
+    if (!cropUri.startsWith(prefix)) return null;
+    return `${basePath}?uri=${encodeURIComponent(cropUri)}`;
+  };
+}
+
+export function cropViewUrlFromEnv(env: NodeJS.ProcessEnv = process.env): CropPresigner {
+  return cropViewUrlFor(evidenceStoreFromEnv(env));
 }
 
 export function presignerFromEnv(env: NodeJS.ProcessEnv = process.env): CropPresigner {

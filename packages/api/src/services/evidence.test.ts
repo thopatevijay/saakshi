@@ -17,6 +17,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { EvidenceStore, evidenceKey, evidenceStoreFromEnv } from './evidence.js';
+import { cropViewUrlFor, presignerFor } from './crop-url.js';
 
 const ENDPOINT = process.env['MINIO_ENDPOINT'] ?? 'http://localhost:9000';
 const BUCKET = process.env['MINIO_BUCKET'] ?? 'saakshi-evidence';
@@ -122,6 +123,62 @@ describe('evidenceStoreFromEnv', () => {
       MINIO_SECRET_KEY: 's',
     });
     expect(store?.bucket).toBe(BUCKET);
+  });
+});
+
+describe('the browser-facing crop URL vs the signed one (D4-09)', () => {
+  /**
+   * The two presenters exist because their consumers need different things, and the bug this
+   * ticket fixes was the result of one value trying to serve both.
+   *
+   * `cropViewUrlFor` is what a browser is given. It must carry **no host at all**: the whole defect
+   * was that a presigned URL embeds the signing host, SigV4 binds it, and on the deployment that
+   * host is `minio.railway.internal` — unresolvable anywhere a judge sits.
+   *
+   * `presignerFor` is what `export-bundle.ts` is given, and it must stay an absolute signed URL,
+   * because the bundle builder `fetch()`es it to embed the bytes.
+   */
+  const store = new EvidenceStore({
+    endpoint: 'http://minio.railway.internal:9000',
+    bucket: 'saakshi-evidence',
+    accessKeyId: 'k',
+    secretAccessKey: 's',
+  });
+  const uri = 's3://saakshi-evidence/evidence/cam01/2026-09-05/abc-plate.jpg';
+
+  it('hands the browser a same-origin path with no host in it', () => {
+    const url = cropViewUrlFor(store)(uri);
+    expect(url).toBe(
+      '/evidence/crop?uri=s3%3A%2F%2Fsaakshi-evidence%2Fevidence%2Fcam01%2F2026-09-05%2Fabc-plate.jpg',
+    );
+  });
+
+  it('never leaks the private signing host into anything a browser loads', () => {
+    // The regression test for BL-01 finding 18, stated as the property rather than the symptom.
+    const url = cropViewUrlFor(store)(uri);
+    expect(url).not.toContain('railway.internal');
+    expect(url).not.toContain('minio');
+    expect(url).not.toContain('X-Amz-Signature');
+  });
+
+  it('still signs an absolute URL for the export path, against that same private host', () => {
+    // Correct *because* it is internal: the bundle builder runs inside the private network.
+    const signed = presignerFor(store)(uri);
+    expect(signed).toContain('http://minio.railway.internal:9000/saakshi-evidence/');
+    expect(signed).toContain('X-Amz-Signature=');
+  });
+
+  it('keeps D2-11 guard on both presenters — a foreign bucket or scheme is null, not a guess', () => {
+    for (const present of [cropViewUrlFor(store), presignerFor(store)]) {
+      expect(present('s3://some-other-bucket/evidence/cam01/x-plate.jpg')).toBeNull();
+      expect(present('file:///tmp/100-plate.jpg')).toBeNull();
+      expect(present('evidence/cam01/x-plate.jpg')).toBeNull();
+    }
+  });
+
+  it('yields null for every URI when no object store is configured', () => {
+    expect(cropViewUrlFor(null)(uri)).toBeNull();
+    expect(presignerFor(null)(uri)).toBeNull();
   });
 });
 
@@ -236,5 +293,25 @@ describe.runIf(live !== null)('against the real object store', () => {
       // evidence prefix would quietly delete a demo's evidence three days later.
       if (existing.length > 0) await live!.putRetention(existing);
     }
+  });
+
+  it('reads an object back as bytes through a signed GET, for the proxy to serve (D4-09)', async () => {
+    if (!reachable) return expect(reachable).toBe(false);
+    const key = `evidence/__test__/${randomUUID()}-plate.jpg`;
+    keys.push(key);
+    await live!.putObject(key, jpeg, 'image/jpeg');
+
+    const object = await live!.getObject(key);
+    expect(object).not.toBeNull();
+    expect(Buffer.from(object!.bytes).byteLength).toBe(jpeg.byteLength);
+    expect(object!.contentType).toBe('image/jpeg');
+    // The header the proxy passes through; without it a browser sniffs and the evidence strip
+    // renders a download rather than an image.
+    expect(object!.contentLength).toBe(String(jpeg.byteLength));
+  });
+
+  it('answers null for an object that is not there, so a stale crop is a 404 and not a 500', async () => {
+    if (!reachable) return expect(reachable).toBe(false);
+    expect(await live!.getObject(`evidence/__test__/${randomUUID()}-missing.jpg`)).toBeNull();
   });
 });

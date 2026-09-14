@@ -38,6 +38,8 @@ import { registerAuditRoutes } from './routes/audit.js';
 import { registerMetricsRoutes } from './routes/metrics.js';
 import type { BusInspector } from './metrics.js';
 import { registerRetentionRoutes } from './routes/retention.js';
+import { registerEvidenceRoutes } from './routes/evidence.js';
+import type { EvidenceStore } from './services/evidence.js';
 import type { AlertEngine } from './services/alerts.js';
 
 /**
@@ -79,6 +81,19 @@ export interface ServerOptions {
    * route module reads object-store credentials at import time — `services/crop-url.ts` says why.
    */
   cropPresigner?: CropPresigner;
+  /**
+   * What the browser-facing routes (trace, alerts) put in `cropUrl` (D4-09).
+   *
+   * Deliberately separate from `cropPresigner`, which stays a real absolute presigned URL because
+   * `registerAuditRoutes` builds export bundles and `export-bundle.ts` **fetches** that URL to
+   * embed crop bytes. A relative proxy path is not fetchable from Node, and the bundle builder
+   * records a fetch failure as an omission rather than throwing — so sharing one presenter between
+   * the two would empty every bundle silently. Defaults to `cropPresigner` when absent, which is
+   * what every test that predates D4-09 relies on.
+   */
+  cropViewUrl?: CropPresigner;
+  /** The object store the evidence route streams from. */
+  evidenceStore?: EvidenceStore | null;
   /** Where `POST /api/v1/audit/export` writes bundles (D3-04). Defaults to `exports/`. */
   exportDir?: string;
   /**
@@ -254,20 +269,25 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     registerAuthRoutes(app, { db });
     registerWatchlistRoutes(app, { db });
     registerPlateRoutes(app, { db });
+    // The browser gets a same-origin path it can actually load; the audit route below keeps the
+    // real presigned URL, because its export bundles fetch the bytes. See the `cropViewUrl` note on
+    // the options type — collapsing these two into one presenter empties every bundle silently.
+    const browserCropUrl = options.cropViewUrl ?? options.cropPresigner;
+
     registerTraceRoutes(app, {
       db,
       // D3-01's road graph. Constructed here rather than inside the route so a test can hand in a
       // stub, and so a deployment with no OSRM simply routes nothing rather than failing to boot.
       osrm: new HttpOsrmClient({ baseUrl: env.OSRM_URL, timeoutMs: env.OSRM_TIMEOUT_MS }),
       expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
-      ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
+      ...(browserCropUrl !== undefined ? { presign: browserCropUrl } : {}),
     });
     registerAlertRoutes(app, {
       db,
       expiringSoonHours: env.RETENTION_EXPIRING_SOON_HOURS,
       ...(options.listenSql !== undefined ? { listenSql: options.listenSql } : {}),
       ...(options.alertEngine !== undefined ? { engine: options.alertEngine } : {}),
-      ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
+      ...(browserCropUrl !== undefined ? { presign: browserCropUrl } : {}),
     });
     registerQueryRoutes(app, {
       db,
@@ -275,6 +295,10 @@ export async function buildServer(options: ServerOptions): Promise<App> {
     });
     relay = registerStreamRoutes(app, { db, env });
     registerRetentionRoutes(app, { db, env });
+    registerEvidenceRoutes(app, {
+      db,
+      ...(options.evidenceStore !== undefined ? { store: options.evidenceStore } : {}),
+    });
     registerAuditRoutes(app, {
       db,
       ...(options.cropPresigner !== undefined ? { presign: options.cropPresigner } : {}),
