@@ -23,7 +23,7 @@
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   computeSizing,
   presetById,
@@ -32,6 +32,10 @@ import {
   type SizingResult,
 } from '@saakshi/shared';
 import { PdfPage, renderPdf, textWidth, type PdfFont } from '../services/pdf.js';
+import { MEASURED_ANPR, MEASURED_ANPR_LINES } from '../services/anpr-accuracy.js';
+
+// Re-exported so `solution-deck.test.ts` can assert the deck against the report through one symbol.
+export { MEASURED_ANPR };
 
 /** See `gap-analysis-cli.ts`: a job writing a deliverable resolves against the repo, never cwd. */
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -41,21 +45,6 @@ const SLIDE = { width: 960, height: 540 } as const;
 const M = 54;
 const BODY = 13;
 
-/**
- * The measured ANPR accuracy, in one place.
- *
- * D4-04's AC 6 requires these to equal `submission/govt-feed-output-report.pdf` exactly, and D4-03's
- * handoff states them. Exported so a test can assert against the generated CSV rather than a human
- * comparing two documents by eye.
- */
-export const MEASURED_ANPR = {
-  exactReadRecall: '0 of 3 — 0%',
-  precision: '0%',
-  plateDetectionRecall: '100% on n=3',
-  characterAccuracy: '51.8%',
-  legiblePlates: '3 of 120',
-  verdictAgainstTarget: 'MISSES the challenge’s >90% target, and is reported as missing',
-} as const;
 
 interface Slide {
   n: number;
@@ -672,4 +661,14 @@ function main(): number {
   return 0;
 }
 
-process.exit(main());
+/**
+ * Only when run as a command.
+ *
+ * `solution-deck.test.ts` imports `MEASURED_ANPR` from this module to assert it against the
+ * generated report, and a bare `process.exit(main())` at module scope ran the whole build — and then
+ * killed the test runner — the moment the import was resolved. A job that is also a library has to
+ * say which one it is being.
+ */
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  process.exit(main());
+}
