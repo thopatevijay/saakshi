@@ -1,5 +1,24 @@
 name: saakshi
 
+# ## Why every published port is bound to 127.0.0.1
+#
+# `ports: ['5432:5432']` binds **0.0.0.0** — the database is then reachable from any machine on the
+# same network. Every credential in this file is published in this repository: Postgres
+# `saakshi/saakshi`, Valkey with no auth at all, MinIO `saakshi/saakshi-dev-secret`, Grafana
+# `admin/admin`, Prometheus with no auth.
+#
+# The Grand Finale is **in person at i-Hub Gujarat, 22-23 Sep**, on shared venue wifi, with this
+# stack running on a laptop in the room. That is exactly where an open `0.0.0.0:5432` carrying an
+# evidence database - the audit chain, and MinIO crops of real vehicles - stops being theoretical.
+# For a project whose argument is chain of custody and purpose-bound access, it is also the least
+# affordable irony available.
+#
+# Nothing local breaks: the API, the workers and `psql` all connect from the host, and traffic
+# between containers uses the compose network, which host binding does not affect.
+#
+# `BIND_HOST` exists for the one case that genuinely needs LAN reach - publishing to MediaMTX from a
+# phone or a second machine as a camera source. Set `BIND_HOST=0.0.0.0` to open the whole stack, and
+# mean it.
 services:
   db:
     image: timescale/timescaledb-ha:pg16
@@ -12,7 +31,7 @@ services:
     # look like application errors while the log says `FATAL: sorry, too many clients already`.
     # 300 leaves room for several instances, the workers, and a human with a psql session.
     command: ['-c', 'max_connections=300']
-    ports: ['5432:5432']
+    ports: ['${BIND_HOST:-127.0.0.1}:5432:5432']
     volumes:
       - 'dbdata:/home/postgres/pgdata/data'
       # Runs once, only when the data directory is empty. See db/init/00-extensions.sql.
@@ -25,7 +44,7 @@ services:
   valkey:
     image: valkey/valkey:8-alpine
     command: valkey-server --appendonly yes
-    ports: ['6379:6379']
+    ports: ['${BIND_HOST:-127.0.0.1}:6379:6379']
     volumes: ['valkeydata:/data']
     healthcheck:
       test: ['CMD', 'valkey-cli', 'ping']
@@ -42,7 +61,7 @@ services:
     environment:
       MINIO_ROOT_USER: saakshi
       MINIO_ROOT_PASSWORD: saakshi-dev-secret
-    ports: ['9000:9000', '9001:9001']
+    ports: ['${BIND_HOST:-127.0.0.1}:9000:9000', '${BIND_HOST:-127.0.0.1}:9001:9001']
     volumes: ['miniodata:/data']
     healthcheck:
       test: ['CMD-SHELL', 'mc ready local || exit 1']
@@ -75,11 +94,11 @@ services:
     volumes:
       - './ops/mediamtx/mediamtx.yml:/mediamtx.yml:ro'
     ports:
-      - '8554:8554' # RTSP
-      - '8889:8889' # WebRTC / WHEP
-      - '8888:8888' # HLS
-      - '8189:8189/udp' # WebRTC media
-      - '9998:9998' # Prometheus metrics (auth-gated) — consumed by D3-10
+      - '${BIND_HOST:-127.0.0.1}:8554:8554' # RTSP
+      - '${BIND_HOST:-127.0.0.1}:8889:8889' # WebRTC / WHEP
+      - '${BIND_HOST:-127.0.0.1}:8888:8888' # HLS
+      - '${BIND_HOST:-127.0.0.1}:8189:8189/udp' # WebRTC media
+      - '${BIND_HOST:-127.0.0.1}:9998:9998' # Prometheus metrics (auth-gated) — consumed by D3-10
     healthcheck:
       # TCP liveness on the primary ingest port. /metrics is auth-gated and returns 401, so it is
       # not a usable probe target.
@@ -100,7 +119,7 @@ services:
       # never becomes a thing anybody has to think about on a laptop.
       - '--storage.tsdb.retention.time=15d'
       - '--web.enable-lifecycle'
-    ports: ['9090:9090']
+    ports: ['${BIND_HOST:-127.0.0.1}:9090:9090']
     volumes:
       - './ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro'
       - './ops/prometheus/rules.yml:/etc/prometheus/rules.yml:ro'
@@ -129,7 +148,7 @@ services:
       # dependency nobody declared.
       GF_INSTALL_PLUGINS: ''
     # 3000 is `next dev`'s port, so the host side is overridable and defaults to 3001.
-    ports: ['${GRAFANA_HOST_PORT:-3001}:3000']
+    ports: ['${BIND_HOST:-127.0.0.1}:${GRAFANA_HOST_PORT:-3001}:3000']
     volumes:
       - './ops/grafana/provisioning:/etc/grafana/provisioning:ro'
       - './ops/grafana/dashboards:/var/lib/grafana/dashboards:ro'
@@ -151,7 +170,7 @@ services:
     volumes: ['./data:/data']
     # 5000 by default. Overridable because macOS binds :5000 to the AirPlay Receiver, so a laptop
     # with it enabled cannot publish this port at all - see docs/road-network-setup.md.
-    ports: ['${OSRM_HOST_PORT:-5000}:5000']
+    ports: ['${BIND_HOST:-127.0.0.1}:${OSRM_HOST_PORT:-5000}:5000']
     profiles: ['routing']
 
 volumes:
