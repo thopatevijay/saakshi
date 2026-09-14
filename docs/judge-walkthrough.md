@@ -66,7 +66,8 @@ use of it.
   '0 impossible transitions' here means '0 transitions were testable', not 'the estate is clean'."*
   That is the product refusing to claim a clean result it did not earn. The detector is demonstrated
   against the road graph in `docs/cloning-detection.md`.
-- The evidence strip shows **real plate crops**, served as presigned URLs that expire in 15 minutes.
+- The evidence strip shows **real plate crops**, loaded through your signed-in session. The object
+  store is not a public file server and a crop is not a document you can link to from outside.
 
 ## 3 · Inspect an alert and why it fired  →  `/alerts`
 
