@@ -300,22 +300,38 @@ export function renderPdf(pages: PdfPage[], meta: PdfMeta, images: readonly PdfI
  * is a point or two conservative is invisible, and the alternative — assuming every glyph is the
  * same width — visibly overflows the page on a column of capital letters.
  */
-const HELVETICA_WIDTHS: Readonly<Record<string, number>> = buildWidths();
-
-function buildWidths(): Record<string, number> {
-  const widths: Record<string, number> = {};
-  const groups: [string, number][] = [
-    [' !"#$%&\'()*+,-./0123456789:;<=>?@', 0],
-    ['', 0],
-  ];
-  void groups;
-  const table =
-    '278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 ' + // space .. /
+const HELVETICA_WIDTHS: Readonly<Record<string, number>> = buildWidths(
+  '278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 ' + // space .. /
     '556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 ' + // 0..?
     '1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 ' + // @..O
     '667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 ' + // P.._
     '333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 ' + // `..o
-    '556 556 333 500 278 556 500 722 500 500 500 334 260 334 584'; // p..~
+    '556 556 333 500 278 556 500 722 500 500 500 334 260 334 584', // p..~
+);
+
+/**
+ * Helvetica-Bold advance widths — the real Adobe metrics, not a scale factor.
+ *
+ * This used to be `HELVETICA_WIDTHS[char] * 1.06`, and the approximation was fine for wrapping a
+ * whole paragraph in one font. It broke the moment D4-04 laid out **mixed-weight** lines: the deck
+ * positions each same-font segment itself, so a bold segment measured 6% off puts the *next*
+ * segment in the wrong place, and the slide rendered `disagree. /problems` with the full stop drawn
+ * underneath the previous word.
+ *
+ * The error is invisible inside a single run and obvious across a boundary, which is exactly the
+ * kind of bug that survives review. A second table is 6 lines; guessing is not worth it.
+ */
+const HELVETICA_BOLD_WIDTHS: Readonly<Record<string, number>> = buildWidths(
+  '278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 ' + // space .. /
+    '556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 ' + // 0..?
+    '975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 ' + // @..O
+    '667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 ' + // P.._
+    '333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 ' + // `..o
+    '611 611 389 556 333 611 556 778 556 556 500 389 280 389 584', // p..~
+);
+
+function buildWidths(table: string): Record<string, number> {
+  const widths: Record<string, number> = {};
   const values = table.split(/\s+/).map(Number);
   for (let code = 32; code <= 126; code += 1) {
     widths[String.fromCharCode(code)] = values[code - 32] ?? 556;
@@ -325,14 +341,9 @@ function buildWidths(): Record<string, number> {
 
 export function textWidth(value: string, size: number, font: PdfFont = 'Helvetica'): number {
   if (font === 'Courier') return (value.length * 600 * size) / 1000;
-  const bold = font === 'Helvetica-Bold';
+  const table = font === 'Helvetica-Bold' ? HELVETICA_BOLD_WIDTHS : HELVETICA_WIDTHS;
   let total = 0;
-  for (const char of value) {
-    const base = HELVETICA_WIDTHS[char] ?? 556;
-    // Helvetica-Bold is wider than Helvetica by roughly 6% across the ASCII range. Approximating it
-    // keeps one table instead of two, and errs towards wrapping early rather than overflowing.
-    total += bold ? base * 1.06 : base;
-  }
+  for (const char of value) total += table[char] ?? 556;
   return (total * size) / 1000;
 }
 
