@@ -502,6 +502,42 @@ timestamp.
 
 ---
 
+## 9.1 · The Cloudflare Tunnel fallback (D4-02)
+
+Railway hosts the **control plane**. Two things are not on it and may never be: the analytics and
+prober workers (Python + YOLO11, and this platform has no GPU), and MediaMTX, without which the WHEP
+low-latency panel cannot be shown. If a live-feed demonstration has to be given — or if Railway is
+unreachable from the demonstration room — a tunnel exposes the **local** stack, feeds and all, with
+no data migration and no second deployment to keep in sync.
+
+```bash
+# one binary, no account, no DNS
+curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64.tgz \
+  | tar -xz && chmod +x cloudflared
+
+npm start                                    # API :4000, console :3000, compose services up
+./cloudflared tunnel --url http://localhost:3000 --no-autoupdate
+```
+
+It prints a `https://<random>.trycloudflare.com` URL. That is the whole setup.
+
+**Tested end to end, 2026-09-14**, against a local stack:
+
+| Check | Result |
+|---|---|
+| `GET /` | `307` → the login screen, in 0.94 s |
+| `GET /login` | `200`, 0.42 s |
+| `GET /registry` with a session | `200` — a real screen, not just the shell |
+| `GET /basemap/gujarat.pmtiles` with `Range` | `HTTP/2 206`, `content-range: bytes 0-8191/29781693` |
+
+That last row is the one worth checking, because it is the one that breaks silently: PMTiles is read
+in byte ranges, so a tunnel or proxy that does not pass `Range` through makes the browser pull 28 MB
+to draw a single tile, and the map appears to hang rather than to fail.
+
+**Two caveats.** A quick tunnel's hostname is random and changes on every restart, so it is a
+demonstration tool, not a submission URL — the Railway deployment is what goes on the form. And the
+console is then only up while the laptop is: `npm start` and `cloudflared` both have to stay running.
+
 ## 10 · A note on `PROJECT.md`
 
 `PROJECT.md` § *Third-party services / spend* still records **Cloudflare Tunnel** as the public-demo
