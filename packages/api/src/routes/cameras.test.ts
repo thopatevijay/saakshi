@@ -30,6 +30,24 @@ let env: Env;
 let reachable = false;
 
 /**
+ * The `GJ-` cameras that existed **before** this suite ran.
+ *
+ * The bulk-import tests POST `fixtures/cameras-bulk-sample.csv` verbatim, so the rows they create
+ * are named exactly as an operator's real import would be — `GJ-AHM-0001` and friends. Teardown used
+ * to clear up with `delete from cameras where external_id like 'GJ-%'`, which does not distinguish
+ * this suite's rows from a seeded estate, and those 50 rows are **the only cameras in the estate
+ * that carry coordinates** (the sandbox catalogue publishes `{id, name}` and nothing else).
+ *
+ * Measured before this was scoped: one `npm run test` took the estate from 85 cameras / 54 located
+ * to 35 / 4, silently invalidating `docs/gap-analysis-sample.md` — which is generated from the
+ * estate and is a Model 1 deliverable. Pointed at a deployed database it would blank the GIS map.
+ *
+ * So: snapshot first, and on the way out delete only what was not there before. Re-importing over
+ * pre-existing rows is an upsert of identical values, so the survivors are unchanged.
+ */
+let preexistingGjCameras = new Set<string>();
+
+/**
  * Catalogue onboarding runs inside its own department.
  *
  * Absence is computed by set difference **within a scope**, so onboarding a 3-camera stub into the
@@ -83,7 +101,23 @@ async function auditCountFor(targetId: string): Promise<number> {
 }
 
 beforeAll(async () => {
-  env = loadEnv({ ...process.env, NODE_ENV: 'test' });
+  // A catalogue source is supplied here rather than inherited from the environment.
+  //
+  // `fetchCatalogue: catalogueStub` already means this suite never contacts the sandbox — but the
+  // route refuses with **502** before it reaches the stub when neither `SENTINEL_INGEST_URL` nor
+  // `SENTINEL_HOST` is set (`routes/cameras.ts:412`). So the two onboard-from-catalogue tests failed
+  // for anyone whose `.env` lacks those keys, which is every judge who clones this repo (BL-01
+  // finding 2, reproduced: `expected 502 to be 200`).
+  //
+  // A skip guard was the other option and would have been dead code: there is no live-gateway call
+  // left in this file to skip. Supplying the source makes both tests run deterministically for
+  // everyone instead of silently vanishing. The host is unroutable on purpose — if the stub is ever
+  // bypassed, the test fails loudly rather than reaching something real.
+  env = loadEnv({
+    ...process.env,
+    NODE_ENV: 'test',
+    SENTINEL_INGEST_URL: 'https://catalogue.invalid/cameras.json',
+  });
   rawSql = createSql(env.DATABASE_URL, 4);
   db = createDb(rawSql);
 
@@ -94,6 +128,11 @@ beforeAll(async () => {
     console.warn('[cameras] database unreachable — skipping. Run `make up && make migrate`.');
     return;
   }
+
+  const gjBefore = await db.execute<{ external_id: string }>(
+    sql`select external_id from cameras where external_id like 'GJ-%'`,
+  );
+  preexistingGjCameras = new Set(gjBefore.map((r) => r.external_id));
 
   const users = await db.execute<{ id: string; badge_no: string }>(
     sql`select id, badge_no from users`,
@@ -120,7 +159,16 @@ afterAll(async () => {
   if (reachable) {
     // Only rows this run created. audit_log is append-only and is deliberately left alone.
     await db.execute(sql`delete from cameras where external_id like ${`${TAG}%`}`);
-    await db.execute(sql`delete from cameras where external_id like 'GJ-%'`);
+    // Only the `GJ-` rows this run introduced. See `preexistingGjCameras`.
+    const keep = [...preexistingGjCameras];
+    await db.execute(
+      keep.length === 0
+        ? sql`delete from cameras where external_id like 'GJ-%'`
+        : // `not in`, not `<> all`: drizzle expands an array parameter to a parenthesised tuple,
+          // which is what `in` wants and what `all()` rejects — `op ANY/ALL (array) requires array
+          // on right side`.
+          sql`delete from cameras where external_id like 'GJ-%' and external_id not in ${keep}`,
+    );
     await db.execute(sql`delete from catalogue_sync_runs where trigger_source = 'api'`);
   }
   await app?.close();
