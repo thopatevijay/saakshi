@@ -78,6 +78,21 @@ function findChrome(): string {
   );
 }
 
+/**
+ * The slice of mermaid's browser API used here.
+ *
+ * Declared rather than imported: this runs *inside the page*, where `mermaid` is a global attached
+ * by the bundle, not a module this file can import. The annotation is erased before the function is
+ * serialised to the browser, so it costs nothing at runtime and keeps the call sites type-checked
+ * instead of suppressed.
+ */
+interface MermaidGlobal {
+  initialize: (config: Record<string, unknown>) => void;
+  render: (id: string, definition: string) => Promise<{ svg: string }>;
+}
+
+declare const mermaid: MermaidGlobal;
+
 export interface RenderedDiagram {
   source: string;
   png: string;
@@ -125,8 +140,7 @@ export async function renderMermaidDir(dir: string): Promise<RenderedDiagram[]> 
       );
       await page.addScriptTag({ content: mermaidJs });
       await page.evaluate(() => {
-        // @ts-expect-error - mermaid is attached to window by the bundle above.
-        window.mermaid.initialize({
+        mermaid.initialize({
           startOnLoad: false,
           theme: 'neutral',
           htmlLabels: false,
@@ -137,11 +151,10 @@ export async function renderMermaidDir(dir: string): Promise<RenderedDiagram[]> 
       });
 
       const size = await page.evaluate(async (def: string) => {
-        // @ts-expect-error - see above.
-        const res = await window.mermaid.render('diagram', def);
+        const res = await mermaid.render('diagram', def);
         const host = document.getElementById('host');
         if (host === null) throw new Error('render host missing');
-        host.innerHTML = res.svg as string;
+        host.innerHTML = res.svg;
         const svg = host.querySelector('svg');
         if (svg === null) throw new Error('mermaid produced no <svg>');
         // mermaid sizes with a viewBox and a percentage width; pin both so the screenshot is the
