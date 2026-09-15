@@ -32,6 +32,7 @@
     "check:links": "tsx scripts/check-links.ts",
     "docs:render": "tsx scripts/docs-render.ts",
     "docs:linkcheck": "tsx scripts/docs-linkcheck.ts",
+    "docs:workflow": "tsx scripts/build-workflow-pdf.ts",
     "bench:api": "npm run bench:api --workspace @saakshi/api",
     "bench:plate-search": "npm run bench:plate-search --workspace @saakshi/api",
     "bench:alert-storm": "npm run bench:alert-storm --workspace @saakshi/api",
