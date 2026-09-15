@@ -7,11 +7,26 @@ into a route across districts. Built for the **Gujarat Police Innovation Challen
 
 | | |
 |---|---|
-| **Live console** | **https://saakshi.up.railway.app** — credentials are issued to judges separately (see [Access](#access)) |
+| **Live console** | **https://saakshi.up.railway.app** — sign in with either account below |
 | **Demo video** (3 min) | https://youtu.be/OrMQH0TKe3Q |
 | **Technical proposal / HLD** | [`docs/HLD.md`](docs/HLD.md) · [PDF, 22 pp](submission/saakshi-hld.pdf) |
 | **Solution deck** | [`submission/saakshi-solution-deck.pdf`](submission/saakshi-solution-deck.pdf) |
 | **Reference model** | **Model 1 (compulsory) + Hybrid**, per [`PROJECT.md` §2](PROJECT.md) |
+
+### Judge sign-in
+
+Two accounts, so a reviewer can start immediately. **Both are read-only by design** — neither can
+edit the registry, mutate the watchlist or delete a camera, and there is deliberately no admin
+account, because `admin` holds `registry:delete`.
+
+| Badge | Role | Password | Sees |
+|---|---|---|---|
+| `JUDGE-OPR-001` | operator | `74b92bf7a6ynfwsec2u7` | registry, video wall, trace, alerts (incl. acknowledge), evidence, sizing. **Writes nothing.** |
+| `JUDGE-AUD-002` | auditor | `rehefnaxrj2vd9e46xaa` | registry, trust, **audit chain and export bundles**. No video, no trace, no alerts. |
+
+The two roles see deliberately different systems — the operator cannot read the audit chain
+(`audit:read` is not in its capability set), and the auditor cannot run a trace. **Use both.**
+[`docs/judge-walkthrough.md`](docs/judge-walkthrough.md) is the guided tour.
 
 ---
 
@@ -187,9 +202,10 @@ console's credentials.
 
 ### Access
 
-The hosted console at **https://saakshi.up.railway.app** uses **separately issued, non-guessable
-credentials that are deliberately not in this repository**. Judges receive them with the submission;
-[`docs/judge-walkthrough.md`](docs/judge-walkthrough.md) is the guided tour, and
+Credentials for the hosted console at **https://saakshi.up.railway.app** are in
+[Judge sign-in](#judge-sign-in) at the top of this file. Both accounts are read-only and the four
+original development users (password `saakshi-dev`) are **deactivated on the deployment** — they
+return 401. [`docs/judge-walkthrough.md`](docs/judge-walkthrough.md) is the guided tour;
 [`docs/deployment.md`](docs/deployment.md) covers the deployment itself.
 
 ### Python CV workers
