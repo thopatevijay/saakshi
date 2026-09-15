@@ -211,9 +211,15 @@ python3.13 -m venv .venv
 npm run typecheck && npm run lint && npm run test
 ```
 
-**`npm run test` takes ~5 minutes** — 68 files, 1,442 tests, run one file at a time because the API
+**`npm run test` takes ~5 minutes** — 70 files, ~1,480 tests, run one file at a time because the API
 suites share a live Postgres, MinIO and Valkey. That is not a hung run. It needs no
 `SENTINEL_*` credentials.
+
+> **Run the tests against a database that has not been demo-seeded.** `npm run seed:demo-state` is
+> not test-neutral: it retires the fixture users the auth tests sign in as, and it adds two judge
+> accounts that `schema-drift.test.ts` asserts against. Do both on the same database and the suite
+> goes red — 132 failures — with nothing actually broken. Seed a demo estate *or* run the suite;
+> `npm run db:migrate` alone is the state the tests expect.
 
 ---
 
