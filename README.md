@@ -144,19 +144,29 @@ stack — the Python CV workers are optional and covered [below](#python-cv-work
 git clone https://github.com/thopatevijay/saakshi.git && cd saakshi
 cp .env.example .env
 
-docker compose up -d          # postgres+postgis+timescale · valkey · minio · mediamtx
+docker compose up -d              # postgres+postgis+timescale · valkey · minio · mediamtx
 npm install
-npm run db:migrate            # schema + seed users
-npm run seed:demo-state       # a populated estate — an empty one looks like a broken app
-npm run dev                   # API on :4000, web on :3000
+npm run build -w @saakshi/shared  # REQUIRED before anything else — see the note below
+npm run db:migrate                # schema + seed users
+npm run seed:demo-state           # a populated estate — an empty one looks like a broken app
+npm run dev                       # API on :4000, web on :3000
 ```
+
+> **The `@saakshi/shared` build is not optional and not implicit.** `npm install` links the
+> workspace but does not compile it, so on a fresh clone `packages/shared/dist/` does not exist yet
+> and the very next command fails with `ERR_MODULE_NOT_FOUND:
+> @saakshi/shared/dist/db/index.js`. `npm start` runs this step for you; the manual sequence above
+> cannot, so it is listed explicitly.
 
 Verify:
 
 ```bash
-curl -fsS localhost:4000/health        # {"status":"ok","service":"saakshi-api",...}
-curl -fsSI localhost:3000 | head -1    # HTTP/1.1 200 OK
+curl -fsS localhost:4000/health        # {"status":"ok","service":"saakshi-api","version":"0.1.0",...}
+curl -fsSI localhost:3000 | head -1    # HTTP/1.1 307 Temporary Redirect  -> /login?next=%2F
 ```
+
+The **307 is correct**: every console route requires a session, so the root redirects to `/login`,
+exactly as the hosted deployment does. `curl -fsSL localhost:3000` follows it and returns 200.
 
 Or do all of it with one command — `npm start` sequences the same steps, waits for each to be
 healthy, and prints the local sign-in banner:
@@ -169,8 +179,11 @@ npm run stop           # stops app + containers, PRESERVES volumes
 > **`npm run stop -- --purge` destroys the MinIO volume**, which holds the evidence crops. They
 > cannot be regenerated without gateway traffic. Plain `stop` is the safe one, deliberately.
 
-Local sign-in uses the seeded development users printed by the start banner. They are **development
-fixtures with a published password** and are not the deployed credentials.
+**`seed:demo-state` prints two local sign-in accounts — an operator and an auditor — with random
+passwords, once.** It also retires the old `saakshi-dev` fixture users, so that published password
+no longer works. Nothing stores those passwords for you; copy them when they are printed, or re-run
+the seeder, which issues fresh ones. These are **local** accounts and are unrelated to the hosted
+console's credentials.
 
 ### Access
 
