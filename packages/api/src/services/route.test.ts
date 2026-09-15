@@ -36,6 +36,7 @@ import {
   routeCacheKey,
   summarise,
   timingPlausibility,
+  shouldReadCache,
 } from './route.js';
 import type { TraceCamera, TraceResult, TraceSighting } from './trace.js';
 
@@ -698,3 +699,40 @@ function nullDb(): Db {
     },
   } as unknown as Db;
 }
+
+describe('a cached route can be forced to rebuild (D4-13)', () => {
+  // The cache keys on the question and fingerprints the sightings, but it cannot see the road
+  // graph — a third input living outside this database. Production kept serving routes built when
+  // no router existed: same question, same evidence, so a hit, and every trace reported
+  // "0.0 km observed · 0 of 10 transitions assessable" with OSRM up and the graph loaded.
+
+  it('reads the cache for an ordinary persisted reconstruction', () => {
+    expect(shouldReadCache(true, false)).toBe(true);
+    expect(shouldReadCache(true, undefined)).toBe(true);
+  });
+
+  it('skips the cache read when a refresh is asked for', () => {
+    expect(shouldReadCache(true, true)).toBe(false);
+  });
+
+  it('still skips it for the non-persisting test path, refresh or not', () => {
+    expect(shouldReadCache(false, false)).toBe(false);
+    expect(shouldReadCache(false, true)).toBe(false);
+  });
+
+  it('serves a rebuilt route even when the cache write fails, and says it was not a hit', async () => {
+    // `writeCache` is wrapped in `catch { /* the route stands; only the cache entry was lost */ }`,
+    // so a refresh against an unwritable database still answers. That is the documented trade-off —
+    // a caching failure must not fail an operator's trace — but it has a consequence worth pinning:
+    // the stale row survives, so the NEXT request is stale again with no signal. Asserted here so
+    // the behaviour is deliberate rather than discovered. Logged to BL-01.
+    const service = new RouteService(nullDb(), stubOsrm());
+    const route = await service.reconstruct(
+      traceOf([sighting('A', 0, 300_001), sighting('B', 600, 300_002)]),
+      { persist: true, refresh: true },
+    );
+
+    expect(route.cache.hit).toBe(false);
+    expect(route.segments.length).toBeGreaterThan(0);
+  });
+});
