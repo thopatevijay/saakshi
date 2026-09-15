@@ -387,7 +387,7 @@ export function ellipsise(
  * rather than to mojibake — a visible gap beats a wrong glyph. Note the middle dot, the degree sign
  * and the accented letters *are* in Latin-1 and pass through untouched.
  */
-const TRANSLITERATE: Readonly<Record<string, string>> = {
+export const TRANSLITERATE: Readonly<Record<string, string>> = {
   '—': '-', // em dash
   '–': '-', // en dash
   '‘': "'",
@@ -403,12 +403,25 @@ const TRANSLITERATE: Readonly<Record<string, string>> = {
   '•': '·', // bullet -> middle dot, which Latin-1 has
 };
 
+/**
+ * Fold a string to the characters this PDF can actually draw.
+ *
+ * Exported because **measuring and drawing must agree**. `textWidth` reads the Helvetica metrics
+ * table for whatever characters it is handed, so measuring a string containing `\u2019` and then
+ * drawing the `'` it transliterates to advances the cursor by more than the glyph occupies — which
+ * shows up as a stray gap mid-sentence, once per curly quote, throughout a document. A caller that
+ * lays out its own text calls this first, then measures.
+ */
+export function toPdfText(value: string): string {
+  return [...value]
+    .map((char) => TRANSLITERATE[char] ?? ((char.codePointAt(0) ?? 63) > 255 ? '?' : char))
+    .join('');
+}
+
 function escapeText(value: string): string {
   // Latin-1 only: anything outside it has no glyph under WinAnsiEncoding and would render as
   // mojibake rather than failing loudly, which is worse.
-  return [...value]
-    .map((char) => TRANSLITERATE[char] ?? ((char.codePointAt(0) ?? 63) > 255 ? '?' : char))
-    .join('')
+  return toPdfText(value)
     .replace(/\\/g, '\\\\')
     .replace(/\(/g, '\\(')
     .replace(/\)/g, '\\)')

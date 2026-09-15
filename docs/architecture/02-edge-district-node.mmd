@@ -1,0 +1,24 @@
+flowchart LR
+  subgraph NODE["Edge / district node"]
+    direction TB
+    ADP["Adapter<br/>RTSP · ONVIF · HLS · WHEP · NVR SDK"]
+    DEC["Decoder<br/>rtsp_transport=tcp, PTS-derived timing"]
+    GATE["Motion gate<br/>+ frame sampling"]
+    DET["YOLO11 detector"]
+    TRK["ByteTrack tracker"]
+    BEST["Best-shot selector<br/>33 crops per 1,000 sightings"]
+    OCR["ONNX plate OCR<br/>+ plate grammar"]
+    PROBE["Trust prober<br/>blur · night · tamper<br/>PTS drift · measured FPS"]
+    BUF["Store-and-forward buffer<br/>survives a backhaul outage"]
+  end
+
+  CAM["Camera / NVR"] --> ADP --> DEC --> GATE --> DET --> TRK --> BEST --> OCR
+  DEC --> PROBE
+  OCR --> BUF
+  PROBE --> BUF
+  BUF -->|"~2 KB/s/camera<br/>sightings, plate reads, health"| BUS(["Event bus"])
+  BEST -->|"crop bytes"| OBJ[("Object store")]
+
+  VID["Video never leaves the district"]:::note
+  NODE -.-> VID
+  classDef note fill:#fdf6e3,stroke:#b58900,color:#654d00

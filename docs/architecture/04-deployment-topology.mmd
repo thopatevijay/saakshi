@@ -1,0 +1,39 @@
+flowchart TB
+  subgraph DIST["Per district — approximately 33 nodes"]
+    N1["District node<br/>adapters · MediaMTX · analytics<br/>GPU or Apple Silicon"]
+    N2["District node"]
+    N3["District node"]
+  end
+
+  subgraph STATE["State data centre — active site"]
+    LB["TLS termination<br/>+ reverse proxy"]
+    API["API replicas — Fastify<br/>stateless, horizontally scaled"]
+    WEB["Console — Next.js"]
+    BUS(["Valkey Streams"])
+    PG[("PostgreSQL 16 primary<br/>PostGIS · TimescaleDB")]
+    MIN[("MinIO — erasure coded")]
+    OSRM["OSRM route service"]
+    OBS["Prometheus · Grafana · Loki"]
+  end
+
+  subgraph DR["Secondary site"]
+    PGR[("Streaming replica")]
+    MINR[("Bucket replication")]
+  end
+
+  N1 -->|"metadata only<br/>mTLS over WAN/VPN"| BUS
+  N2 --> BUS
+  N3 --> BUS
+  BUS --> API
+  LB --> API
+  LB --> WEB
+  API --> PG
+  API --> MIN
+  API --> OSRM
+  API --> OBS
+  PG -.->|"streaming replication"| PGR
+  MIN -.->|"asynchronous replication"| MINR
+
+  NOTE["Backhaul: 1.28 Gbps of metadata<br/>in place of 160 Gbps of video"]:::note
+  STATE -.-> NOTE
+  classDef note fill:#eef7ee,stroke:#2d7a2d,color:#1b4d1b
