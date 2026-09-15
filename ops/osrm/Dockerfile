@@ -16,16 +16,28 @@
 # can regenerate from the repo, so this image reproduces `scripts/import-osm.sh` stages 1-3 instead:
 # download the region, clip it to Gujarat, build the graph.
 #
-# ## The snapshot caveat, stated rather than buried
+# ## The snapshot is PINNED, and here is what that cost
 #
-# Geofabrik serves only `-latest`. There is no way to pin the 2026-09-05T20:22:06Z snapshot that
-# `road_network` was imported from and that `docs/claims-provenance.md` §5 publishes. So the routing
-# graph here is built from a **newer** snapshot than the coverage geometry.
+# `road_network` was imported from an OSM snapshot of **2026-09-05T20:22:06Z**, which
+# `docs/claims-provenance.md` §5 publishes. Geofabrik no longer serves that day — `-260905` and
+# `-260904` both 404 — so the graph here cannot be made identical to the one the coverage figures
+# came from.
 #
-# That is tolerable precisely because the two are used for different things — coverage kilometres
-# come from `road_network` in PostGIS and are unaffected by this image, while OSRM only supplies
-# road distance between two camera positions — but it is a real divergence and D4-13 measures
-# whether it moves any published figure rather than assuming it does not.
+# The first build used `-latest` and that was worse than divergent, it was **not reproducible**:
+# every rebuild would fetch a different snapshot and silently move a published number. Measured on
+# the `-latest` build, the cloned-plate segment routed at **9.236 km → 1108.3 km/h** where local
+# computes **9.244 km → 1109.3 km/h**, the figure printed in the deck and the HLD. Eight metres of
+# routed path, one km/h of published claim.
+#
+# So this pins the oldest dated extract Geofabrik still serves. The graph is then identical on every
+# rebuild, and the divergence from `road_network` is a fixed, stated quantity rather than whatever
+# the mirror happened to hold that morning. Coverage kilometres are unaffected either way — they
+# come from `road_network` in PostGIS, not from OSRM, which only supplies road distance between two
+# camera positions.
+#
+# **A dated extract ages out of Geofabrik's window (~90 days).** When this build starts 404ing, that
+# is why; pick the next available date and re-measure the figure above rather than reaching for
+# `-latest`.
 #
 # ## Build cost
 #
@@ -44,13 +56,15 @@ RUN apt-get update \
 # `scripts/build-basemap.sh` clips the basemap to, so the routing graph and the tiles a route is
 # drawn over cover exactly the same ground.
 ARG REGION=western-zone
+# Pinned, not `-latest`. See the snapshot note above before changing it.
+ARG SNAPSHOT=260901
 ARG BBOX=68.0,19.9,74.6,24.8
 
 WORKDIR /data
 # Downloaded to a .part file and moved only on success: a truncated download that keeps the final
 # name is indistinguishable from a good one until osmium reports "not a PBF file".
 RUN curl -fSL --retry 3 --retry-delay 5 \
-      "https://download.geofabrik.de/asia/india/${REGION}-latest.osm.pbf" -o region.osm.pbf.part \
+      "https://download.geofabrik.de/asia/india/${REGION}-${SNAPSHOT}.osm.pbf" -o region.osm.pbf.part \
  && mv region.osm.pbf.part region.osm.pbf \
  && osmium extract --bbox "${BBOX}" --set-bounds --overwrite \
       -o gujarat-latest.osm.pbf region.osm.pbf \
