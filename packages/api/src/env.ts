@@ -15,6 +15,17 @@ const EnvSchema = z.object({
   // environments are dual-stack and need nothing. Set `API_HOST=::` there — on Linux that accepts
   // IPv4 on the same socket. See docs/deployment.md § Private networking.
   API_HOST: z.string().min(1).default('0.0.0.0'),
+  /**
+   * The origin this API is reachable at from a browser, used for the OpenAPI `servers` block.
+   *
+   * Without it the published spec advertises `http://localhost:<API_PORT>`, which on a deployment
+   * is worse than useless: `API_PORT` there is the platform's injected port, so the hosted docs
+   * told a reader to call `http://localhost:8080` and every "Try it out" fired at their own
+   * machine. Railway injects `RAILWAY_PUBLIC_DOMAIN`, so the default below is correct on Railway
+   * with no configuration; set it explicitly behind any other proxy.
+   */
+  PUBLIC_ORIGIN: z.string().default(''),
+  RAILWAY_PUBLIC_DOMAIN: z.string().default(''),
   DATABASE_URL: z.string().min(1).default('postgres://saakshi:saakshi@localhost:5432/saakshi'),
   // Connections per API instance. Sized against expected concurrency: at ~1 ms per query, N
   // connections serve roughly N,000 req/s, and anything beyond that queues — which is latency the

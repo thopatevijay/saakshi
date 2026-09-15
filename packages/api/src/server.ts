@@ -64,6 +64,30 @@ export interface HealthResponse {
 
 const VERSION = '0.1.0';
 
+/**
+ * The `servers` block for the published OpenAPI spec.
+ *
+ * A spec that names the wrong host is worse than one that names none: the docs UI's "Try it out"
+ * button sends every request there. This previously hard-coded `http://localhost:${API_PORT}`, and
+ * on the deployment `API_PORT` is the platform's injected port — so the hosted docs instructed a
+ * reader to call `http://localhost:8080`, on their own machine, and every call failed silently.
+ *
+ * `PUBLIC_ORIGIN` wins if set; otherwise Railway's injected `RAILWAY_PUBLIC_DOMAIN` is used, which
+ * makes this correct on the deployment with no configuration. With neither — a local checkout — it
+ * falls back to localhost on the real port, which is right there.
+ */
+export function openapiServers(
+  env: Pick<Env, 'API_PORT' | 'PUBLIC_ORIGIN' | 'RAILWAY_PUBLIC_DOMAIN'>,
+): Array<{ url: string; description: string }> {
+  if (env.PUBLIC_ORIGIN !== '') {
+    return [{ url: env.PUBLIC_ORIGIN.replace(/\/$/, ''), description: 'deployed' }];
+  }
+  if (env.RAILWAY_PUBLIC_DOMAIN !== '') {
+    return [{ url: `https://${env.RAILWAY_PUBLIC_DOMAIN}`, description: 'deployed' }];
+  }
+  return [{ url: `http://localhost:${String(env.API_PORT)}`, description: 'local' }];
+}
+
 export interface ServerOptions {
   env: Env;
   /** Omitted for a bare health-only server; the registry routes need a connection. */
@@ -163,7 +187,7 @@ export async function buildServer(options: ServerOptions): Promise<App> {
           'import, manual entry and API — and all three are served here.',
         version: VERSION,
       },
-      servers: [{ url: `http://localhost:${String(env.API_PORT)}`, description: 'local' }],
+      servers: openapiServers(env),
       components: {
         securitySchemes: {
           bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
