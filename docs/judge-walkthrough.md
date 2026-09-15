@@ -3,7 +3,7 @@
 Everything below is a live system you can click. Nothing is a mock-up, and every number on screen
 was produced by the thing it describes.
 
-**Console:** https://web-production-6bff.up.railway.app
+**Console:** https://saakshi.up.railway.app
 **Credentials:** in the submission form (they are not in this repository, deliberately).
 
 You land on the **camera registry**, with a "Start here" panel offering the three steps below. If
