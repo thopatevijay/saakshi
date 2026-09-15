@@ -1,161 +1,253 @@
 # SAAKSHI — साक्षी, "the witness"
 
-CCTV registry, federation fabric and video analytics for the **Gujarat Police Innovation Challenge
-2026**. Reference **Model 1** (registry / onboarding) + **Model 4** (integration depth).
+**A camera registry that knows which of its cameras can be trusted, and an analytics layer that
+never moves video to prove it.** SAAKSHI federates CCTV estates that were never built to talk to
+each other, scores every feed on evidence rather than on what a vendor declared, and turns a plate
+into a route across districts. Built for the **Gujarat Police Innovation Challenge 2026**.
 
-Architecture, locked decisions and sizing: [`PROJECT.md`](PROJECT.md).
-How work gets done: [`WORKFLOW.md`](WORKFLOW.md). All 44 tickets: [`.github/plan/`](.github/plan).
-
-> **Scope honesty.** No live VAHAN / SARTHI / eGujCop / AFIS / NAFIS connectivity — those
-> connectors are *specified* and served by a mock provider. **No face recognition**: deliberately
-> out of scope, no biometrics are processed. Accuracy figures are measured and reported with their
-> failure cases, never asserted.
+| | |
+|---|---|
+| **Live console** | **https://saakshi.up.railway.app** — credentials are issued to judges separately (see [Access](#access)) |
+| **Demo video** (3 min) | https://youtu.be/OrMQH0TKe3Q |
+| **Technical proposal / HLD** | [`docs/HLD.md`](docs/HLD.md) · [PDF, 22 pp](submission/saakshi-hld.pdf) |
+| **Solution deck** | [`submission/saakshi-solution-deck.pdf`](submission/saakshi-solution-deck.pdf) |
+| **Reference model** | **Model 1 (compulsory) + Hybrid**, per [`PROJECT.md` §2](PROJECT.md) |
 
 ---
 
-## Prerequisites
+## The problem, in the department's terms
 
-| Tool | Version used | Why |
+A state police CCTV estate is not one system. It is **26 departments** running **~80,000 cameras**
+across incompatible VMS platforms, with a **7–15 day retention window** that quietly deletes the
+evidence before anyone knows they needed it.
+
+Three consequences follow, and every one of them is operational rather than theoretical:
+
+1. **Nobody knows what actually works.** A registry row says a camera exists. It does not say the
+   camera was dark last Tuesday, that its clock drifts, or that its night frames are unusable for
+   a plate. Investigations discover this at the worst possible moment.
+2. **Centralising the video is arithmetically impossible.** Streaming 80,000 cameras to one place
+   is **160 Gbps** of backhaul that no department will ever fund.
+3. **Cross-district questions cannot be asked.** "Where did this vehicle go?" spans silos that have
+   no shared identifier, no shared clock and no shared API.
+
+## What SAAKSHI does about it
+
+**Analyse at the edge, move metadata, keep the video where it already lives.** That single decision
+takes the backhaul from **160.00 Gbps to 1.28 Gbps — a 125× reduction**
+([provenance §6](docs/claims-provenance.md)), and it is what makes every other feature affordable.
+
+- **Registry + GIS** — every camera on a map, with a **trust score** derived from measured decode
+  health, clock drift and uptime, not from a vendor's datasheet.
+- **Coverage gap analysis** — which roads and junctions are *actually* watched by a camera good
+  enough to be relied on. The honest answer for this estate is brutal, and we publish it below.
+- **ANPR + trace** — a plate becomes a route, reconstructed over a real 540,711-way road graph,
+  with an evidence crop behind every sighting.
+- **Impossible-transition detection** — the same plate 9.24 km apart, 30 seconds apart, requires
+  **1,109 km/h**. That is a cloned registration, and the system says so.
+- **Hash-chained audit** — every query is bound to a stated purpose and recorded in a tamper-evident
+  chain, because evidentiary systems get challenged in court.
+
+![System context](docs/architecture/01-system-context.png)
+
+*Five more diagrams — edge/district node, data flow, deployment topology, trust-score pipeline and
+the audit chain — are in [`docs/architecture/`](docs/architecture) with their Mermaid sources.*
+
+---
+
+## What is real, what is specified, what we refused to build
+
+**This table is the most important thing in this README.** A system that overstates itself is worth
+less than one that states its limits precisely, so here is the boundary, drawn honestly.
+
+| Capability | Status | Evidence |
 |---|---|---|
-| **Node** | ≥ 22 (built on 24.12.0) | API + web workspaces |
-| **npm** | ≥ 10 | Package manager — **not** yarn |
-| **Docker** + Compose v2 | 29.1.3 / v2.40.3 | The whole data plane |
-| **Python** | **3.13** via the repo-local `.venv` (see below) | CV workers |
-| **ffmpeg / ffprobe** | **8.0.1** | **Mandatory.** The HLS adapter and `scripts/recon.py` both shell out to them — nothing that touches a feed works without them |
-| **psql** | 16 client | Verifying and querying the database |
-
-```bash
-# macOS
-brew install node docker ffmpeg libpq
-```
-
-`ffmpeg` and `ffprobe` must both be on `PATH`:
-
-```bash
-ffmpeg -version | head -1
-ffprobe -version | head -1
-```
+| Camera registry, bulk import, onboarding API | **Live** | [`docs/registry-api.md`](docs/registry-api.md) |
+| GIS map + coverage gap analysis | **Live** | [`docs/gap-analysis-sample.pdf`](docs/gap-analysis-sample.pdf) |
+| Trust scoring from measured health | **Live** | [`docs/trust-score.md`](docs/trust-score.md) |
+| ANPR (plate detection + OCR) | **Live — and it misses its accuracy target, see below** | [`docs/anpr-accuracy.md`](docs/anpr-accuracy.md) |
+| Alerting + watchlist matching | **Live** | [`docs/alerting.md`](docs/alerting.md) |
+| Trace / route reconstruction over OSM | **Live** | [`docs/route-reconstruction.md`](docs/route-reconstruction.md) |
+| Cloned-plate / impossible-transition detection | **Live** | [`docs/cloning-detection.md`](docs/cloning-detection.md) |
+| Evidence store + chain of custody | **Live** | [`docs/chain-of-custody.md`](docs/chain-of-custody.md) |
+| RBAC + purpose-bound audit chain | **Live** | [`docs/rbac.md`](docs/rbac.md) |
+| Plain-English query box | **Live, optional** — four providers incl. local `ollama` and `none` | [`docs/nl-query.md`](docs/nl-query.md) |
+| **VAHAN / SARTHI / eGujCop / AFIS / NAFIS** | **Specified, NOT live.** Connector interfaces are written and served by a **mock provider**. No government system is connected. | [`docs/watchlist-integration.md`](docs/watchlist-integration.md) |
+| **Vehicle re-ID** | **Built, ships DISABLED.** Held-out precision **0.761** against our own 0.9 bar — one link in four would be wrong, and a wrong link corrupts an evidentiary route. | [`docs/reid.md`](docs/reid.md) |
+| **Face recognition / biometrics** | **Out of scope by choice.** Not mandated, needs separate legal authorisation. **No biometrics are processed or stored.** | [`PROJECT.md` §11](PROJECT.md) |
+| **Central video storage** | **Refused by the architecture** — that is the 160 Gbps above. | [`docs/sizing-model.md`](docs/sizing-model.md) |
+| **VLM "suspicious activity detection"** | **Refused.** Unfalsifiable, unauditable, and unaffordable at 80,000 cameras. | [`PROJECT.md` §11](PROJECT.md) |
 
 ---
 
-## How to run
+## Measured numbers — including the ones we fail
+
+Every figure below is traceable to the ticket that measured it and the command that reproduces it.
+The full table is [`docs/claims-provenance.md`](docs/claims-provenance.md); nothing is quoted here
+that is not in it.
+
+### Against the challenge's six stated targets
+
+| Target | Measured | Verdict |
+|---|---|---|
+| 1,00,000+ camera records | **1,00,000** benchmarked | **meets** |
+| API response < 200 ms | p95 **110 ms** @ 200 concurrent · **252 ms** @ 500 | **meets to 200, over at 500** |
+| Dashboard load < 3 s | readable **132 ms** · map fully drawn **1.65 s** | **meets** |
+| **Detection accuracy > 90%** | exact read recall **0%** | **MISSES** |
+| **Uptime > 99%** | **100.000%** over a stable 30 min · **73.5%** over a build hour | **not measured over a meaningful period** |
+| 500+ concurrent users | **500 concurrent, zero failed responses** | **meets on throughput; p95 over target** |
+
+**Two of six are misses and one is unmeasured.** They are printed here for the same reason they are
+on slide 19 of the deck rather than dropped: a number nobody can check is a number a scorer is
+entitled to discount.
+
+### ANPR accuracy, stated plainly
+
+Measured on **120 hand-labelled vehicle instances** from this estate, day and night sampled
+separately ([`docs/anpr-accuracy.md`](docs/anpr-accuracy.md)):
+
+| | |
+|---|---|
+| Human-legible plates in the sample | **3 of 120** |
+| Plate-detection recall | **100%** (on n=3) |
+| Exact read recall / precision | **0% / 0%** |
+| Character accuracy | **51.8%** |
+
+**The detector finds plates; the OCR cannot read them on this footage.** The dominant cause is the
+source material — 3 legible plates in 120 instances is a statement about the sandbox estate's
+resolution and camera angles, not a claim that the pipeline is correct. We report it as a **miss**
+against the >90% target and we do not average it away.
+
+### Coverage — the finding that matters most operationally
+
+| | |
+|---|---|
+| Road network analysed | **540,711 ways · 218,137.5 km** |
+| Covered by **any** camera | **21.47 km** — 0.0098% |
+| Covered by an **ANPR-viable** camera | **2.77 km** — 0.0013% |
+| Covered by a **trusted** camera | **0.00 km** |
+| Junctions with zero trusted coverage | **6,750 of 6,750** |
+
+That 100% delta between "a camera is there" and "a camera you can rely on" is the entire argument
+for trust scoring, measured on a real graph rather than asserted.
+
+---
+
+## Run it
+
+### Quickstart
+
+Requires **Node ≥ 22**, **npm ≥ 10**, and **Docker with Compose v2**. Nothing else for the core
+stack — the Python CV workers are optional and covered [below](#python-cv-workers).
 
 ```bash
 git clone https://github.com/thopatevijay/saakshi.git && cd saakshi
+cp .env.example .env
 
-cp .env.example .env          # then fill in the Sentinel sandbox values
-make up                       # db · valkey · minio · mediamtx, waits for healthy
-make install                  # creates .venv if missing, then npm workspaces + Python deps
-make migrate                  # schema + seed (5 departments, 4 users)
-make dev                      # API on :4000, web on :3000
+docker compose up -d          # postgres+postgis+timescale · valkey · minio · mediamtx
+npm install
+npm run db:migrate            # schema + seed users
+npm run seed:demo-state       # a populated estate — an empty one looks like a broken app
+npm run dev                   # API on :4000, web on :3000
 ```
-
-`make install` creates `.venv` on **python3.13** when it does not exist — the venv is gitignored, so
-a fresh clone has none. `make dev` builds `@saakshi/shared` before starting either server; without
-that step `packages/web` cannot resolve the workspace package and returns HTTP 500.
-**`make migrate` is not optional**: the test suite asserts the live schema, so it fails on a
-reachable-but-empty database.
 
 Verify:
 
 ```bash
-make ps                                   # four containers, all (healthy)
-make db-status                            # nine migrations, all applied
-curl -fsS localhost:4000/health           # {"status":"ok","service":"saakshi-api",...}
-curl -fsSI localhost:3000 | head -1       # HTTP/1.1 200 OK
-make verify                               # typecheck + lint + test
+curl -fsS localhost:4000/health        # {"status":"ok","service":"saakshi-api",...}
+curl -fsSI localhost:3000 | head -1    # HTTP/1.1 200 OK
 ```
 
-`make help` lists every target.
-
-### Database
-
-Schema, ER diagram and the reasoning behind the three non-obvious decisions:
-[`docs/data-model.md`](docs/data-model.md).
-
-| | |
-|---|---|
-| `make migrate` | apply pending migrations (idempotent) |
-| `make rollback` | revert the newest migration · `ROLLBACK_ALL=1 make rollback` reverts all |
-| `make db-reset` | drop and recreate `public`, then migrate — **destroys all data** |
-| `make db-status` | applied vs pending |
-
-Migrations are paired `db/migrations/NNNN_name.{up,down}.sql`, each applied in one transaction with
-its checksum recorded. Editing an already-applied migration fails loudly rather than leaving two
-databases at the same version with different shapes.
-
-Seed logins are **development only** — all four users have the password `saakshi-dev`. They are not
-deployed; judge credentials are issued separately (D4-02).
-
-### Services
-
-| Service | Host port | Notes |
-|---|---|---|
-| PostgreSQL 16 + PostGIS 3.6 + TimescaleDB 2.29 | 5432 | `timescale/timescaledb-ha:pg16`. Extensions created by `db/init/00-extensions.sql` on first init |
-| Valkey 8 | 6379 | Event bus (Streams) |
-| MinIO | 9000 (API) · 9001 (console) | Bucket `saakshi-evidence` created by the `minio-init` one-shot |
-| MediaMTX | 8554 RTSP · 8888 HLS · 8889 WHEP · 9998 metrics | Our own gateway for the video wall |
-| OSRM | 5000 | **Opt-in**: `docker compose --profile routing up -d osrm`. Needs the Gujarat extract prepared first — see the comment in `docker-compose.yml` |
-
-If port 5432 is already taken by another project's container, stop it (`docker stop <name>`) rather
-than remapping — every ticket and `.env.example` assume the standard port.
-
----
-
-## Python workers — read this before touching `workers/`
-
-**Always use the repo-local interpreter: `./.venv/bin/python`. Never the system `python3`.**
+Or do all of it with one command — `npm start` sequences the same steps, waits for each to be
+healthy, and prints the local sign-in banner:
 
 ```bash
-./.venv/bin/python -m pip install -r workers/requirements.txt
-./.venv/bin/python -c "import cv2, ultralytics; print('cv ok')"
+npm start              # services · migrations · seed · API · web
+npm run stop           # stops app + containers, PRESERVES volumes
 ```
 
-Why this is not optional, learned the hard way on 2026-09-04:
+> **`npm run stop -- --purge` destroys the MinIO volume**, which holds the evidence crops. They
+> cannot be regenerated without gateway traffic. Plain `stop` is the safe one, deliberately.
 
-- Homebrew's default `python3` on this machine is **3.14** and **PEP 668 externally-managed**.
-  `pip install` fails outright with `error: externally-managed-environment` — it will not install
-  into it, and no flag you want to be using changes that.
-- `pip` is **not on `PATH`** at all. Use `python3 -m pip`, never bare `pip`.
-- **OpenCV wheels for 3.14 are not reliably published.** The venv is built on **python3.13**
-  precisely so `opencv-python` and `ultralytics` resolve to real wheels instead of a source build.
+Local sign-in uses the seeded development users printed by the start banner. They are **development
+fixtures with a published password** and are not the deployed credentials.
 
-Recreating it from scratch:
+### Access
+
+The hosted console at **https://saakshi.up.railway.app** uses **separately issued, non-guessable
+credentials that are deliberately not in this repository**. Judges receive them with the submission;
+[`docs/judge-walkthrough.md`](docs/judge-walkthrough.md) is the guided tour, and
+[`docs/deployment.md`](docs/deployment.md) covers the deployment itself.
+
+### Python CV workers
+
+Only needed to run analytics over live feeds. The repo pins a local interpreter, and this is not
+optional — Homebrew's `python3` is PEP 668 externally-managed and OpenCV wheels are not reliably
+published for 3.14:
 
 ```bash
 python3.13 -m venv .venv
-./.venv/bin/python -m pip install --upgrade pip
 ./.venv/bin/python -m pip install -r workers/requirements.txt
 ```
 
-`.venv/` is gitignored. `make venv` prints the interpreter and the installed CV versions.
+`ffmpeg` and `ffprobe` must both be on `PATH` — the HLS adapter shells out to them.
+
+### Tests
+
+```bash
+npm run typecheck && npm run lint && npm run test
+```
+
+**`npm run test` takes ~5 minutes** — 68 files, 1,442 tests, run one file at a time because the API
+suites share a live Postgres, MinIO and Valkey. That is not a hung run. It needs no
+`SENTINEL_*` credentials.
 
 ---
 
-## Layout
+## Repo map
 
 ```
-packages/shared     zod schemas + TS types shared by API and web (CameraConfig, Sighting, Alert)
-packages/api        Fastify + TypeScript strict — the API surface
-packages/web        Next.js 15 + React 19 + Tailwind — the operator UI
-workers/            Python CV workers (prober, analytics)
-db/init/            extensions, run once on an empty data directory
-db/migrations/      schema (D1-01)
-scripts/            recon and repo tooling
-docs/               architecture and official documents
+packages/shared     zod schemas + TS types shared by API and web
+packages/api        Fastify, TypeScript strict — the API surface, analytics consumers, jobs
+packages/web        Next.js 15 + React 19 + Tailwind — the operator console (BFF-proxied)
+workers/            Python CV workers — prober, ANPR, tracking, re-ID
+db/migrations/      paired up/down SQL, applied transactionally with checksums
+docs/               architecture, measurements and every official document
+docs/architecture/  the six HLD diagrams, Mermaid sources + rendered PNGs
+scripts/            repo tooling — start/stop, OSM import, basemap build, link checks
+submission/         the graded artefacts: HLD, deck, government-feed output report
+.github/plan/       every ticket, with its acceptance criteria and validation gate
 ```
 
-TypeScript is **strict everywhere and `@ts-ignore` is banned**; `npm run lint` runs with
-`--max-warnings 0`.
+### Where to look first, as a reviewer
 
-## Configuration
+| Question | File |
+|---|---|
+| What was decided, and why | [`PROJECT.md`](PROJECT.md) |
+| The full technical proposal | [`docs/HLD.md`](docs/HLD.md) |
+| Is a number real? | [`docs/claims-provenance.md`](docs/claims-provenance.md) |
+| What does it not do? | [`docs/limitations.md`](docs/limitations.md) |
+| How was this built? | [`WORKFLOW.md`](WORKFLOW.md) and [`.github/plan/`](.github/plan) |
 
-`.env.example` is the committed contract and lists every key the code reads. Copy it to `.env` and
-fill it in. **`.env` is never committed** and secrets are never printed — see the strict rule in
-[`CLAUDE.md`](CLAUDE.md).
+---
+
+## Stack
+
+TypeScript strict throughout (Fastify · Next.js 15 · shared zod types) · Python 3.13 CV workers
+(OpenCV · YOLO11 · ByteTrack · ONNX plate OCR) · PostgreSQL 16 + PostGIS + TimescaleDB · Valkey
+Streams · MinIO · MediaMTX · OSRM · MapLibre with self-hosted PMTiles.
+
+**All open source.** The one proprietary option — the plain-English query box — sits behind a
+`QueryCompiler` interface with four providers, two of which (`ollama`, `none`) are local or off. With
+either, the system is fully functional and fully open. Nothing proprietary is load-bearing.
 
 ## Licence
 
-MIT. Every runtime dependency is open source; the optional NL-query LLM sits behind a
-`QueryCompiler` interface with a local (`ollama`) and a disabled (`none`) provider, so nothing
-proprietary is load-bearing.
+[MIT](LICENSE) for the code in this repository.
+
+**Model weights are licensed separately and are not committed here** — YOLO11n is **AGPL-3.0**, the
+plate detector and OCR models are MIT, the PP-OCR models Apache-2.0. Every model, its source and its
+licence: [`docs/model-licences.md`](docs/model-licences.md).
+
+`.env.example` is the committed configuration contract and lists every variable the code reads —
+enforced by `node scripts/check-env-sync.js`. **`.env` is never committed.**
