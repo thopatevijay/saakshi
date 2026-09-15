@@ -43,3 +43,12 @@ docs/recordings/*.marks.json
 
 # Local process pids and logs from scripts/start.sh
 .run/
+
+# Demo video media (D4-03). The script and the recording tooling ARE committed — they document how
+# the video was made and three defects found making it. The rendered media is not: final-demo.mp4 is
+# 12.3 MB, the voiceover 3 MB, and the video lives at https://youtu.be/OrMQH0TKe3Q (unlisted), so
+# git is the wrong place for it.
+demo-video/clips/
+demo-video/audio/
+demo-video/*.mp3
+demo-video/*.mp4
