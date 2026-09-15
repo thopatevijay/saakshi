@@ -8,11 +8,15 @@
  *
  * ## Why the crop URLs are the point
  *
- * Evidence crops reach the browser as **presigned S3 URLs** minted per request — SigV4 binds the
- * Host header, so a crop signed for `minio.railway.internal` is correctly signed and completely
- * unloadable from outside the private network. The failure is invisible server-side: the API returns
- * 200 with a URL in it, and only the browser discovers there is nothing there. So every crop URL the
- * API hands out is fetched here, exactly as a browser would (D4-01 § 3.1).
+ * **Since D4-09 a crop URL is a same-origin relative path** — `/evidence/crop?uri=s3://…` — served
+ * by the web BFF behind the session cookie, not a presigned S3 URL. (This comment described the
+ * presigned arrangement until 15 Sep 2026, which is why the sweep below called `fetch()` on a
+ * relative path and reported **every crop as broken** with `TypeError: Failed to parse URL`. A
+ * checker that cries wolf on all ten crops cannot detect the one that really breaks.)
+ *
+ * The failure mode is still invisible server-side: the API returns 200 with a URL in it, and only a
+ * browser discovers there is nothing behind it. So every crop URL the API hands out is resolved
+ * against the console origin and fetched with the session cookie, exactly as a browser would.
  *
  *   npm run check:links -- --base https://<web-domain> --api https://<api-domain>
  *   npm run check:links -- --base http://localhost:3000 --api http://localhost:4000
@@ -53,7 +57,11 @@ interface Result {
 
 const results: Result[] = [];
 
-async function check(what: string, url: string, headers: Record<string, string> = {}): Promise<void> {
+async function check(
+  what: string,
+  url: string,
+  headers: Record<string, string> = {},
+): Promise<void> {
   try {
     // GET, not HEAD. A presigned S3 signature covers the method, so a HEAD against a URL signed for
     // GET returns 403 and would report every working crop as broken.
@@ -82,24 +90,56 @@ async function main(): Promise<void> {
   const cookie = { cookie: `saakshi_session=${token}; saakshi_role=operator` };
 
   // 1 · the routes a judge is told to visit
-  for (const path of ['/login', '/registry', '/trace', '/alerts', '/video-wall', '/evidence', '/sizing']) {
+  for (const path of [
+    '/login',
+    '/registry',
+    '/trace',
+    '/alerts',
+    '/video-wall',
+    '/evidence',
+    '/sizing',
+  ]) {
     await check(`page ${path}`, `${base}${path}`, cookie);
   }
 
   // 2 · the basemap, without which the compulsory GIS deliverable is a grey box
-  await check('basemap pmtiles', `${base}/basemap/gujarat.pmtiles`, { ...cookie, range: 'bytes=0-1023' });
+  await check('basemap pmtiles', `${base}/basemap/gujarat.pmtiles`, {
+    ...cookie,
+    range: 'bytes=0-1023',
+  });
   for (const stack of ['Noto_Sans_Regular', 'Noto_Sans_Medium']) {
     await check(`glyphs ${stack}`, `${base}/basemap/fonts/${stack}/0-255.pbf`, cookie);
   }
 
-  // 3 · every signed crop URL the API will hand a browser
+  /**
+   * Resolve a crop URL the way a browser in the console would.
+   *
+   * D4-09 made `cropUrl` a same-origin relative path, and `fetch()` cannot parse one — it needs an
+   * absolute URL. An absolute URL is still handled, because `export-bundle` and the audit route
+   * legitimately mint presigned absolute ones.
+   */
+  const cropTarget = (url: string): string =>
+    url.startsWith('http://') || url.startsWith('https://') ? url : `${base}${url}`;
+
+  /**
+   * A relative crop is served by the BFF behind the session, so it needs the cookie. A presigned
+   * absolute URL carries its own authorisation in the query string and must be sent bare — adding
+   * headers to it is harmless, but sending the cookie to the object store is not something to do
+   * by accident.
+   */
+  const cropHeaders = (url: string): Record<string, string> =>
+    url.startsWith('http://') || url.startsWith('https://') ? {} : cookie;
+
+  // 3 · every crop URL the API will hand a browser
   const alertsRes = await fetch(`${api}/api/v1/alerts?limit=100`, { headers: bearer });
   if (alertsRes.ok) {
-    const body = (await alertsRes.json()) as { data?: { id: string; evidence?: { cropUrl?: string | null } }[] };
+    const body = (await alertsRes.json()) as {
+      data?: { id: string; evidence?: { cropUrl?: string | null } }[];
+    };
     for (const alert of body.data ?? []) {
       const url = alert.evidence?.cropUrl;
       if (url !== undefined && url !== null && url !== '') {
-        await check(`alert crop ${alert.id.slice(0, 8)}`, url);
+        await check(`alert crop ${alert.id.slice(0, 8)}`, cropTarget(url), cropHeaders(url));
       }
     }
   }
@@ -117,7 +157,7 @@ async function main(): Promise<void> {
     for (const [i, stop] of (body.sightings ?? []).entries()) {
       if (stop.cropUrl !== undefined && stop.cropUrl !== null && stop.cropUrl !== '') {
         const label = (stop.id ?? stop.sightingId ?? String(i)).slice(0, 8);
-        await check(`trace crop ${label}`, stop.cropUrl);
+        await check(`trace crop ${label}`, cropTarget(stop.cropUrl), cropHeaders(stop.cropUrl));
       }
     }
   }
@@ -142,7 +182,9 @@ async function main(): Promise<void> {
   }
 
   if (crops.length === 0) {
-    console.log('  NOTE: no crop URLs were returned at all — the evidence panels are empty, which a');
+    console.log(
+      '  NOTE: no crop URLs were returned at all — the evidence panels are empty, which a',
+    );
     console.log('        sweep of zero links cannot distinguish from a sweep that passed.');
   }
 
