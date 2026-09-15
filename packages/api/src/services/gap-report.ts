@@ -39,41 +39,41 @@ const MARGIN = 44;
  */
 export function measuredElsewhere(network: { ways: number; extract: string }) {
   return [
-  {
-    fact: 'Per-camera sighting yield, same city, same hour',
-    value:
-      'a 500x spread — cam04 33,548 · cam08 24,462 · cam05 17,622 · cam01 13,725 · cam02 12,169 · cam06 7,092 · cam07 4,132 · cam03 67',
-    source: 'D1-09 (#13)',
-  },
-  {
-    fact: 'cam03 is not broken',
-    value: 'decoded 5,582 frames cleanly at 23.16 fps — it simply sees almost no vehicles',
-    source: 'D1-09 (#13)',
-  },
-  {
-    fact: 'Cameras failing night usability',
-    value: '8 of 30; luma means range 8.40 to 135.19',
-    source: 'D1-05 (#9)',
-  },
-  {
-    fact: 'Distinct resolutions across the measured estate',
-    value: 'six — 854x480 x12 · 1920x1080 x11 · 1280x960 x3 · 1280x720 x2 · 640x480 · 960x576',
-    source: 'D1-05 (#9)',
-  },
-  {
-    fact: 'Cameras effectively blind on focus (quality 0, a disqualifier regardless of band)',
-    value: 'cam22 (blur 0.011) and cam09 (blur 2.047)',
-    source: 'D1-05/D1-06 (#9, #10)',
-  },
-  { fact: 'Cameras declaring a retention period', value: '0 of 30', source: 'D3-05 (#28)' },
-  {
-    fact: 'Road network',
-    // Generated, not fixed. It read `540,584` as a literal until D4-10, by which point the table
-    // had been re-imported and the real count was 540,711 — a generated report contradicting its
-    // own §3 while telling the reader not to hand-edit it.
-    value: `${network.ways.toLocaleString('en-IN')} GiST-indexed ways from ${network.extract}`,
-    source: 'D3-01 (#24) · re-imported D4-10 (#89)',
-  },
+    {
+      fact: 'Per-camera sighting yield, same city, same hour',
+      value:
+        'a 500x spread — cam04 33,548 · cam08 24,462 · cam05 17,622 · cam01 13,725 · cam02 12,169 · cam06 7,092 · cam07 4,132 · cam03 67',
+      source: 'D1-09 (#13)',
+    },
+    {
+      fact: 'cam03 is not broken',
+      value: 'decoded 5,582 frames cleanly at 23.16 fps — it simply sees almost no vehicles',
+      source: 'D1-09 (#13)',
+    },
+    {
+      fact: 'Cameras failing night usability',
+      value: '8 of 30; luma means range 8.40 to 135.19',
+      source: 'D1-05 (#9)',
+    },
+    {
+      fact: 'Distinct resolutions across the measured estate',
+      value: 'six — 854x480 x12 · 1920x1080 x11 · 1280x960 x3 · 1280x720 x2 · 640x480 · 960x576',
+      source: 'D1-05 (#9)',
+    },
+    {
+      fact: 'Cameras effectively blind on focus (quality 0, a disqualifier regardless of band)',
+      value: 'cam22 (blur 0.011) and cam09 (blur 2.047)',
+      source: 'D1-05/D1-06 (#9, #10)',
+    },
+    { fact: 'Cameras declaring a retention period', value: '0 of 30', source: 'D3-05 (#28)' },
+    {
+      fact: 'Road network',
+      // Generated, not fixed. It read `540,584` as a literal until D4-10, by which point the table
+      // had been re-imported and the real count was 540,711 — a generated report contradicting its
+      // own §3 while telling the reader not to hand-edit it.
+      value: `${network.ways.toLocaleString('en-IN')} GiST-indexed ways from ${network.extract}`,
+      source: 'D3-01 (#24) · re-imported D4-10 (#89)',
+    },
   ] as const;
 }
 
@@ -99,6 +99,59 @@ export function splitStatement(a: GapAnalysis): string {
   );
 }
 
+/** Cameras in a band that carry no coordinates, and therefore cannot cover a road. */
+function unplacedInBand(a: GapAnalysis, band: string): number {
+  const row = a.split.byBand.find((b) => b.band === band);
+  return row === undefined ? 0 : row.total - row.placed;
+}
+
+/**
+ * Why trusted coverage is zero — **derived from the estate, not asserted**.
+ *
+ * This sentence used to hardcode one cause: *"N of M cameras have never had a health check run
+ * against them, so every one resolves to `band: null`"*. That was true of the environment it was
+ * written against and false of the next one. Run against the deployed database on 15 Sep it printed
+ * *"**0 of 85** cameras have never had a health check … so every one resolves to `band: null`"*
+ * directly above a table reading `dead 55 · trusted 26 · degraded 3 · untrusted 1`. Both cannot be
+ * true, and a gap analysis is a recommendation to spend public money.
+ *
+ * There are four distinct ways to reach zero trusted coverage and they call for different
+ * remedies — probe the estate, geolocate it, repair it, or re-site it. Naming the wrong one sends
+ * somebody to fix the wrong thing.
+ */
+export function zeroTrustedCause(a: GapAnalysis): string {
+  const s = a.split;
+  if (s.total === 0) return 'the estate is empty';
+
+  if (s.neverProbed === s.total) {
+    return (
+      `${String(s.total)} of ${String(s.total)} cameras have never had a health check run against ` +
+      'them, so every one resolves to `band: null`'
+    );
+  }
+
+  const unplacedTrusted = unplacedInBand(a, 'trusted');
+  if (s.trusted === 0 && unplacedTrusted > 0) {
+    return (
+      `${String(unplacedTrusted)} cameras do clear the trust bar, and not one of them carries ` +
+      'coordinates — a camera that cannot be placed cannot be shown to cover a road'
+    );
+  }
+
+  if (s.trusted === 0) {
+    const bands = s.byBand
+      .filter((b) => b.band !== 'trusted')
+      .map((b) => `${String(b.total)} ${b.band}`)
+      .join(', ');
+    return `no camera in the estate reaches the trusted band (${bands})`;
+  }
+
+  return (
+    `${String(s.trusted)} cameras are trusted and placed, and their assumed fields of view ` +
+    'intersect no road in the network'
+  );
+}
+
 /**
  * The trusted-vs-all headline, phrased for whichever of the three cases the data is in. The
  * degenerate case is not hidden behind a table; it is the finding.
@@ -116,8 +169,7 @@ export function deltaStatement(a: GapAnalysis): string {
       `**Every metre of the ${km(a.all.coveredKm)} this estate appears to cover is contributed by a ` +
       `camera nobody has verified.** Trusted-only coverage is ${km(0)} — a delta of ` +
       `${km(a.deltaKm)}, or 100% of apparent coverage. The cause is measured and specific: ` +
-      `${String(a.split.neverProbed)} of ${String(a.split.total)} cameras have never had a health ` +
-      `check run against them, so every one resolves to \`band: null\`. That is an absence of ` +
+      `${zeroTrustedCause(a)}. That is an absence of ` +
       `evidence, not a bad result — but a conventional coverage map would have drawn all ` +
       `${km(a.all.coveredKm)} of it in green.`
     );
@@ -429,10 +481,13 @@ export function gapAnalysisMarkdown(a: GapAnalysis): string {
       'are the thirty that cannot be placed. Until the catalogue publishes a location — or an ' +
       'operator supplies one — the trusted-coverage figure is computed over sample rows.',
   );
-  p(
-    '- **A health check against the placed cameras.** Trusted coverage cannot be non-zero while ' +
-      'every placed camera is `band: null`.',
-  );
+  if (a.split.neverProbed > 0) {
+    p(
+      `- **A health check against the placed cameras.** ${String(a.split.neverProbed)} of ` +
+        `${String(a.split.total)} cameras are \`band: null\`, and trusted coverage cannot be ` +
+        'non-zero for a camera that has never been measured.',
+    );
+  }
   p(
     '- **Measured radii.** A single afternoon with a test plate at three distances would replace ' +
       'the three assumed constants in §3.1 with measurements.',
