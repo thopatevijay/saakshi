@@ -28,6 +28,7 @@
     "db:reset": "npm run db --workspace @saakshi/api -- reset",
     "db:status": "npm run db --workspace @saakshi/api -- status",
     "seed:demo-state": "tsx scripts/seed-demo-state.ts",
+    "db:promote-run": "tsx scripts/promote-run-to-environment.ts",
     "check:links": "tsx scripts/check-links.ts",
     "docs:render": "tsx scripts/docs-render.ts",
     "docs:linkcheck": "tsx scripts/docs-linkcheck.ts",
