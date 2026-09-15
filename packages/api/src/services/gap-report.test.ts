@@ -17,6 +17,7 @@ import {
   gapAnalysisPdf,
   measuredElsewhere,
   splitStatement,
+  zeroTrustedCause,
 } from './gap-report.js';
 import { DEFAULT_RANGES, type CoverageSlice, type GapAnalysis } from './coverage.js';
 
@@ -334,5 +335,102 @@ describe('the headline adapts to what the data actually shows', () => {
       }),
     );
     expect(s).toContain('That is a data state, not a result');
+  });
+});
+
+describe('why trusted coverage is zero is derived, not asserted (D4-13)', () => {
+  // The regression: run against a database where every camera HAD been probed, the old code still
+  // printed "0 of 85 cameras have never had a health check … so every one resolves to `band: null`"
+  // directly above a band table reading `dead 55 · trusted 26`. Four distinct causes reach zero
+  // trusted coverage and each calls for a different remedy.
+
+  it('names an unprobed estate when nothing has been probed', () => {
+    expect(zeroTrustedCause(analysis())).toContain('80 of 80 cameras have never had a health check');
+  });
+
+  it('names missing coordinates when trusted cameras exist but none is placed', () => {
+    const s = zeroTrustedCause(
+      analysis({
+        split: {
+          total: 85,
+          assessed: 54,
+          unassessable: 31,
+          neverProbed: 0,
+          trusted: 0,
+          focusDisqualified: 0,
+          byBand: [
+            { band: 'dead', total: 55, placed: 54 },
+            { band: 'trusted', total: 26, placed: 0 },
+            { band: 'degraded', total: 3, placed: 0 },
+            { band: 'untrusted', total: 1, placed: 0 },
+          ],
+        },
+      }),
+    );
+    expect(s).toContain('26 cameras do clear the trust bar');
+    expect(s).toContain('not one of them carries coordinates');
+    expect(s).not.toContain('never had a health check');
+  });
+
+  it('names the bands when no camera reaches the trusted band at all', () => {
+    const s = zeroTrustedCause(
+      analysis({
+        split: {
+          total: 10,
+          assessed: 10,
+          unassessable: 0,
+          neverProbed: 0,
+          trusted: 0,
+          focusDisqualified: 0,
+          byBand: [
+            { band: 'dead', total: 7, placed: 7 },
+            { band: 'degraded', total: 3, placed: 3 },
+          ],
+        },
+      }),
+    );
+    expect(s).toContain('no camera in the estate reaches the trusted band');
+    expect(s).toContain('7 dead');
+    expect(s).toContain('3 degraded');
+  });
+
+  it('names siting when trusted placed cameras cover no road', () => {
+    const s = zeroTrustedCause(
+      analysis({
+        split: {
+          total: 4,
+          assessed: 4,
+          unassessable: 0,
+          neverProbed: 0,
+          trusted: 4,
+          focusDisqualified: 0,
+          byBand: [{ band: 'trusted', total: 4, placed: 4 }],
+        },
+      }),
+    );
+    expect(s).toContain('4 cameras are trusted and placed');
+    expect(s).toContain('intersect no road');
+  });
+
+  it('never contradicts its own band table: the deployed-estate case', () => {
+    const deployed = analysis({
+      split: {
+        total: 85,
+        assessed: 54,
+        unassessable: 31,
+        neverProbed: 0,
+        trusted: 0,
+        focusDisqualified: 0,
+        byBand: [
+          { band: 'dead', total: 55, placed: 54 },
+          { band: 'trusted', total: 26, placed: 0 },
+        ],
+      },
+    });
+    const md = gapAnalysisMarkdown(deployed);
+    // The exact false sentence that shipped on 15 Sep.
+    expect(md).not.toContain('0 of 85 cameras have never had a health check');
+    // And the recommendation that asserted the same thing is withheld when it does not apply.
+    expect(md).not.toContain('trusted coverage cannot be non-zero for a camera that has never been measured');
   });
 });

@@ -81,6 +81,18 @@ export const TraceQuery = z.object({
    */
   reconstruct: z.stringbool().default(false),
   /**
+   * Rebuild the route even when a cached answer exists, and overwrite it.
+   *
+   * The cache keys on the question and fingerprints the sightings, but it cannot see the **road
+   * graph** — which is a third input living outside this database. An environment that gains a
+   * router, or has its graph reimported, therefore keeps serving routes built when neither
+   * existed: same question, same evidence, so a hit. That is what D4-13 found in production, where
+   * every trace reported `0.0 km observed` from a build predating OSRM.
+   *
+   * `z.stringbool()` for the same reason as `reconstruct` above.
+   */
+  refresh: z.stringbool().default(false),
+  /**
    * Include vehicle appearance (re-ID) links (D3-03). **Off by default, twice over:** off here, and
    * off server-side unless `REID_ENABLED=true`. A trace is plate-only until an officer asks for the
    * weaker standard, and `reid.enabled` in the response says whether the server honoured the ask.
@@ -536,7 +548,10 @@ export function registerTraceRoutes(app: App, options: TraceRouteOptions): void 
     if (!query.reconstruct || result.sightings.length < 2) {
       return { ...result, route: null, reid: reidState };
     }
-    const route = await routes.reconstruct(result, { requestedBy: principal?.sub ?? null });
+    const route = await routes.reconstruct(result, {
+      requestedBy: principal?.sub ?? null,
+      refresh: query.refresh,
+    });
     return { ...result, route, reid: reidState };
   };
 

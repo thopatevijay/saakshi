@@ -253,10 +253,38 @@ const NOTES = {
     'anywhere along it, and the distance shown is a lower bound on the distance actually driven.',
 } as const;
 
+/**
+ * Whether a reconstruction may serve a cached answer.
+ *
+ * A predicate rather than an inline condition because it is the whole of D4-13's fix and the two
+ * flags mean different things: `persist: false` is the pure-arithmetic test path, which touches no
+ * database at all, while `refresh: true` is a real request that must reach the router and then
+ * *write* what it finds. Conflating them would make a refresh silently skip the write and leave the
+ * stale row in place — the exact failure being fixed, one layer down.
+ */
+export function shouldReadCache(persist: boolean, refresh: boolean | undefined): boolean {
+  return persist && refresh !== true;
+}
+
 export interface ReconstructOptions {
   requestedBy?: string | null;
   /** `false` skips both the cache read and the write — used by the pure-arithmetic tests. */
   persist?: boolean;
+  /**
+   * Skip the cache **read** and rebuild, then write the fresh answer over the stale one.
+   *
+   * The cache key hashes the *question* and the fingerprint covers the *evidence*, which is the
+   * right design for the case it was built for — a new sighting must invalidate a route. But
+   * neither covers the **road graph**, and that is a third input. When D4-13 loaded `road_network`
+   * and deployed OSRM into an environment that had had neither, every cached route stayed
+   * authoritative: same question, same sightings, so a hit — serving `0.0 km observed` and
+   * `0 of 10 transitions assessable` from a build made when no router existed.
+   *
+   * There is no fingerprint that can fix this, because the graph lives outside the database this
+   * service can hash. An explicit refresh is the honest escape hatch. The rebuild path already
+   * deletes the row for this key before inserting, so a refresh replaces rather than duplicates.
+   */
+  refresh?: boolean;
 }
 
 export class RouteService {
@@ -278,7 +306,7 @@ export class RouteService {
     const key = routeCacheKey(trace);
     const fingerprint = fingerprintSightings(trace.sightings);
 
-    if (persist) {
+    if (shouldReadCache(persist, options.refresh)) {
       const cached = await this.readCache(key, fingerprint);
       if (cached !== null) {
         return {

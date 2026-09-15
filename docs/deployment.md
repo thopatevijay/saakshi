@@ -544,6 +544,70 @@ to draw a single tile, and the map appears to hang rather than to fail.
 demonstration tool, not a submission URL — the Railway deployment is what goes on the form. And the
 console is then only up while the laptop is: `npm start` and `cloudflared` both have to stay running.
 
+## 11 · Production parity — what must be true of a deployed environment (D4-13)
+
+**The deployed URL is what gets judged.** On 15 Sep an every-table audit found the deployed database
+was not the system a laptop runs: a *compulsory* deliverable and two differentiators returned zeros
+there while passing locally. None of it showed up in a health check, because every service was up —
+the data and one whole service were missing, not broken.
+
+A feature that works locally and returns zeros on the deployed URL is a feature we do not have. Each
+row below is a thing that was actually wrong, with the command that proves it is not wrong now.
+
+| Must be true | Proof | What it was on 15 Sep |
+|---|---|---|
+| The road graph is loaded | `select count(*) from road_network` → **540,711** | **0** — gap analysis, Model 1's compulsory GIS deliverable, could not run |
+| Coverage reproduces the published figures | `DATABASE_URL=… npm run report:gap-analysis` → 21.4712 / 0.0000 km, 6,750 of 6,750 junctions | could not run at all |
+| An OSRM service exists and `api` can reach it | trace response `route.roadGraph.baseUrl` is `http://osrm.railway.internal:5000` | no `osrm` service existed; `OSRM_URL` fell back to `http://localhost:5000` **inside the container** |
+| Routes actually measure | `select count(*) from route_segments where road_distance_m is not null` → non-zero | **0 of 40**, so every trace reported `0.0 km observed` |
+| The ingest run matches the artefacts | per-camera counts in the report window: `cam01` 2,674 · `cam04` 7,634 · `cam05` 4,592 | **4 sightings total** |
+| No service resolves a dependency to localhost | `railway variables --service <s> --kv \| grep -E '_(URL\|ENDPOINT\|HOST)=' \| grep -c localhost` → 0 everywhere | `api` had one |
+| Evidence crops load | `npm run check:links -- --base <web> --api <api>` → 0 broken | passed, but only after D4-09's proxy fix reached the deployment |
+
+### Three traps this cost a day to find
+
+**1 · A Railway variable change does not restart the service.** After `railway variables --set`, the
+API's `/health` still reported `uptimeS: 6032` — the same process, holding the old value. Every
+health check stayed green while the running code dialled a hostname that no longer existed. Always
+`railway redeploy --service <s>` afterwards, and confirm `uptimeS` actually reset before believing
+anything.
+
+**2 · A PG 17 `pg_dump` into a PG 16 server writes nothing and looks fine.** Homebrew ships 17; the
+server is `timescaledb-ha:pg16`. The dump preamble emits `SET transaction_timeout = 0`, PG 16 rejects
+it, and with `ON_ERROR_STOP=1` the load aborts having written **0 rows** while every surrounding
+command reports success. Use `\copy … to stdout | \copy … from stdin` with explicit column lists:
+no preamble, no version coupling. 540,711 rows in **43 s** that way, indexes dropped first.
+
+**3 · A cache cannot invalidate on an input it cannot see.** The route cache keys on the question and
+fingerprints the sightings — but the **road graph is a third input, and it lives outside the
+database**. Loading the graph and deploying OSRM changed neither key, so every cached route stayed a
+hit and kept serving `0.0 km observed` from a build made when no router existed. `?refresh=true` on
+the trace endpoint is the escape hatch; there is no fingerprint that could have caught this.
+
+### Promoting an ingest run between environments
+
+`pg_dump` **cannot** do this. The two databases generated different uuids for the same camera —
+`cam04` is `af0eb90e…` locally and `cb0ffcf7…` deployed — so a straight copy either violates the
+foreign key or attaches sightings to the wrong camera. Use the script, which remaps `camera_id` by
+`external_id` while preserving sighting and plate-read ids, because
+`submission/govt-feed-output-report.csv` cites each `plate_read_id`:
+
+```bash
+npm run db:promote-run -- --from "$LOCAL_URL" --to "$PROD_URL" \
+  --window 2026-09-11T00:00:00Z..2026-09-12T00:00:00Z --dry-run
+```
+
+`sightings` is a TimescaleDB hypertable, so its primary key is `(id, ts)` and `ON CONFLICT (id)`
+fails outright. The script handles that; a hand-written insert will not.
+
+### Why a report regenerated against the wrong environment is worse than no report
+
+Regenerating `govt-feed-output-report` against the deployed database *before* the run was promoted
+produced a report that was internally consistent and quietly **dropped the line disclosing that
+cam01 saw 2,674 vehicles and read zero plates** — because in that environment cam01 had no sightings
+at all. The figures were all true. The disclosure that makes the report honest was gone. Regenerate
+deliverables only against an environment that has passed the table above.
+
 ## 10 · A note on `PROJECT.md`
 
 `PROJECT.md` § *Third-party services / spend* still records **Cloudflare Tunnel** as the public-demo
