@@ -1,0 +1,35 @@
+flowchart LR
+  SUB["Camera under assessment"] --> PROBE
+
+  subgraph PROBE["Trust prober — classical CV, deterministic and explainable"]
+    direction TB
+    R["Reachability<br/>connect, first frame, reconnects"]
+    F["Measured FPS<br/>vs declared CAP_PROP_FPS"]
+    BL["Blur<br/>variance of Laplacian"]
+    LU["Luma / night usability"]
+    TA["Tamper<br/>scene-change and occlusion"]
+    PT["PTS drift and continuity"]
+  end
+
+  R --> AGG
+  F --> AGG
+  BL --> AGG
+  LU --> AGG
+  TA --> AGG
+  PT --> AGG
+
+  AGG["Weighted aggregate<br/>each component stored with its own value"]
+  AGG --> SCORE["trust_score 0-100<br/>+ per-component breakdown"]
+  SCORE --> BANDS
+
+  subgraph BANDS["What the score is used for"]
+    direction TB
+    MAP["GIS overlay — trusted vs nominal"]
+    GAP["Gap analysis<br/>trusted-only coverage: 0.00 km"]
+    ANPR["ANPR viability gate<br/>2.77 km of 218,137.5 km"]
+    EV["Evidence weighting on a trace"]
+  end
+
+  NOTE["No score without a measurement.<br/>An unprobed camera is 'unknown', never a default."]:::note
+  SCORE -.-> NOTE
+  classDef note fill:#fdf6e3,stroke:#b58900,color:#654d00

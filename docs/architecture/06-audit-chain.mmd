@@ -1,0 +1,25 @@
+flowchart TB
+  A1["Entry n-1<br/>actor · purpose · subject · timestamp<br/>hash = H(prev_hash || canonical payload)"]
+  A2["Entry n"]
+  A3["Entry n+1"]
+  A1 -->|"prev_hash"| A2 -->|"prev_hash"| A3
+
+  subgraph WHAT["Every entry records"]
+    direction TB
+    W1["who — badge, role"]
+    W2["why — declared purpose, bound at request time"]
+    W3["what — subject id and query"]
+    W4["when — server time, monotonic sequence"]
+  end
+  WHAT -.-> A2
+
+  A3 --> VER["npm run audit:verify<br/>recompute every hash, compare to stored"]
+  VER --> OK["intact — chain verified"]
+  VER --> BAD["broken at entry k<br/>names the row and stops"]
+
+  A3 --> EXP["Export bundle"]
+  EXP --> MAN["manifest.json<br/>SHA-256 per file · crop BYTES embedded<br/>via a presigned fetch at build time"]
+  MAN --> VEX["npm run export:verify<br/>independent re-hash of the bundle"]
+
+  classDef bad fill:#fdecea,stroke:#8a1c1c,color:#8a1c1c
+  class BAD bad

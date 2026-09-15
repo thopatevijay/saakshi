@@ -1,0 +1,45 @@
+flowchart TB
+  subgraph SRC["Department-owned sources — unchanged, never surrendered"]
+    IP["IP cameras<br/>RTSP / ONVIF"]
+    AN["Analog cameras<br/>+ DVR encoder"]
+    VMS["Vendor VMS / NVR<br/>Milestone · Hikvision · Dahua"]
+    MOB["GSRTC mobile<br/>and private feeds"]
+  end
+
+  subgraph EDGE["Edge / district node — one per district, ~33 statewide"]
+    ADP["Adapter framework"]
+    GW["Stream gateway<br/>MediaMTX"]
+    AW["Analytics worker<br/>YOLO11 to ByteTrack to ANPR"]
+    TP["Trust prober"]
+  end
+
+  BUS(["Event bus — Valkey Streams<br/>events only, never video"])
+
+  subgraph CORE["State core"]
+    PG[("PostgreSQL 16<br/>PostGIS · TimescaleDB")]
+    OBJ[("MinIO<br/>evidence crops")]
+  end
+
+  SVC["Service layer — Fastify / TypeScript<br/>registry · trust · watchlist · alerts · routes · audit · export"]
+  UI["Console — Next.js · MapLibre<br/>registry · trace · alerts · video wall · sizing"]
+
+  EXT["Government systems<br/>VAHAN · SARTHI · eGujCop<br/>SPECIFIED, NOT CONNECTED"]
+
+  IP --> ADP
+  AN --> ADP
+  VMS --> ADP
+  MOB --> ADP
+  ADP --> GW
+  ADP --> TP
+  GW --> AW
+  AW --> BUS
+  TP --> BUS
+  BUS --> PG
+  AW -. best-shot crops .-> OBJ
+  PG --> SVC
+  OBJ --> SVC
+  SVC --> UI
+  EXT -. mock provider behind<br/>a stable interface .-> SVC
+
+  classDef absent stroke-dasharray: 5 5,fill:#fff,color:#8a1c1c,stroke:#8a1c1c
+  class EXT absent

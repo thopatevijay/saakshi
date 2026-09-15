@@ -12,7 +12,7 @@ university a year later. That is the whole reason this store exists.
 It is also the line item that decides whether the architecture is affordable. PROJECT.md §9 states
 the rule plainly: **store crops only for best shots and watchlist hits.** A crop per sighting is the
 design that makes a national-scale estate unaffordable, and the code refuses it structurally rather
-than by convention — see [One crop per track session](#one-crop-per-track-session).
+than by convention — see [One crop per track session](#3--one-crop-per-track-session).
 
 ---
 

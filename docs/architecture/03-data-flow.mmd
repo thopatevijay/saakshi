@@ -1,0 +1,31 @@
+sequenceDiagram
+  autonumber
+  participant C as Camera
+  participant W as Analytics worker (edge)
+  participant B as Valkey Streams
+  participant A as API / alert engine
+  participant D as PostgreSQL + PostGIS
+  participant M as MinIO
+  participant U as Console (operator)
+
+  C->>W: frames (RTSP/TCP)
+  Note over W: timing from PTS, never arrival time<br/>declared FPS measured, not trusted
+  W->>W: detect, track, select best shot
+  W->>M: PUT crop bytes
+  W->>B: XADD sighting {track, pts, bbox, crop uri}
+  W->>B: XADD plate_read {text, confidence, crop uri}
+  B->>A: consumer group reads
+  A->>D: INSERT sighting, plate read (normalised text)
+  A->>A: watchlist correlate — exact, then fuzzy (max_distance 2.0)
+  alt hit
+    A->>D: INSERT alert (severity, dedupe key)
+    A-->>U: SSE push to the alert queue
+    U->>A: GET /evidence/crop?uri=... (session cookie, role checked)
+    A->>M: fetch object
+    M-->>A: bytes
+    A-->>U: image bytes, same origin
+    U->>A: verdict (true/false positive)
+    A->>D: append to hash-chained audit log
+  else no hit
+    A->>D: sighting retained for trace and retention clock only
+  end
