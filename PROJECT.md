@@ -12,19 +12,19 @@
 | Organiser | Home Department, Govt. of Gujarat / State Crime Records Bureau (SCRB) |
 | Portal | https://sentinel.gujarat.gov.in |
 | Tech partner | i-Hub Gujarat · Knowledge partners: NFSU, DA-IICT (Dhirubhai Ambani University) |
-| **Registration + submission close** | **15 Sep 2026** — *extended; the portal labels this "NEW DEADLINE"* |
-| Shortlisting | 15 Sep 2026, evening |
-| Grand Finale (in person) | **22–23 Sep 2026**, i-Hub Gujarat, Gandhinagar — *portal labels this "EXTENDED"* |
-| Results | 23 Sep 2026 |
-| *Superseded dates* | *Originally 7 Sep close · 10–11 Sep finale · 11 Sep results. The organisers extended "due to the overwhelming response and numerous requests from participants."* |
+| **Registration + submission close** | **28 Sep 2026** — *extended a second time; checked on the portal 1 Oct 2026, which now says "Submissions are now closed"* |
+| Shortlisting | 28 Sep 2026 — *the portal says shortlisted Phase 1 teams "will be informed shortly via their registered email addresses"* |
+| Grand Finale (in person) | **12–13 Oct 2026**, i-Hub Gujarat, Gandhinagar — top 6 demonstrate live |
+| Results | 13 Oct 2026 |
+| *Superseded dates* | *Originally 7 Sep close · 10–11 Sep finale · 11 Sep results. Then 15 Sep close · 22–23 Sep finale · 23 Sep results. **We submitted on 15 Sep**, under the earlier deadline.* |
 | Prize pool | ₹51,00,000 (Phase 1 ₹18L + Phase 2 ₹31L + ₹2L additional) |
 | Our category | **Category 1** — Student / Researcher / **Professional** / DPIIT startup |
 | Our entry | **Solo** (Vijay Thopate), registered as Professional |
 | Helpdesk | +91 95370 89982 · sentinel.hackathon@gujarat.gov.in (Mon–Sat 10:00–18:00) |
 
 **Phase 1 is remote.** Submission is entirely by link (unlisted YouTube / Drive / hosted URL / Git repo).
-Travel to Gandhinagar is required **only if we place in the top 6**. Shortlist drops 15 Sep evening,
-event starts 22 Sep — roughly a week of travel notice, comfortably more than the original 2.5 days. *Confirm by phone; the portal never states
+Travel to Gandhinagar is required **only if we place in the top 6**. Shortlisting was dated 28 Sep and,
+as of 1 Oct, the result goes out by email; the event starts 12 Oct. *Confirm by phone; the portal never states
 this in words.*
 
 ### Non-negotiable requirements pulled from the problem statement
