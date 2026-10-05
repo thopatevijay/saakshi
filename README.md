@@ -204,8 +204,10 @@ The worker watches `SAAKSHI_WORKER_CAMERAS` (default `cam04 cam05`) plus any `id
 a warning and the rest of the stack still comes up. A second `npm start` leaves anything already
 running alone, so it never starts a duplicate consumer.
 
-`stop` only touches SAAKSHI's own processes. A port held by anything else (another project's
-container on :3000, say) is reported and left alone; set `WEB_PORT` to run beside it.
+`start` and `stop` only touch SAAKSHI's own processes, identified by command line, never by what
+answers on a port. If `WEB_PORT` (3000) or `API_PORT` (4000) is held by something else, such as
+another project's container, `start` warns, moves to the next free port, and prints the real URL in
+the banner. The chosen ports are kept in `.run/ports`, so a second `start` and `stop` use them too.
 
 > **`npm run stop -- --purge` destroys the MinIO volume**, which holds the evidence crops. They
 > cannot be regenerated without gateway traffic. Plain `stop` is the safe one, deliberately.

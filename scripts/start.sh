@@ -104,9 +104,29 @@ fi
 say "Starting API and web"
 npm run build --workspace @saakshi/shared >/dev/null 2>&1
 
-if curl -sf -o /dev/null "http://localhost:${API_PORT}/health" 2>/dev/null; then
+# Ownership is decided by process, never by "something answered" (D4-15). A running SAAKSHI service
+# keeps the port it was given, read back from $PORTS_FILE; a port held by anything else is skipped.
+recorded_port() { [[ -f "$PORTS_FILE" ]] && sed -n "s/^$1=//p" "$PORTS_FILE"; }
+
+# claim_port <name> <requested> → the port to use, warning on stderr when the requested one is taken
+claim_port() {
+  local name="$1" requested="$2" state chosen
+  state=$(port_state "$requested")
+  if [[ "$state" == foreign* ]]; then
+    chosen=$(free_port_from "$((requested + 1))")
+    printf '  \033[33m!\033[0m :%s is held by %s (not SAAKSHI) — %s moves to :%s\n' \
+      "$requested" "${state#foreign }" "$name" "$chosen" >&2
+    echo "$chosen"
+  else
+    echo "$requested"
+  fi
+}
+
+if running "$PAT_API"; then
+  API_PORT="$(recorded_port API_PORT || true)"; API_PORT="${API_PORT:-4000}"
   ok "API already running on :${API_PORT}"
 else
+  API_PORT=$(claim_port API "$API_PORT")
   API_LOG="$PWD/$RUN_DIR/api.log"; API_PID="$PWD/$RUN_DIR/api.pid"
   # `exec` replaces the SUBSHELL's descriptors before forking, so the server inherits the log file
   # rather than whatever stdout the script was given. Redirecting only the command is not enough:
@@ -118,9 +138,11 @@ else
   ok "API on :${API_PORT}"
 fi
 
-if curl -sf -o /dev/null "http://localhost:${WEB_PORT}/login" 2>/dev/null; then
+if running "$PAT_WEB"; then
+  WEB_PORT="$(recorded_port WEB_PORT || true)"; WEB_PORT="${WEB_PORT:-3000}"
   ok "web already running on :${WEB_PORT}"
 else
+  WEB_PORT=$(claim_port web "$WEB_PORT")
   WEB_LOG="$PWD/$RUN_DIR/web.log"; WEB_PID="$PWD/$RUN_DIR/web.pid"
   if [[ "$MODE" == "prod" ]]; then
     say "Building web for production (this takes a minute)"
@@ -136,6 +158,8 @@ else
   until curl -sf -o /dev/null "http://localhost:${WEB_PORT}/login" 2>/dev/null; do sleep 1; done
   ok "web on :${WEB_PORT} (${MODE})"
 fi
+
+printf 'API_PORT=%s\nWEB_PORT=%s\n' "$API_PORT" "$WEB_PORT" > "$PORTS_FILE"
 
 # ── 5 · the live pipeline ─────────────────────────────────────────────────────
 # Without these three the console comes up looking healthy and never receives anything live: the
