@@ -42,6 +42,21 @@ stop_proc() {
   fi
 }
 
+# ## Nothing to stop is one line, not a report (D4-16)
+#
+# A repeated `stop` used to walk every section, warn about another app on :3000 and announce
+# "containers stopped" for containers that were never running. Output an operator cannot trust is
+# worse than none, so with nothing up we say exactly that and leave.
+saakshi_containers() { docker compose --profile routing ps -q 2>/dev/null | grep -c . || true; }
+adminer_exists() { [[ -n "$(docker ps -aq -f name='^saakshi-adminer$' 2>/dev/null)" ]]; }
+if [[ "$PURGE" -eq 0 ]] \
+  && ! pgrep -f "$PAT_API|$PAT_WEB|$PAT_SIGHTINGS|$PAT_EVIDENCE|$PAT_WORKER" >/dev/null 2>&1 \
+  && [[ "$(saakshi_containers)" -eq 0 ]] && ! adminer_exists; then
+  rm -f "$PORTS_FILE" "$RUN_DIR"/*.pid
+  printf '\n  SAAKSHI is already down — nothing to stop.\n\n'
+  exit 0
+fi
+
 # ## Why the pipeline goes first, and before the containers
 #
 # The consumers honour SIGTERM only between reads, and a read blocks on Valkey. Stop Valkey first and
@@ -78,12 +93,9 @@ for entry in "API:${API_PORT:-4000}" "web:${WEB_PORT:-3000}"; do
   # not proof of ownership; a path inside the repo is.
   ours=()
   for pid in $(lsof -ti ":$port" -sTCP:LISTEN 2>/dev/null || true); do
-    if ps -o command= -p "$pid" 2>/dev/null | grep -qF "$PWD"; then
-      ours+=("$pid")
-    else
-      printf '  \033[33m!\033[0m %s port %s is held by %s (not SAAKSHI) — left alone\n' \
-        "$name" "$port" "$(ps -o comm= -p "$pid" 2>/dev/null | xargs basename 2>/dev/null)"
-    fi
+    # A holder outside this repo is not ours to stop, and not ours to report either: `stop` never
+    # touched it, and warning about it on every run is noise (D4-16).
+    ps -o command= -p "$pid" 2>/dev/null | grep -qF "$PWD" && ours+=("$pid")
   done
   if (( ${#ours[@]} )); then
     kill -TERM "${ours[@]}" 2>/dev/null || true
@@ -97,12 +109,16 @@ say "Stopping services"
 if [[ "$PURGE" -eq 1 ]]; then
   docker compose --profile routing down -v >/dev/null 2>&1
   ok "containers and volumes removed — Postgres, MinIO and Grafana data are gone"
-else
+elif [[ "$(saakshi_containers)" -gt 0 ]]; then
   docker compose --profile routing down >/dev/null 2>&1
   ok "containers stopped, volumes preserved"
+else
+  ok "no containers were running"
 fi
 
-docker rm -f saakshi-adminer >/dev/null 2>&1 && ok "adminer stopped" || true
+if adminer_exists; then
+  docker rm -f saakshi-adminer >/dev/null 2>&1 && ok "adminer stopped"
+fi
 
 rm -f "$PORTS_FILE"
 
