@@ -15,7 +15,7 @@
  * `provenance=estate-ocr-output` (strings the ANPR pipeline actually emitted). See
  * `docs/watchlist-integration.md`.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { loadEnv } from '../env.js';
 import { createDb, createSql } from '../db/client.js';
 import { SEED_CSV_PATH } from './index.js';

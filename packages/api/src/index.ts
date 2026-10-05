@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './load-env.js';
 import { loadEnv } from './env.js';
 import { buildServer } from './server.js';
 import { createDb, createSql } from './db/client.js';

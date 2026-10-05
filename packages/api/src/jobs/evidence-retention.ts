@@ -11,7 +11,7 @@
  *   npm run evidence:retention            # apply, then show what the bucket reports
  *   npm run evidence:retention -- --check # show only; change nothing
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -12,7 +12,7 @@
  * NULL on purpose ("a placeholder would be a number nobody computed") and something has to close
  * the loop. Mirrors D1-04's `sync:catalogue` precedent rather than inventing a new shape.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import { cameraHealthChecks, cameras } from '@saakshi/shared/db';
 import { loadEnv } from '../env.js';

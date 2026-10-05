@@ -12,7 +12,7 @@
  */
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import 'dotenv/config';
+import '../load-env.js';
 import { loadEnv } from '../env.js';
 import { createAdapterRegistry } from './index.js';
 import { createHlsAdapter } from './hls.js';

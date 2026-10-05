@@ -9,7 +9,7 @@
  *   npm run sync:catalogue -- --department AHM-TRAF --adapter hls
  *   npm run sync:catalogue -- --source https://host/api/ingest
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { loadEnv } from '../env.js';
 import { createDb, createSql } from '../db/client.js';
 import { AdapterKind } from '@saakshi/shared';

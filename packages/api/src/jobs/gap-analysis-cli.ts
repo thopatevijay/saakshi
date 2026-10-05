@@ -12,7 +12,7 @@
  * - **Fill in a missing estate.** With no roads or no placed cameras it says so and stops, rather
  *   than emitting a report full of well-formatted zeroes that reads as a finding.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
