@@ -10,7 +10,7 @@
  * database migrated from empty never needs it and the flag refuses to do anything. See
  * `docs/chain-of-custody.md`.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { createDb, createSql } from '../db/client.js';
 import { loadEnv } from '../env.js';
 import { sealChainEpoch, verifyChain, type ChainVerification } from '../services/audit.js';

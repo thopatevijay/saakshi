@@ -17,7 +17,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import 'dotenv/config';
+import '../load-env.js';
 import { createSql, type Sql } from './client.js';
 import { loadEnv } from '../env.js';
 

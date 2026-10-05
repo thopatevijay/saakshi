@@ -14,7 +14,7 @@
  * `--purpose` defaults to a sentence naming the case, because a bundle built from the command line
  * still writes an audit entry and that entry still has to say why.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDb, createSql } from '../db/client.js';

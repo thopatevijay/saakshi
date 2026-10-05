@@ -20,7 +20,9 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import math
 import os
+import signal
 import sys
 import threading
 import time
@@ -64,16 +66,23 @@ def run_worker(
     evidence_sink: EvidenceSink | None = None,
     anpr: AnprEngine | None = None,
     metrics_port: int | None = None,
+    stop_event: threading.Event | None = None,
 ) -> dict:
-    """Runs every source concurrently for `minutes` and returns the run summary."""
+    """Runs every source concurrently for `minutes` and returns the run summary.
+
+    `minutes <= 0` means no deadline: the run lasts until `stop_event` is set, which is how
+    `npm start` keeps a worker alive and `npm run stop` ends it with a summary rather than a corpse
+    (D4-14).
+    """
     if not sources:
         raise ValueError("no cameras in scope")
+    unbounded = minutes <= 0
 
     device = select_device(device_override)
     engine = detector if detector is not None else Detector(device, weights)
     out_sink = sink if sink is not None else NullSink()
 
-    stop = threading.Event()
+    stop = stop_event if stop_event is not None else threading.Event()
     start_gate = threading.Event()
     ready = threading.Semaphore(0)
 
@@ -128,25 +137,35 @@ def run_worker(
 
         connected = 0
         for _ in range(len(pipelines)):
-            remaining = connect_deadline_s - (time.monotonic() - connect_started)
-            if remaining <= 0 or not ready.acquire(timeout=remaining):
+            # Polled in short slices, so a stop during a slow connect is honoured within a second
+            # instead of after the full deadline.
+            acquired = False
+            while not stop.is_set():
+                remaining = connect_deadline_s - (time.monotonic() - connect_started)
+                if remaining <= 0:
+                    break
+                if ready.acquire(timeout=min(remaining, 0.5)):
+                    acquired = True
+                    break
+            if not acquired:
                 break
             connected += 1
 
         connect_wall_s = round(time.monotonic() - connect_started, 1)
         log.info(
-            "%d/%d cameras connected in %.1f s — opening the %.1f-minute measured window",
-            connected, len(pipelines), connect_wall_s, minutes,
+            "%d/%d cameras connected in %.1f s — opening the %s measured window",
+            connected, len(pipelines), connect_wall_s,
+            "unbounded (until stopped)" if unbounded else f"{minutes:.1f}-minute",
         )
         window_opened = time.monotonic()
-        deadline_holder["at"] = window_opened + minutes * 60.0
+        deadline_holder["at"] = None if unbounded else window_opened + minutes * 60.0
         start_gate.set()
 
         # The threads read `deadline_holder` only after the gate opens, but a camera that connected
         # late holds a stale `None`; the stop event is the backstop that ends every one of them.
-        stop_at = window_opened + minutes * 60.0
+        stop_at = math.inf if unbounded else window_opened + minutes * 60.0
         while time.monotonic() < stop_at:
-            if all(f.done() for f in futures):
+            if stop.is_set() or all(f.done() for f in futures):
                 break
             time.sleep(0.25)
         stop.set()
@@ -373,6 +392,20 @@ def render(summary: dict) -> str:
     return "\n".join(lines)
 
 
+def install_stop_handlers(stop: threading.Event) -> None:
+    """SIGTERM and SIGINT set `stop` instead of killing the process mid-frame.
+
+    The threads finish the frame in hand, `_finish` records the measurement, and the summary still
+    prints. Must be called from the main thread, which is where `signal.signal` is allowed.
+    """
+    def _handler(signum: int, _frame: object) -> None:
+        log.info("%s received — finishing the frame in hand and stopping", signal.Signals(signum).name)
+        stop.set()
+
+    signal.signal(signal.SIGTERM, _handler)
+    signal.signal(signal.SIGINT, _handler)
+
+
 def _split(values: list[str]) -> list[str]:
     out: list[str] = []
     for value in values:
@@ -387,7 +420,9 @@ def main(argv: list[str] | None = None) -> int:
         "--source", action="append", default=[],
         help="ad-hoc stream, <external_id>=<url> (MediaMTX, a local file)",
     )
-    parser.add_argument("--minutes", type=float, default=5.0)
+    parser.add_argument(
+        "--minutes", type=float, default=5.0, help="measured window; 0 runs until SIGTERM/SIGINT",
+    )
     parser.add_argument("--pool", type=int, default=DEFAULT_POOL)
     parser.add_argument("--weights", default=os.environ.get("SAAKSHI_YOLO_WEIGHTS", DEFAULT_MODEL))
     parser.add_argument("--device", default=None, help="cuda | mps | cpu (default: auto-detect)")
@@ -458,6 +493,8 @@ def main(argv: list[str] | None = None) -> int:
     evidence: EvidenceSink | None = None
     if args.evidence:
         evidence = NullEvidenceSink() if args.no_publish else ValkeyEvidenceSink()
+    stop = threading.Event()
+    install_stop_handlers(stop)
     try:
         summary = run_worker(
             sources,
@@ -471,6 +508,7 @@ def main(argv: list[str] | None = None) -> int:
             evidence_sink=evidence,
             anpr=anpr,
             metrics_port=args.metrics_port,
+            stop_event=stop,
         )
     finally:
         sink.close()

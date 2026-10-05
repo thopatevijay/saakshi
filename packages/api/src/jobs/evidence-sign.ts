@@ -13,7 +13,7 @@
  * presigner too, so it is S3 semantics rather than anything about this implementation. Fetch it
  * with `curl -fsS -o /dev/null -w '%{http_code}'`.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { evidenceStoreFromEnv } from '../services/evidence.js';
 
 const store = evidenceStoreFromEnv();

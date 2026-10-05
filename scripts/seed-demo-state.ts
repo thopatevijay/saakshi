@@ -27,7 +27,7 @@
  * `DATABASE_URL` decides which database is touched; `--env production` is a label that appears in
  * the output so an operator can see which one they just seeded, not a second source of truth.
  */
-import 'dotenv/config';
+import '../packages/api/src/load-env.js';
 import { randomBytes } from 'node:crypto';
 import postgres from 'postgres';
 

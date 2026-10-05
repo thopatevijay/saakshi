@@ -11,7 +11,7 @@
  * cannot be named until its sighting row exists; the consumer waits and retries, but starting in
  * the natural order turns a bounded wait into no wait at all.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { loadEnv } from '../env.js';
 import { createDb, createSql } from '../db/client.js';
 import { consumeEvidence, EVIDENCE_GROUP, EVIDENCE_STREAM } from './evidence.js';

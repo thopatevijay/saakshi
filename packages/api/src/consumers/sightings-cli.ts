@@ -14,7 +14,7 @@
  * end-to-end number the deck quotes is `now - sighting.ts` observed at correlation time, exported
  * as `saakshi_pts_to_alert_latency_seconds`.
  */
-import 'dotenv/config';
+import '../load-env.js';
 import { loadEnv } from '../env.js';
 import { createDb, createSql } from '../db/client.js';
 import { consumeSightings, SIGHTINGS_GROUP, SIGHTINGS_STREAM } from './sightings.js';
