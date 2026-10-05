@@ -184,12 +184,28 @@ The **307 is correct**: every console route requires a session, so the root redi
 exactly as the hosted deployment does. `curl -fsSL localhost:3000` follows it and returns 200.
 
 Or do all of it with one command — `npm start` sequences the same steps, waits for each to be
-healthy, and prints the local sign-in banner:
+healthy, and prints the local sign-in banner. It also starts the **live pipeline** that the manual
+sequence above leaves out, the three processes that turn video into alerts:
 
 ```bash
-npm start              # services · migrations · seed · API · web
-npm run stop           # stops app + containers, PRESERVES volumes
+npm start              # services · migrations · seed · API · web · consumers · analytics worker
+npm start -- --no-worker   # everything except the Python worker
+npm run stop           # stops worker → consumers → API/web → containers, PRESERVES volumes
 ```
+
+| Process | Log | What it does |
+|---|---|---|
+| sightings consumer | `.run/consume-sightings.log` | Valkey `sightings` → Postgres, and raises watchlist alerts |
+| evidence consumer | `.run/consume-evidence.log` | crop images → MinIO |
+| analytics worker | `.run/worker.log` | video → YOLO11 + ByteTrack + ANPR → Valkey, **ANPR and evidence on**, until stopped |
+
+The worker watches `SAAKSHI_WORKER_CAMERAS` (default `cam04 cam05`) plus any `id=url` streams in
+`SAAKSHI_WORKER_SOURCES`; see `.env.example`. It is optional: without a `.venv` it is skipped with
+a warning and the rest of the stack still comes up. A second `npm start` leaves anything already
+running alone, so it never starts a duplicate consumer.
+
+`stop` only touches SAAKSHI's own processes. A port held by anything else (another project's
+container on :3000, say) is reported and left alone; set `WEB_PORT` to run beside it.
 
 > **`npm run stop -- --purge` destroys the MinIO volume**, which holds the evidence crops. They
 > cannot be regenerated without gateway traffic. Plain `stop` is the safe one, deliberately.

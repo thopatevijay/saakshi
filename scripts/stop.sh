@@ -15,6 +15,8 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+# shellcheck source=scripts/lib/processes.sh
+. scripts/lib/processes.sh
 
 RUN_DIR=".run"
 PURGE=0
@@ -48,33 +50,20 @@ stop_proc() {
 # consumers so its last sightings still have someone to drain them, and it gets the longest grace
 # because it finishes the frame in hand and prints its run summary on the way out.
 say "Stopping the live pipeline"
-stop_proc worker 'workers.analytics.run' 15
-stop_proc consume-sightings 'consumers/sightings-cli.ts' 10
-stop_proc consume-evidence 'consumers/evidence-cli.ts' 10
+stop_proc worker "$PAT_WORKER" 15
+stop_proc consume-sightings "$PAT_SIGHTINGS" 10
+stop_proc consume-evidence "$PAT_EVIDENCE" 10
 
 say "Stopping API and web"
-for svc in api web; do
-  pidfile="$RUN_DIR/$svc.pid"
-  if [[ -f "$pidfile" ]]; then
-    pid=$(cat "$pidfile")
-    # The recorded pid is the shell's child; `next` and `tsx` fork, so kill the process group to
-    # avoid orphaning a listener that then blocks the port on the next start.
-    if kill -0 "$pid" 2>/dev/null; then
-      kill -TERM -"$(ps -o pgid= "$pid" | tr -d ' ')" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
-      ok "$svc stopped (pid $pid)"
-    fi
-    rm -f "$pidfile"
-  fi
-done
+# By pattern, not by process group. The old `kill -- -<pgid>` was right only when `npm start` ran in
+# its own interactive job; run `start` and `stop` from one script and that group is the caller's
+# shell, which then kills itself (D4-14).
+stop_proc api "$PAT_API" 10
+stop_proc web "$PAT_WEB" 10
 
-# Belt and braces: a process started by hand outside this script still holds the port, and the
-# symptom ("port in use", or worse, a stale build answering) is confusing enough to be worth this.
-pkill -f 'tsx packages/api/src/index.ts' 2>/dev/null && ok "stray API process stopped" || true
-pkill -f 'next (dev|start) -p' 2>/dev/null && ok "stray web process stopped" || true
-
-# Final sweep: a SAAKSHI process still holding a port goes, however it was started and named. A recorded pid can be stale (the servers fork, so the pid we captured may already have
-# exited while its child still listens), and a name pattern can miss a mode we did not anticipate.
-# The port is the thing that actually blocks the next start, so the port is what we check.
+# Final sweep: a SAAKSHI process still holding a port goes, however it was started and named. A
+# pattern can miss a mode we did not anticipate, and the port is the thing that actually blocks the
+# next start, so the port is what we check.
 for entry in "API:${API_PORT:-4000}" "web:${WEB_PORT:-3000}"; do
   name="${entry%%:*}"; port="${entry##*:}"
   # Only a holder whose command line points into THIS repo is ours. On 5 Oct 2026 this sweep killed

@@ -21,6 +21,8 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+# shellcheck source=scripts/lib/processes.sh
+. scripts/lib/processes.sh
 
 RUN_DIR=".run"
 mkdir -p "$RUN_DIR"
@@ -140,9 +142,9 @@ fi
 # consumers turn the Valkey streams into rows and alerts, and the worker turns video into the
 # streams. Until D4-14 they were started by hand, and a finale rehearsal lost its first plate to it.
 #
-# `running` checks the process table, not a pidfile: a consumer started by hand in another terminal
-# must count as running, or this would start a second one in the same consumer group.
-running() { pgrep -f "$1" >/dev/null 2>&1; }
+# `running` (scripts/lib/processes.sh) checks the process table, not a pidfile: a consumer started by
+# hand in another terminal must count as running, or this would start a second one in the same
+# consumer group.
 
 # start_bg <name> <pgrep pattern> <ready marker> <wait seconds> <command…>
 # Returns 0 when the marker appears, 1 when the process died, 2 when it is alive but not yet ready.
@@ -162,7 +164,7 @@ start_bg() {
 
 say "Starting the live pipeline (consumers · analytics worker)"
 for consumer in sightings evidence; do
-  pattern="consumers/${consumer}-cli.ts"
+  if [[ "$consumer" == sightings ]]; then pattern="$PAT_SIGHTINGS"; else pattern="$PAT_EVIDENCE"; fi
   if running "$pattern"; then
     ok "$consumer consumer already running"
     continue
@@ -179,7 +181,7 @@ done
 
 # The worker is optional; the core stack is not. A judge cloning without Python still gets a
 # working console, so a missing interpreter is a warning, never a failed start.
-WORKER_PATTERN='workers.analytics.run'
+WORKER_PATTERN="$PAT_WORKER"
 if [[ "$WORKER" -eq 0 ]]; then
   warn "analytics worker skipped (--no-worker)"
 elif [[ ! -x .venv/bin/python ]]; then
