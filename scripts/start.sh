@@ -140,7 +140,7 @@ fi
 # ── 5 · the live pipeline ─────────────────────────────────────────────────────
 # Without these three the console comes up looking healthy and never receives anything live: the
 # consumers turn the Valkey streams into rows and alerts, and the worker turns video into the
-# streams. Until D4-14 they were started by hand, and a finale rehearsal lost its first plate to it.
+# streams. Until D4-14 they were started by hand, and a cold-start run lost its first plate to it.
 #
 # `running` (scripts/lib/processes.sh) checks the process table, not a pidfile: a consumer started by
 # hand in another terminal must count as running, or this would start a second one in the same

@@ -8,8 +8,8 @@ estimate: "2h"
 
 ## Context
 
-On 5 Oct 2026, a cold-start rehearsal for the finale (a live demo at i-Hub, 12–13 Oct) hit three
-pitfalls before a single plate reached the console:
+On 5 Oct 2026, a cold-start run of the full system hit three pitfalls before a single plate reached
+the console:
 
 1. **`npm start` starts half the system.** It brings up the containers, the API and the web, but
    none of the three processes that turn video into alerts: the sightings consumer, the evidence
@@ -22,8 +22,7 @@ pitfalls before a single plate reached the console:
    `npm run consume:evidence` from the repo root exits with *"MINIO_ACCESS_KEY / MINIO_SECRET_KEY
    are not set"* even though the root `.env` sets both. It affects 13 entrypoints.
 
-On demo day the system has to come up live from one command, on an unfamiliar network, run by one
-person.
+A live demonstration has to come up from one command, on an unfamiliar network, run by one person.
 
 ## Scope
 
