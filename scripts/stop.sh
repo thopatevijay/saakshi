@@ -23,6 +23,35 @@ PURGE=0
 say() { printf '\n\033[1;36m▸ %s\033[0m\n' "$1"; }
 ok()  { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 
+# stop_proc <name> <pgrep pattern> <grace seconds>
+# TERM, wait for a clean exit, then KILL whatever is left. The pidfile is only a hint: the consumers
+# run under `npx tsx`, which forks, and a process started by hand never had a pidfile at all.
+stop_proc() {
+  local name="$1" pattern="$2" grace="$3" waited=0
+  rm -f "$RUN_DIR/$name.pid"
+  pgrep -f "$pattern" >/dev/null 2>&1 || return 0
+  pkill -TERM -f "$pattern" 2>/dev/null || true
+  while pgrep -f "$pattern" >/dev/null 2>&1 && (( waited < grace )); do sleep 1; waited=$((waited + 1)); done
+  if pgrep -f "$pattern" >/dev/null 2>&1; then
+    pkill -KILL -f "$pattern" 2>/dev/null || true
+    ok "$name stopped (forced after ${grace} s)"
+  else
+    ok "$name stopped"
+  fi
+}
+
+# ## Why the pipeline goes first, and before the containers
+#
+# The consumers honour SIGTERM only between reads, and a read blocks on Valkey. Stop Valkey first and
+# the read never returns, so the abort is never seen: on 5 Oct 2026 two consumers outlived a
+# `stop` by two hours, writing 1.3 MB of ECONNREFUSED retries (D4-14). The worker goes before the
+# consumers so its last sightings still have someone to drain them, and it gets the longest grace
+# because it finishes the frame in hand and prints its run summary on the way out.
+say "Stopping the live pipeline"
+stop_proc worker 'workers.analytics.run' 15
+stop_proc consume-sightings 'consumers/sightings-cli.ts' 10
+stop_proc consume-evidence 'consumers/evidence-cli.ts' 10
+
 say "Stopping API and web"
 for svc in api web; do
   pidfile="$RUN_DIR/$svc.pid"
@@ -43,18 +72,28 @@ done
 pkill -f 'tsx packages/api/src/index.ts' 2>/dev/null && ok "stray API process stopped" || true
 pkill -f 'next (dev|start) -p' 2>/dev/null && ok "stray web process stopped" || true
 
-# Final, definitive sweep: whatever still holds the ports goes, whoever started it and however it
-# was named. A recorded pid can be stale (the servers fork, so the pid we captured may already have
+# Final sweep: a SAAKSHI process still holding a port goes, however it was started and named. A recorded pid can be stale (the servers fork, so the pid we captured may already have
 # exited while its child still listens), and a name pattern can miss a mode we did not anticipate.
 # The port is the thing that actually blocks the next start, so the port is what we check.
 for entry in "API:${API_PORT:-4000}" "web:${WEB_PORT:-3000}"; do
   name="${entry%%:*}"; port="${entry##*:}"
-  holders=$(lsof -ti ":$port" 2>/dev/null || true)
-  if [[ -n "$holders" ]]; then
-    echo "$holders" | xargs kill -TERM 2>/dev/null || true
+  # Only a holder whose command line points into THIS repo is ours. On 5 Oct 2026 this sweep killed
+  # whatever held :3000, which was Docker Desktop's port forwarder for an unrelated project's
+  # container, and Docker Desktop went down with every container on the machine (D4-14). A port is
+  # not proof of ownership; a path inside the repo is.
+  ours=()
+  for pid in $(lsof -ti ":$port" -sTCP:LISTEN 2>/dev/null || true); do
+    if ps -o command= -p "$pid" 2>/dev/null | grep -qF "$PWD"; then
+      ours+=("$pid")
+    else
+      printf '  \033[33m!\033[0m %s port %s is held by %s (not SAAKSHI) — left alone\n' \
+        "$name" "$port" "$(ps -o comm= -p "$pid" 2>/dev/null | xargs basename 2>/dev/null)"
+    fi
+  done
+  if (( ${#ours[@]} )); then
+    kill -TERM "${ours[@]}" 2>/dev/null || true
     sleep 1
-    holders=$(lsof -ti ":$port" 2>/dev/null || true)
-    [[ -n "$holders" ]] && echo "$holders" | xargs kill -KILL 2>/dev/null || true
+    kill -KILL "${ours[@]}" 2>/dev/null || true
     ok "$name port $port released"
   fi
 done

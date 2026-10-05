@@ -34,7 +34,14 @@ export OSRM_HOST_PORT="${OSRM_HOST_PORT:-5000}"
 export OSRM_URL="${OSRM_URL:-http://localhost:${OSRM_HOST_PORT}}"
 
 MODE=dev
-[[ "${1:-}" == "--prod" ]] && MODE=prod
+WORKER=1
+for arg in "$@"; do
+  case "$arg" in
+    --prod) MODE=prod ;;
+    --no-worker) WORKER=0 ;;
+    *) echo "unknown option: $arg (expected --prod and/or --no-worker)" >&2; exit 2 ;;
+  esac
+done
 
 API_PORT="${API_PORT:-4000}"
 WEB_PORT="${WEB_PORT:-3000}"
@@ -128,6 +135,85 @@ else
   ok "web on :${WEB_PORT} (${MODE})"
 fi
 
+# ── 5 · the live pipeline ─────────────────────────────────────────────────────
+# Without these three the console comes up looking healthy and never receives anything live: the
+# consumers turn the Valkey streams into rows and alerts, and the worker turns video into the
+# streams. Until D4-14 they were started by hand, and a finale rehearsal lost its first plate to it.
+#
+# `running` checks the process table, not a pidfile: a consumer started by hand in another terminal
+# must count as running, or this would start a second one in the same consumer group.
+running() { pgrep -f "$1" >/dev/null 2>&1; }
+
+# start_bg <name> <pgrep pattern> <ready marker> <wait seconds> <command…>
+# Returns 0 when the marker appears, 1 when the process died, 2 when it is alive but not yet ready.
+start_bg() {
+  local name="$1" pattern="$2" marker="$3" wait_s="$4"; shift 4
+  local log="$PWD/$RUN_DIR/$name.log" pidfile="$PWD/$RUN_DIR/$name.pid"
+  ( exec < /dev/null > "$log" 2>&1
+    "$@" & echo $! > "$pidfile" )
+  local waited=0
+  while (( waited < wait_s )); do
+    grep -q "$marker" "$log" 2>/dev/null && return 0
+    running "$pattern" || return 1
+    sleep 1; waited=$((waited + 1))
+  done
+  return 2
+}
+
+say "Starting the live pipeline (consumers · analytics worker)"
+for consumer in sightings evidence; do
+  pattern="consumers/${consumer}-cli.ts"
+  if running "$pattern"; then
+    ok "$consumer consumer already running"
+    continue
+  fi
+  if start_bg "consume-$consumer" "$pattern" "consuming $consumer as group" 60 \
+      npx tsx "packages/api/src/consumers/${consumer}-cli.ts"; then
+    ok "$consumer consumer"
+  else
+    echo "  $consumer consumer did not start — last lines of $RUN_DIR/consume-$consumer.log:" >&2
+    tail -5 "$RUN_DIR/consume-$consumer.log" >&2
+    exit 1
+  fi
+done
+
+# The worker is optional; the core stack is not. A judge cloning without Python still gets a
+# working console, so a missing interpreter is a warning, never a failed start.
+WORKER_PATTERN='workers.analytics.run'
+if [[ "$WORKER" -eq 0 ]]; then
+  warn "analytics worker skipped (--no-worker)"
+elif [[ ! -x .venv/bin/python ]]; then
+  warn "analytics worker skipped: no .venv — see README § Python CV workers"
+elif running "$WORKER_PATTERN"; then
+  ok "analytics worker already running"
+else
+  # Scope: registry cameras and/or ad-hoc `id=url` sources. `${VAR-default}` rather than `:-`, so
+  # `SAAKSHI_WORKER_CAMERAS=` (set, empty) means "sources only" instead of falling back to cam04/05.
+  worker_args=()
+  read -r -a cams <<< "${SAAKSHI_WORKER_CAMERAS-cam04 cam05}"
+  (( ${#cams[@]} )) && worker_args+=(--cameras "${cams[@]}")
+  read -r -a srcs <<< "${SAAKSHI_WORKER_SOURCES:-}"
+  for src in "${srcs[@]+"${srcs[@]}"}"; do worker_args+=(--source "$src"); done
+  if (( ${#worker_args[@]} == 0 )); then
+    warn "analytics worker skipped: SAAKSHI_WORKER_CAMERAS and SAAKSHI_WORKER_SOURCES are both empty"
+  else
+    # ANPR and evidence on: without them the worker produces vehicles and silently no plates.
+    # The sandbox has measured 82 s for a single open, so the start does not block on "connected"
+    # for longer than a minute; the worker keeps connecting in the background.
+    set +e
+    start_bg worker "$WORKER_PATTERN" "cameras connected" 60 \
+      .venv/bin/python -m workers.analytics.run "${worker_args[@]}" --anpr --evidence --minutes 0
+    rc=$?
+    set -e
+    case "$rc" in
+      0) ok "analytics worker · ${worker_args[*]} · ANPR + evidence" ;;
+      2) warn "analytics worker still connecting after 60 s — watch $RUN_DIR/worker.log" ;;
+      *) warn "analytics worker exited — last lines of $RUN_DIR/worker.log:"
+         grep -vE '^objc|Class AV' "$RUN_DIR/worker.log" | tail -5 >&2 ;;
+    esac
+  fi
+fi
+
 cat <<BANNER
 
   ────────────────────────────────────────────────────────────────
@@ -144,6 +230,7 @@ cat <<BANNER
 
      mode       ${MODE}  (npm start -- --prod builds and serves the production output)
      logs       .run/api.log · .run/web.log
+                .run/consume-sightings.log · .run/consume-evidence.log · .run/worker.log
      stop       npm run stop
   ────────────────────────────────────────────────────────────────
 
