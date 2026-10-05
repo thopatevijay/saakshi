@@ -286,3 +286,43 @@ def test_repeated_sessions_do_not_leak_file_descriptors(clips: dict[str, Path]) 
     for _ in range(20):
         run_file(clips["h264_small"])
     assert open_fds() <= baseline + 2, f"{open_fds() - baseline} descriptors leaked over 20 sessions"
+
+
+# ── D4-14: an unbounded run ends on a signal, with a summary ───────────────────────────────────
+
+@requires_ffmpeg
+def test_an_unbounded_run_ends_on_sigterm_and_still_returns_a_summary(
+    clips: dict[str, Path],
+) -> None:
+    """`--minutes 0` is how `npm start` keeps the worker alive; SIGTERM is how `npm run stop` ends it.
+
+    The signal goes through the real handler to the real process, not a hand-set event, so this
+    proves the path `stop.sh` takes: the run returns rather than dying, and the measurement survives.
+    """
+    import signal
+
+    from workers.analytics.run import install_stop_handlers, run_worker
+
+    stop = threading.Event()
+    previous = (signal.getsignal(signal.SIGTERM), signal.getsignal(signal.SIGINT))
+    install_stop_handlers(stop)
+    try:
+        threading.Timer(3.0, os.kill, args=(os.getpid(), signal.SIGTERM)).start()
+        started = time.monotonic()
+        summary = run_worker(
+            [CameraSource(external_id="unbounded", url=str(clips["h264_small"]))],
+            minutes=0,
+            sink=CollectingSink(),
+            detector=StubDetector(),
+            device_override="cpu",
+            stop_event=stop,
+        )
+        elapsed = time.monotonic() - started
+    finally:
+        signal.signal(signal.SIGTERM, previous[0])
+        signal.signal(signal.SIGINT, previous[1])
+
+    assert stop.is_set()
+    # Ended by the signal, not by a deadline (there is none) and not by hanging.
+    assert 3.0 <= elapsed < 30.0, elapsed
+    assert summary["cameras_producing_frames"] == 1
