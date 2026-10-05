@@ -64,6 +64,12 @@ stop_proc web "$PAT_WEB" 10
 # Final sweep: a SAAKSHI process still holding a port goes, however it was started and named. A
 # pattern can miss a mode we did not anticipate, and the port is the thing that actually blocks the
 # next start, so the port is what we check.
+# The ports start.sh actually chose (D4-15): after a move to :3001+, the default is the wrong place
+# to look, and it is exactly where the foreign holder lives.
+if [[ -f "$PORTS_FILE" ]]; then
+  API_PORT="${API_PORT:-$(sed -n 's/^API_PORT=//p' "$PORTS_FILE")}"
+  WEB_PORT="${WEB_PORT:-$(sed -n 's/^WEB_PORT=//p' "$PORTS_FILE")}"
+fi
 for entry in "API:${API_PORT:-4000}" "web:${WEB_PORT:-3000}"; do
   name="${entry%%:*}"; port="${entry##*:}"
   # Only a holder whose command line points into THIS repo is ours. On 5 Oct 2026 this sweep killed
@@ -97,5 +103,7 @@ else
 fi
 
 docker rm -f saakshi-adminer >/dev/null 2>&1 && ok "adminer stopped" || true
+
+rm -f "$PORTS_FILE"
 
 printf '\n  SAAKSHI is down. Start again with: npm start\n\n'

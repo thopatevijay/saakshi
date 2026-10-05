@@ -19,3 +19,32 @@ PAT_EVIDENCE="${NODE_PREFIX}.*consumers/evidence-cli\.ts"
 PAT_WORKER='^[^ ]*[Pp]ython[0-9.]* -m workers\.analytics\.run'
 
 running() { pgrep -f "$1" >/dev/null 2>&1; }
+
+# ## Port ownership (D4-15)
+#
+# "Something answered on :3000" is not "SAAKSHI is running on :3000". Another project's dev server
+# answers /login with a 200 too, and on 5 Oct 2026 start.sh reported the web as running while the
+# browser showed somebody else's login page. A listener is ours only if its command line points into
+# this repository.
+
+# port_state <port> → "free" | "ours" | "foreign <process name>"
+port_state() {
+  local pids pid
+  pids=$(lsof -ti ":$1" -sTCP:LISTEN 2>/dev/null || true)
+  [[ -z "$pids" ]] && { echo free; return; }
+  for pid in $pids; do
+    ps -o command= -p "$pid" 2>/dev/null | grep -qF "$PWD" && { echo ours; return; }
+  done
+  pid=${pids%%$'\n'*}
+  echo "foreign $(basename "$(ps -o comm= -p "$pid" 2>/dev/null)")"
+}
+
+# free_port_from <port> → the first port at or above it that nothing listens on
+free_port_from() {
+  local port="$1"
+  while [[ "$(port_state "$port")" != free ]]; do port=$((port + 1)); done
+  echo "$port"
+}
+
+# The ports start.sh actually chose, so a second start and stop.sh use the real ones.
+PORTS_FILE=".run/ports"
