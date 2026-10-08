@@ -2905,6 +2905,7 @@ export interface paths {
                     max_distance?: number;
                     limit?: number;
                     reconstruct?: string;
+                    refresh?: string;
                     include_reid?: string;
                 };
                 header?: never;
@@ -3318,6 +3319,7 @@ export interface paths {
                     max_distance?: number;
                     limit?: number;
                     reconstruct?: string;
+                    refresh?: string;
                     include_reid?: string;
                 };
                 header?: never;
@@ -3364,6 +3366,7 @@ export interface paths {
                     max_distance?: number;
                     limit?: number;
                     reconstruct?: string;
+                    refresh?: string;
                     include_reid?: string;
                 };
                 header?: never;
@@ -4949,6 +4952,8 @@ export interface paths {
                             cameraId: string;
                             fromPtsMs: number;
                             toPtsMs: number;
+                            truncated: boolean;
+                            nextFromPtsMs: number | null;
                             detections: {
                                 /** Format: uuid */
                                 id: string;
@@ -5824,6 +5829,45 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evidence/crop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream one stored evidence crop
+         * @description The bytes of a crop identified by its stable `s3://` URI. Served by the API rather than by a presigned URL so that the object store needs no public network surface and so that every read passes the session and role check — see D4-09.
+         */
+        get: {
+            parameters: {
+                query: {
+                    uri: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

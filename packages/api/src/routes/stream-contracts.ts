@@ -119,6 +119,14 @@ export const StreamDetectionsResponse = z.object({
   cameraId: z.uuid(),
   fromPtsMs: z.number(),
   toPtsMs: z.number(),
+  /**
+   * True when the response stopped at `limit` before reaching `toPtsMs`. The cut is on a frame
+   * boundary; ask again from `nextFromPtsMs` to cover the rest. False means the window is complete.
+   */
+  truncated: z.boolean(),
+  /** The first frame not returned when `truncated`; null otherwise. */
+  nextFromPtsMs: z.number().nullable(),
+  /** One analytics run per frame: the rows whose `ts` is the latest for their `frame_pts_ms`. */
   detections: z.array(StreamDetection),
 });
 

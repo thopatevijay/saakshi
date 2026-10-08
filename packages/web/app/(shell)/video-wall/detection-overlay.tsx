@@ -32,12 +32,19 @@ import {
   resolveSourceFrame,
   type Detection,
 } from '@/src/lib/wall/overlay';
+import {
+  WINDOW_MS,
+  detectionsUrl,
+  loadDetectionWindow,
+  type FetchPage,
+} from '@/src/lib/wall/detections-window';
 import type { StreamDetections } from './types';
 
-/** Seconds of detections fetched ahead of the playhead in one request. */
-const WINDOW_S = 8;
-/** Refetch when fewer than this many seconds of the window remain ahead of the playhead. */
-const REFETCH_MARGIN_S = 3;
+/**
+ * Refetch when fewer than this many seconds of loaded detections remain ahead of the playhead. The
+ * window itself (`WINDOW_MS`) and the page size live in `detections-window.ts`, sized together.
+ */
+const REFETCH_MARGIN_S = 2;
 
 const CLASS_COLOUR: Record<string, string> = {
   car: '#38bdf8',
@@ -84,22 +91,23 @@ export function DetectionOverlay({
       const video = videoRef.current;
       if (video === null || cancelled) return;
       const playheadMs = video.currentTime * 1000;
-      if (playheadMs + REFETCH_MARGIN_S * 1000 < buffer.current.to) return;
+      // Still inside the loaded window with margin to spare. A playhead *before* the window — a
+      // seek back, or a VOD feed looping to 0 — is outside it too, and refetches.
+      const inside = playheadMs >= buffer.current.from;
+      if (inside && playheadMs + REFETCH_MARGIN_S * 1000 < buffer.current.to) return;
 
       const from = Math.max(0, playheadMs - 1000);
-      const to = from + WINDOW_S * 1000;
-      const url =
-        `/video-wall/stream/${cameraId}/detections` +
-        `?fromPtsMs=${String(Math.round(from))}&toPtsMs=${String(Math.round(to))}&limit=500`;
-
-      try {
-        const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-        if (!response.ok || cancelled) return;
+      const fetchPage: FetchPage = async (fromMs, toMs, limit) => {
+        const response = await fetch(detectionsUrl(cameraId, fromMs, toMs, limit), {
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        if (!response.ok) throw new Error(`detections ${String(response.status)}`);
         const payload = (await response.json()) as StreamDetections;
-        buffer.current = {
-          from,
-          to,
-          rows: payload.detections.map((d) => ({
+        return {
+          truncated: payload.truncated,
+          nextFromPtsMs: payload.nextFromPtsMs,
+          detections: payload.detections.map((d) => ({
             id: d.id,
             ptsMs: d.ptsMs,
             trackId: d.trackId,
@@ -109,6 +117,14 @@ export function DetectionOverlay({
             plate: d.plate,
           })),
         };
+      };
+
+      try {
+        // Pages past a truncated response; `coveredToMs` is how far the rows really reach, so a
+        // window that could not be fully loaded is refetched from its cut, never treated as whole.
+        const loaded = await loadDetectionWindow(fetchPage, from, from + WINDOW_MS);
+        if (cancelled) return;
+        buffer.current = { from: loaded.fromMs, to: loaded.coveredToMs, rows: loaded.rows };
       } catch {
         // A window that fails to load leaves the tile playing with no boxes, which is the correct
         // degradation: the video is the evidence, the overlay is an aid.
