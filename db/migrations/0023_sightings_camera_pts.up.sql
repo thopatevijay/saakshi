@@ -1,0 +1,13 @@
+-- 0023 · Sightings by presentation timestamp (D4-17).
+--
+-- The video-wall overlay asks "this camera, this PTS window, the newest run of each frame"
+-- (`GET /api/v1/streams/:id/detections`). Nothing indexed `frame_pts_ms`, so that question was a
+-- sequential scan of every chunk: 180–330 ms for a one-second window on cam04's 1.05M rows, before
+-- any de-duplication of replayed runs.
+--
+-- `ts DESC` trails because the route picks, per frame, the rows whose `ts` is the latest — one
+-- analytics run per frame. With `ts` in the key the per-frame `max(ts)` is answered from the index,
+-- and the join back to that run's rows is a probe on all three columns.
+--
+-- Additive only. No existing query changes shape; trace, alerts and export keep the indexes they had.
+CREATE INDEX IF NOT EXISTS sightings_camera_pts_idx ON sightings (camera_id, frame_pts_ms, ts DESC);

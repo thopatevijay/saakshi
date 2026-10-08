@@ -26,6 +26,30 @@
  * `framePtsMs` lands on the frame it was computed from — including after a seek, and including
  * after the gateway replays a buffered GOP on reconnect, which is the exact case CLAUDE.md warns
  * turns an arrival-time clock into impossible velocities.
+ *
+ * ## One analytics run per frame (D4-17)
+ *
+ * The sandbox serves **VOD**, and every analytics-worker run replays the recording from PTS 0. So
+ * every run writes a fresh set of sightings **for the same frames**: on 8 Oct cam04 held 1.05M rows
+ * over 5.4 minutes of PTS, about 25 runs deep — 348 rows per frame where one run has ~14. Track ids
+ * are session-qualified, so `(frame_pts_ms, track_id)` does not collapse them.
+ *
+ * The rule `/detections` applies: **for each `frame_pts_ms` in the window, return only the rows
+ * whose `ts` is the latest for that frame.** Each run anchors its own epoch, so every row of one
+ * frame from one run shares a `ts`, and different runs differ in it; "latest `ts` per frame" is
+ * therefore "the most recent run that covered this frame". Frames are chosen independently, so a
+ * window that straddles the end of a short newer run takes the newer run where it exists and the
+ * older one elsewhere — every frame still has exactly one run.
+ *
+ * This rule lives in this route only. Trace, alerts and export read `sightings` through their own
+ * queries and see every row, as before: the replayed rows are evidence and stay.
+ *
+ * ## A truncated window says so
+ *
+ * The response is cut at `limit` rows **on a frame boundary** — a frame is never half-returned, or
+ * the overlay would draw some vehicles and silently drop the rest. When the cut happens,
+ * `truncated` is true and `nextFromPtsMs` is the first frame not returned; a client covers the
+ * window by asking again from there. `truncated: false` means every frame in the window is present.
  */
 import { z } from 'zod';
 import { and, asc, count, desc, eq, gte, isNull, lte, max, sql } from 'drizzle-orm';
@@ -144,6 +168,29 @@ export function failingSignalsFrom(breakdown: unknown): {
     }))
     .sort((a, b) => a.points / (a.maxPoints || 1) - b.points / (b.maxPoints || 1))
     .slice(0, 6);
+}
+
+/** The most rows one `/detections` response carries. A busy junction is ~15 per frame per run. */
+export const DETECTIONS_MAX_LIMIT = 2000;
+
+/**
+ * Cuts `rows` (ordered by PTS, at most `limit + 1` of them) to `limit` on a frame boundary.
+ *
+ * The `limit + 1`-th row is the probe: if it exists, the window did not fit. Rows of the frame it
+ * belongs to are dropped from the page, so that frame is returned whole by the next request. The
+ * one exception is a single frame larger than `limit` on its own; it is returned partially and the
+ * next page starts after it, because the alternative is a client that asks for it forever.
+ */
+export function cutAtFrameBoundary<T extends { ptsMs: number }>(
+  rows: readonly T[],
+  limit: number,
+): { rows: T[]; truncated: boolean; nextFromPtsMs: number | null } {
+  const probe = rows[limit];
+  if (probe === undefined) return { rows: [...rows], truncated: false, nextFromPtsMs: null };
+
+  const whole = rows.slice(0, limit).filter((row) => row.ptsMs < probe.ptsMs);
+  if (whole.length > 0) return { rows: whole, truncated: true, nextFromPtsMs: probe.ptsMs };
+  return { rows: rows.slice(0, limit), truncated: true, nextFromPtsMs: probe.ptsMs + 1 };
 }
 
 export interface StreamRouteOptions {
@@ -448,7 +495,7 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): Str
           // PTS, not wall clock. See the module note.
           fromPtsMs: z.coerce.number().min(0),
           toPtsMs: z.coerce.number().min(0),
-          limit: z.coerce.number().int().min(1).max(500).default(200),
+          limit: z.coerce.number().int().min(1).max(DETECTIONS_MAX_LIMIT).default(200),
         }),
         response: {
           200: StreamDetectionsResponse,
@@ -466,7 +513,23 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): Str
       const { fromPtsMs, toPtsMs, limit } = request.query;
       const [lo, hi] = fromPtsMs <= toPtsMs ? [fromPtsMs, toPtsMs] : [toPtsMs, fromPtsMs];
 
-      const rows = await db
+      // One run per frame — the module note's rule. `latest` is answered from
+      // `sightings_camera_pts_idx` (0023); the join back probes the same index on all three keys.
+      const inWindow = and(
+        eq(sightings.cameraId, camera.id),
+        gte(sightings.framePtsMs, lo),
+        lte(sightings.framePtsMs, hi),
+      );
+      const latest = db.$with('latest').as(
+        db
+          .select({ framePtsMs: sightings.framePtsMs, ts: max(sightings.ts).as('latest_ts') })
+          .from(sightings)
+          .where(inWindow)
+          .groupBy(sightings.framePtsMs),
+      );
+
+      const fetched = await db
+        .with(latest)
         .select({
           id: sightings.id,
           ptsMs: sightings.framePtsMs,
@@ -481,22 +544,28 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): Str
           plateConfidence: plateReads.confidence,
         })
         .from(sightings)
-        .leftJoin(plateReads, eq(plateReads.sightingId, sightings.id))
-        .where(
-          and(
-            eq(sightings.cameraId, camera.id),
-            gte(sightings.framePtsMs, lo),
-            lte(sightings.framePtsMs, hi),
-          ),
+        .innerJoin(
+          latest,
+          and(eq(sightings.framePtsMs, latest.framePtsMs), eq(sightings.ts, latest.ts)),
         )
-        .orderBy(asc(sightings.framePtsMs))
-        .limit(limit);
+        .leftJoin(plateReads, eq(plateReads.sightingId, sightings.id))
+        .where(inWindow)
+        .orderBy(asc(sightings.framePtsMs), asc(sightings.trackId), asc(sightings.id))
+        // One past the limit: the probe that tells a complete window from a cut one.
+        .limit(limit + 1);
+
+      const page = cutAtFrameBoundary(
+        fetched.map((row) => ({ ...row, ptsMs: Number(row.ptsMs) })),
+        limit,
+      );
 
       return {
         cameraId: camera.id,
         fromPtsMs: lo,
         toPtsMs: hi,
-        detections: rows.map((row) => {
+        truncated: page.truncated,
+        nextFromPtsMs: page.nextFromPtsMs,
+        detections: page.rows.map((row) => {
           const bbox = (row.bbox ?? {}) as Record<string, number>;
           return {
             id: row.id,
