@@ -268,6 +268,8 @@ export const sightings = pgTable(
   (t) => [
     primaryKey({ columns: [t.id, t.ts] }),
     index('sightings_camera_ts_idx').on(t.cameraId, t.ts.desc()),
+    // 0023 (D4-17): the overlay's "newest run per frame in a PTS window".
+    index('sightings_camera_pts_idx').on(t.cameraId, t.framePtsMs, t.ts.desc()),
     index('sightings_track_id_idx').on(t.trackId),
     index('sightings_class_idx').on(t.class),
   ],

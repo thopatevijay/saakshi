@@ -7884,6 +7884,14 @@
               "type": "string"
             },
             "in": "query",
+            "name": "refresh",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
             "name": "include_reid",
             "required": false
           }
@@ -9651,6 +9659,14 @@
               "type": "string"
             },
             "in": "query",
+            "name": "refresh",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
             "name": "include_reid",
             "required": false
           }
@@ -9767,6 +9783,14 @@
             },
             "in": "query",
             "name": "reconstruct",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "refresh",
             "required": false
           },
           {
@@ -14718,7 +14742,7 @@
               "default": 200,
               "type": "integer",
               "minimum": 1,
-              "maximum": 500
+              "maximum": 2000
             },
             "in": "query",
             "name": "limit",
@@ -14752,6 +14776,13 @@
                       "type": "number"
                     },
                     "toPtsMs": {
+                      "type": "number"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    },
+                    "nextFromPtsMs": {
+                      "nullable": true,
                       "type": "number"
                     },
                     "detections": {
@@ -14838,6 +14869,8 @@
                     "cameraId",
                     "fromPtsMs",
                     "toPtsMs",
+                    "truncated",
+                    "nextFromPtsMs",
                     "detections"
                   ],
                   "additionalProperties": false
@@ -17265,6 +17298,32 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/evidence/crop": {
+      "get": {
+        "summary": "Stream one stored evidence crop",
+        "tags": [
+          "evidence"
+        ],
+        "description": "The bytes of a crop identified by its stable `s3://` URI. Served by the API rather than by a presigned URL so that the object store needs no public network surface and so that every read passes the session and role check — see D4-09.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "in": "query",
+            "name": "uri",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
           }
         }
       }
