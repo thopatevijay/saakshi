@@ -539,16 +539,12 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): Str
           bbox: sightings.bbox,
           confidence: sightings.detConfidence,
           vehicleColor: sightings.vehicleColor,
-          plate: plateReads.normalizedText,
-          plateRaw: plateReads.rawText,
-          plateConfidence: plateReads.confidence,
         })
         .from(sightings)
         .innerJoin(
           latest,
           and(eq(sightings.framePtsMs, latest.framePtsMs), eq(sightings.ts, latest.ts)),
         )
-        .leftJoin(plateReads, eq(plateReads.sightingId, sightings.id))
         .where(inWindow)
         .orderBy(asc(sightings.framePtsMs), asc(sightings.trackId), asc(sightings.id))
         // One past the limit: the probe that tells a complete window from a cut one.
@@ -559,6 +555,31 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): Str
         limit,
       );
 
+      // Plates in a second, keyed query rather than a join. Joined, the planner under-estimates
+      // the run-filtered rows and re-scans all of `plate_reads` once per sighting — measured at
+      // ~125 ms of a 140 ms window on cam04. Keyed on `(sighting_id, sighting_ts)`, its index.
+      const plates = new Map<
+        string,
+        { normalizedText: string | null; rawText: string | null; confidence: number | null }
+      >();
+      if (page.rows.length > 0) {
+        const reads = await db
+          .select({
+            sightingId: plateReads.sightingId,
+            normalizedText: plateReads.normalizedText,
+            rawText: plateReads.rawText,
+            confidence: plateReads.confidence,
+          })
+          .from(plateReads)
+          .where(
+            sql`(${plateReads.sightingId}, ${plateReads.sightingTs}) in (${sql.join(
+              page.rows.map((row) => sql`(${row.id}::uuid, ${row.ts}::timestamptz)`),
+              sql`, `,
+            )})`,
+          );
+        for (const read of reads) plates.set(read.sightingId, read);
+      }
+
       return {
         cameraId: camera.id,
         fromPtsMs: lo,
@@ -567,6 +588,7 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): Str
         nextFromPtsMs: page.nextFromPtsMs,
         detections: page.rows.map((row) => {
           const bbox = (row.bbox ?? {}) as Record<string, number>;
+          const read = plates.get(row.id);
           return {
             id: row.id,
             ptsMs: Number(row.ptsMs),
@@ -584,8 +606,9 @@ export function registerStreamRoutes(app: App, options: StreamRouteOptions): Str
             // The normalised form when the Indian-plate grammar accepted it, the raw read when it
             // did not. Never nothing: a rejected read is a signal, and D2-01's handoff is explicit
             // that null means *not evaluated*, never *rejected*.
-            plate: row.plate ?? row.plateRaw ?? null,
-            plateConfidence: row.plateConfidence === null ? null : Number(row.plateConfidence),
+            plate: read?.normalizedText ?? read?.rawText ?? null,
+            plateConfidence:
+              read === undefined || read.confidence === null ? null : Number(read.confidence),
           };
         }),
       };

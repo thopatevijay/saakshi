@@ -33,7 +33,13 @@ const admin = { sub: '', badgeNo: 'GP-ADM-0001' };
 interface Body {
   truncated: boolean;
   nextFromPtsMs: number | null;
-  detections: { ptsMs: number; ts: string; trackId: number }[];
+  detections: {
+    ptsMs: number;
+    ts: string;
+    trackId: number;
+    plate: string | null;
+    plateConfidence: number | null;
+  }[];
 }
 
 function auth(): { authorization: string } {
@@ -91,12 +97,24 @@ beforeAll(async () => {
   await seedRun('2026-10-05T10:00:00Z', 1_000_001, FRAMES);
   await seedRun('2026-10-07T10:00:00Z', 2_000_001, FRAMES.slice(0, -2));
 
+  // One plate read on run B's first frame, and one the grammar rejected (raw text only).
+  await db.execute(sql`
+    insert into plate_reads (sighting_id, sighting_ts, raw_text, normalized_text, confidence)
+    select id, ts, 'GJ01AB1234', 'GJ01AB1234', 0.87 from sightings
+     where camera_id = ${cameraId}::uuid and frame_pts_ms = ${FRAMES[0] ?? 0} and track_id = 2000001
+    union all
+    select id, ts, 'SHOP SIGN', null, 0.41 from sightings
+     where camera_id = ${cameraId}::uuid and frame_pts_ms = ${FRAMES[0] ?? 0} and track_id = 2000002`);
+
   app = await buildServer({ env, db });
   await app.ready();
 });
 
 afterAll(async () => {
   if (reachable) {
+    await db.execute(sql`
+      delete from plate_reads where sighting_id in
+        (select id from sightings where camera_id = ${cameraId}::uuid)`);
     await db.execute(sql`delete from sightings where camera_id = ${cameraId}::uuid`);
     await db.execute(sql`delete from cameras where external_id like ${`${TAG}%`}`);
   }
@@ -126,6 +144,19 @@ describe('GET /api/v1/streams/:id/detections — one run per frame', () => {
     for (const d of body.detections) {
       expect(d.trackId >= 2_000_000).toBe(covered.has(d.ptsMs));
     }
+  });
+
+  it('attaches the plate read, falling back to the raw text when the grammar rejected it', async () => {
+    if (!reachable) return;
+    const { body } = await get('fromPtsMs=0&toPtsMs=5000&limit=500');
+    // The reads were seeded on the first frame only; the same track ids recur on later frames.
+    const firstFrame = body.detections.filter((d) => d.ptsMs === FRAMES[0]);
+    const byTrack = new Map(firstFrame.map((d) => [d.trackId, d]));
+    expect(byTrack.get(2_000_001)?.plate).toBe('GJ01AB1234');
+    expect(byTrack.get(2_000_001)?.plateConfidence).toBeCloseTo(0.87);
+    expect(byTrack.get(2_000_002)?.plate).toBe('SHOP SIGN');
+    expect(byTrack.get(2_000_003)?.plate).toBeNull();
+    expect(byTrack.get(2_000_003)?.plateConfidence).toBeNull();
   });
 
   it('flags a response cut by the limit, on a frame boundary, and pages to the rest', async () => {
