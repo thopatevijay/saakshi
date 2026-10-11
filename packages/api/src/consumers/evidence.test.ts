@@ -616,3 +616,136 @@ describe('D2-11 — plate crops reach the object store and the alert links to on
     console.log(`  [D2-11] alert ${alertId.slice(0, 8)} → ${key} → HTTP ${String(fetched.status)}`);
   }, 30_000);
 });
+
+/* ── D4-19 · VOD replays repeat (camera, track, pts) ──────────────────────────────────────────── */
+
+describe('D4-19 — a plate crop lands on its own replay, never on another replay of the same key', () => {
+  /** Two replays of one clip: same track id, same PTS, one minute apart in stream time. */
+  async function twoReplays(
+    trackId: number,
+    framePtsMs: number,
+  ): Promise<{ ts1: string; ts2: string; s1: string; s2: string }> {
+    const ts2 = new Date().toISOString();
+    const ts1 = new Date(Date.parse(ts2) - 60_000).toISOString();
+    for (const ts of [ts1, ts2]) {
+      await xadd(
+        SIGHTINGS_STREAM,
+        sightingPayload({ trackId, framePtsMs, ts, cropUri: LOCAL_CROP_URI }),
+      );
+    }
+    await drainSightings();
+    const rows = await db.execute<{ id: string }>(
+      sql`select id::text as id from sightings
+           where camera_id = ${cameraUuid}::uuid and track_id = ${trackId}
+             and frame_pts_ms = ${framePtsMs}
+           order by ts`,
+    );
+    expect(rows).toHaveLength(2);
+    return { ts1, ts2, s1: rows[0]?.id ?? '', s2: rows[1]?.id ?? '' };
+  }
+
+  /** The `s3://` URI the consumer must write for this sighting's plate crop. */
+  async function expectedCrop(sightingId: string): Promise<string> {
+    const rows = await db.execute<{ ts: string }>(
+      sql`select ts::text as ts from sightings where id = ${sightingId}::uuid`,
+    );
+    const key = evidenceKey({
+      cameraExternalId: CAM,
+      ts: rows[0]?.ts ?? '',
+      sightingId,
+      kind: 'plate',
+    });
+    uploaded.push(key);
+    return `s3://${store?.bucket ?? ''}/${key}`;
+  }
+
+  it('two replays over the same (camera, track, pts): each plate crop lands on its own read', async () => {
+    if (!reachable || !valkeyReachable || store === null) return;
+    const trackId = TRACK_BASE + 41;
+    const { ts1, ts2, s1, s2 } = await twoReplays(trackId, 8_150);
+
+    // Replay 1's crop, then replay 2's — the order a live VOD loop produces them.
+    await xadd(EVIDENCE_STREAM_NAME, plateEvidencePayload({ trackId, framePtsMs: 8_150, ts: ts1 }));
+    await xadd(EVIDENCE_STREAM_NAME, plateEvidencePayload({ trackId, framePtsMs: 8_150, ts: ts2 }));
+    expect((await drainEvidence()).stored).toBe(2);
+
+    expect(await cropUriOf(s1)).toBe(await expectedCrop(s1));
+    expect(await cropUriOf(s2)).toBe(await expectedCrop(s2));
+  });
+
+  it('without an exact ts match, a crop still never overwrites a read that already has an s3:// crop', async () => {
+    if (!reachable || !valkeyReachable || store === null) return;
+    const trackId = TRACK_BASE + 42;
+    const { ts1, ts2, s1, s2 } = await twoReplays(trackId, 9_000);
+    // A record stamped a millisecond off either row: only the s3:// rule can keep them apart.
+    const off = (ts: string): string => new Date(Date.parse(ts) + 1).toISOString();
+
+    await xadd(
+      EVIDENCE_STREAM_NAME,
+      plateEvidencePayload({ trackId, framePtsMs: 9_000, ts: off(ts1) }),
+    );
+    await xadd(
+      EVIDENCE_STREAM_NAME,
+      plateEvidencePayload({ trackId, framePtsMs: 9_000, ts: off(ts2) }),
+    );
+    expect((await drainEvidence()).stored).toBe(2);
+
+    expect(await cropUriOf(s1)).toBe(await expectedCrop(s1));
+    expect(await cropUriOf(s2)).toBe(await expectedCrop(s2));
+  });
+
+  it('an alert raised on a replay before its crop arrived shows the crop, and no "no crop URL" caveat, once it lands', async () => {
+    if (!reachable || !valkeyReachable || store === null) return;
+    const trackId = TRACK_BASE + 43;
+    const { ts1, ts2 } = await twoReplays(trackId, 10_000);
+    // Replay 1's crop is already in. Under the old match, replay 2's crop overwrote this read and
+    // the alert, now pointing at replay 2's sighting, kept saying "no crop URL" forever.
+    await xadd(
+      EVIDENCE_STREAM_NAME,
+      plateEvidencePayload({ trackId, framePtsMs: 10_000, ts: ts1 }),
+    );
+    expect((await drainEvidence()).stored).toBe(1);
+
+    const readAlerts = async (): Promise<AlertRecord[]> => {
+      const rows = await db.execute<{ id: string }>(
+        sql`select id::text as id from alerts where camera_id = ${cameraUuid}::uuid`,
+      );
+      expect(rows.length).toBeGreaterThan(0);
+      return Promise.all(
+        rows.map(async (row) => {
+          const response = await app.inject({
+            method: 'GET',
+            url: `/api/v1/alerts/${row.id}`,
+            headers: auth('operator'),
+          });
+          expect(response.statusCode).toBe(200);
+          return response.json<AlertRecord>();
+        }),
+      );
+    };
+    const noCrop = (a: AlertRecord): boolean =>
+      a.reason.caveats.some((c) => c.startsWith('no crop URL'));
+
+    // Before replay 2's crop: the alert on replay 2's sighting has nothing to sign, and says so.
+    const before = await readAlerts();
+    expect(before.some((a) => a.reason.evidence.cropUrl === null && noCrop(a))).toBe(true);
+
+    await xadd(
+      EVIDENCE_STREAM_NAME,
+      plateEvidencePayload({ trackId, framePtsMs: 10_000, ts: ts2 }),
+    );
+    expect((await drainEvidence()).stored).toBe(1);
+
+    for (const alert of await readAlerts()) {
+      expect(alert.reason.evidence.cropUrl).toContain('X-Amz-Signature=');
+      expect(noCrop(alert)).toBe(false);
+    }
+    // The stored reason is untouched: the crop state is computed on read, never written back.
+    const stored = await db.execute<{ caveat: boolean }>(
+      sql`select bool_or(c like 'no crop URL%') as caveat
+            from alerts, jsonb_array_elements_text(reason -> 'caveats') c
+           where camera_id = ${cameraUuid}::uuid`,
+    );
+    expect(stored[0]?.caveat).toBe(true);
+  }, 30_000);
+});
