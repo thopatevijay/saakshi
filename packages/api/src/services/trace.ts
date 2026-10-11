@@ -199,7 +199,39 @@ export interface TraceCoverage {
   droppedBelowConfidence: number;
   /** `true` when `MAX_TRACE_SIGHTINGS` or `limit` cut the result short. */
   truncated: boolean;
+  /**
+   * Registry cameras with at least one sighting inside the trace's window (D4-21) — the only
+   * evidence of analysis the data holds. Any camera, active or not, scoped by `cameraIds`.
+   */
+  analysedCameras: CameraCoverageSet;
+  /** Every other active registry camera: nothing was analysed there, so absence proves nothing. */
+  notAnalysedCameras: CameraCoverageSet;
+  /** The sentence the screen and both exports print. One wording, built once, here. */
+  cameraStatement: string;
 }
+
+/** A camera named in the coverage lists (D4-21). */
+export interface CoverageCamera {
+  cameraId: string;
+  externalId: string;
+  name: string;
+  district: string | null;
+}
+
+/** A count plus a list capped at `COVERAGE_CAMERA_SAMPLE`; `truncated` says the cap bit. */
+export interface CameraCoverageSet {
+  count: number;
+  cameras: CoverageCamera[];
+  truncated: boolean;
+}
+
+/** Cap on each coverage list, so an estate of thousands of cameras cannot bloat the payload. */
+export const COVERAGE_CAMERA_SAMPLE = 25;
+
+export const CAMERA_COVERAGE_DEFINITION =
+  'A camera counts as analysed when it has at least one sighting inside the trace window: that is ' +
+  'the only evidence of analysis the data holds. Every other active registry camera was not ' +
+  'analysed in that window.';
 
 export interface TraceResult {
   query: string;
@@ -314,8 +346,9 @@ export class TraceService {
 
     // D2-04 owns candidate resolution. `sightingsPerCandidate: 1` because this call is being used
     // for ranking only — the ordered hydration below fetches the sightings, without the
-    // newest-first cap that would truncate the start of a journey.
-    const searchResult = await this.search.search(rawQuery, {
+    // newest-first cap that would truncate the start of a journey. The camera-coverage probe
+    // (D4-21) runs alongside it: it depends only on the window, never on the plate.
+    const searching = this.search.search(rawQuery, {
       maxDistance,
       limit: 25,
       sightingsPerCandidate: 1,
@@ -323,9 +356,20 @@ export class TraceService {
       ...(options.to !== undefined ? { to: options.to } : {}),
       ...(options.cameraIds !== undefined ? { cameraIds: options.cameraIds } : {}),
     });
+    const [searchResult, cameraCoverage] = await Promise.all([
+      searching,
+      this.cameraCoverage(options),
+    ]);
 
     const identity = resolveIdentity(searchResult, { minConfidence });
-    const base = this.emptyShell(rawQuery, searchResult, options, minConfidence, maxDistance);
+    const base = this.emptyShell(
+      rawQuery,
+      searchResult,
+      options,
+      minConfidence,
+      maxDistance,
+      cameraCoverage,
+    );
 
     if (!searchResult.searched) {
       return {
@@ -414,6 +458,7 @@ export class TraceService {
         otherLinks: sightings.filter((s) => s.linkMethod === 'reid_bridge').length,
         droppedBelowConfidence: dropped,
         truncated: rows.length >= limit,
+        ...cameraCoverage,
       },
       emptyReason: sightings.length === 0 ? emptyReasonFor(dropped) : null,
       tookMs: elapsed(started),
@@ -426,6 +471,7 @@ export class TraceService {
     options: TraceOptions,
     minConfidence: number,
     maxDistance: number,
+    cameraCoverage: CameraCoverage,
   ): Omit<TraceResult, 'identity' | 'emptyReason' | 'tookMs'> {
     return {
       query: rawQuery,
@@ -454,10 +500,45 @@ export class TraceService {
         otherLinks: 0,
         droppedBelowConfidence: 0,
         truncated: false,
+        ...cameraCoverage,
       },
       claims: CLAIMS,
       disclaimer: TRACE_DISCLAIMER,
     };
+  }
+
+  /**
+   * Which cameras the answer could have come from (D4-21).
+   *
+   * One probe per registry camera: the newest sighting in the window, `order by ts desc limit 1`,
+   * which the planner answers from `sightings (camera_id, ts desc)` chunk by chunk. Measured on the
+   * live 2M-row corpus: ~2 ms for 85 cameras, unbounded window. The obvious `exists (select 1 ...)`
+   * measured **2.0–3.5 s** on the same data, because the planner picks a sequential scan of one
+   * daily chunk for every camera with no rows in it. Deleted cameras are included only when they
+   * hold sightings in the window, because the trace itself can return their rows.
+   */
+  private async cameraCoverage(options: TraceOptions): Promise<CameraCoverage> {
+    const window: SQL[] = [];
+    if (options.from !== undefined) window.push(sql` and s.ts >= ${options.from.toISOString()}`);
+    if (options.to !== undefined) window.push(sql` and s.ts <= ${options.to.toISOString()}`);
+    const scope =
+      options.cameraIds !== undefined && options.cameraIds.length > 0
+        ? sql` where c.id in ${options.cameraIds.map((id) => sql`${id}::uuid`)}`
+        : sql``;
+    const rows = await this.db.execute<CoverageRow>(sql`
+      select * from (
+        select c.id::text as camera_id, c.external_id, c.name, c.district,
+               (c.deleted_at is null and c.catalogue_status = 'active') as active,
+               (select s.ts from sightings s
+                 where s.camera_id = c.id ${sql.join(window, sql``)}
+                 order by s.ts desc
+                 limit 1) is not null as analysed
+          from cameras c ${scope}
+      ) probed
+      where probed.analysed or probed.active
+      order by probed.external_id, probed.camera_id
+    `);
+    return summariseCameraCoverage(rows);
   }
 
   /**
@@ -668,6 +749,55 @@ function traceWindowClause(options: TraceOptions): SQL {
     parts.push(sql` and s.camera_id in ${options.cameraIds.map((id) => sql`${id}::uuid`)}`);
   }
   return sql.join(parts, sql``);
+}
+
+interface CoverageRow extends Record<string, unknown> {
+  camera_id: string;
+  external_id: string;
+  name: string;
+  district: string | null;
+  active: boolean;
+  analysed: boolean;
+}
+
+type CameraCoverage = Pick<
+  TraceCoverage,
+  'analysedCameras' | 'notAnalysedCameras' | 'cameraStatement'
+>;
+
+function coverageSet(rows: readonly CoverageRow[]): CameraCoverageSet {
+  return {
+    count: rows.length,
+    cameras: rows.slice(0, COVERAGE_CAMERA_SAMPLE).map((r) => ({
+      cameraId: r.camera_id,
+      externalId: r.external_id,
+      name: r.name,
+      district: r.district,
+    })),
+    truncated: rows.length > COVERAGE_CAMERA_SAMPLE,
+  };
+}
+
+function plural(n: number, word: string): string {
+  return `${String(n)} ${word}${n === 1 ? '' : 's'}`;
+}
+
+/** The one sentence the screen, the CSV and the PDF all print. */
+export function cameraCoverageStatement(analysed: number, notAnalysed: number): string {
+  const searched = `Searched the plate reads of ${plural(analysed, 'camera')} analysed in this window.`;
+  if (notAnalysed === 0) return searched;
+  const verb = notAnalysed === 1 ? 'was' : 'were';
+  return `${searched} ${plural(notAnalysed, 'registry camera')} ${verb} not analysed: absence there proves nothing.`;
+}
+
+function summariseCameraCoverage(rows: readonly CoverageRow[]): CameraCoverage {
+  const analysed = rows.filter((r) => r.analysed);
+  const notAnalysed = rows.filter((r) => !r.analysed && r.active);
+  return {
+    analysedCameras: coverageSet(analysed),
+    notAnalysedCameras: coverageSet(notAnalysed),
+    cameraStatement: cameraCoverageStatement(analysed.length, notAnalysed.length),
+  };
 }
 
 function summariseCameras(sightings: TraceSighting[]): TraceCamera[] {

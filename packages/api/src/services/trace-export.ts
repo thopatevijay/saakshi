@@ -10,6 +10,12 @@
  * The CSV's first eight columns are fixed by the ticket's acceptance criterion, in its order:
  * `plate, camera_id, camera_name, lat, lon, timestamp, confidence, link_method`. Anything else is
  * appended after them, so a consumer that reads the first eight positionally keeps working.
+ *
+ * **Camera coverage (D4-21).** Both forms state which cameras the answer could have come from,
+ * using the API's own `coverage.cameraStatement`. The CSV carries it as one final `#`-prefixed line
+ * after the data rows, so it is present even when there are no rows at all — the empty trace is
+ * exactly the case where "not analysed" must not read as "not there". The PDF prints it on page 1
+ * with the analysed and not-analysed camera lists.
  */
 import { A4_LANDSCAPE, PdfPage, ellipsise, renderPdf, textWidth } from './pdf.js';
 import type { TraceResult, TraceSighting } from './trace.js';
@@ -52,6 +58,9 @@ export const TRACE_CSV_COLUMNS = [
 /** Everything a trace cell can hold. Narrow on purpose: `unknown` would stringify an object. */
 export type CsvValue = string | number | boolean | null | undefined;
 
+/** The final line of every trace CSV starts with this (D4-21). */
+export const CSV_COVERAGE_PREFIX = '# Camera coverage: ';
+
 export function traceCsv(result: TraceResult): string {
   const rows = [TRACE_CSV_COLUMNS.join(',')];
   for (const s of result.sightings) {
@@ -88,6 +97,7 @@ export function traceCsv(result: TraceResult): string {
     ];
     rows.push(cells.map(csvCell).join(','));
   }
+  rows.push(csvCell(`${CSV_COVERAGE_PREFIX}${result.coverage.cameraStatement}`));
   return `${rows.join('\n')}\n`;
 }
 
@@ -204,10 +214,17 @@ export function tracePdf(result: TraceResult, generatedAt: Date = new Date()): B
 
   for (const [label, value] of summaryRows(result, generatedAt)) {
     page.text(label, MARGIN, y, { size: 9, grey: 0.45 });
-    page.text(value, MARGIN + 150, y, { size: 9 });
+    // Ellipsised: a capped camera list can still outrun the page (D4-21).
+    page.text(ellipsise(value, right - MARGIN - 150, 9), MARGIN + 150, y, { size: 9 });
     y -= 12;
   }
 
+  // The coverage sentence sits directly under the counts it qualifies (D4-21).
+  y -= 4;
+  y = page.paragraph(result.coverage.cameraStatement, MARGIN, y, right - MARGIN, {
+    size: 9,
+    font: 'Helvetica-Bold',
+  });
   y -= 8;
   y = claimsBox(page, y, right, result);
   y -= 10;
@@ -289,7 +306,17 @@ function summaryRows(result: TraceResult, generatedAt: Date): [string, string][]
       'Dropped below confidence',
       `${String(c.droppedBelowConfidence)}${c.truncated ? ' · result truncated at the row cap' : ''}`,
     ],
+    ['Cameras analysed', cameraList(c.analysedCameras)],
+    ['Cameras not analysed', cameraList(c.notAnalysedCameras)],
   ];
+}
+
+/** `"3: cam01, cam04, cam05"`, with `… and N more` when the API capped the list. */
+function cameraList(set: TraceResult['coverage']['analysedCameras']): string {
+  if (set.count === 0) return '0';
+  const names = set.cameras.map((cam) => cam.externalId).join(', ');
+  const more = set.count - set.cameras.length;
+  return `${String(set.count)}: ${names}${more > 0 ? ` … and ${String(more)} more` : ''}`;
 }
 
 function claimsBox(page: PdfPage, top: number, right: number, result: TraceResult): number {
