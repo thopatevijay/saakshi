@@ -35,6 +35,7 @@ import { runTrace } from './actions';
 import { CloningPanel } from './cloning-panel';
 import { EvidenceStrip } from './evidence-strip';
 import { QueryConsole } from './query-console';
+import { CameraCoverage } from './camera-coverage';
 import { RouteSummary } from './route-summary';
 import { TraceTimeline, formatDuration } from './trace-timeline';
 import type { TracePayload, TraceSighting } from './types';
@@ -359,6 +360,8 @@ export function TraceScreen({
               {coverage.truncated ? ' · truncated at the row cap' : ''}
             </p>
           )}
+          {/* D4-21. Shown for an empty result too — that is the case it exists for. */}
+          {coverage === null ? null : <CameraCoverage coverage={coverage} />}
           {/* D3-03. Rendered whenever appearance links were asked for or found — never silently.
               A screen that shows a re-ID link without its measured precision is over-claiming, and
               a switch that looks on while the server has the feature off is worse. */}
