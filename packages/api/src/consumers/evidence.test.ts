@@ -38,7 +38,7 @@ import {
   upsertWatchlistEntries,
 } from '../watchlist/index.js';
 import { consumeSightings, SIGHTINGS_GROUP } from './sightings.js';
-import { consumeEvidence, findPlateRead, EVIDENCE_GROUP } from './evidence.js';
+import { consumeEvidence, findPlateRead, findSighting, EVIDENCE_GROUP } from './evidence.js';
 import { createValkeyReader } from './valkey-reader.js';
 
 const TAG = `EV${String(Date.now()).slice(-9)}`;
@@ -625,8 +625,12 @@ describe('D4-19 — a plate crop lands on its own replay, never on another repla
     trackId: number,
     framePtsMs: number,
   ): Promise<{ ts1: string; ts2: string; s1: string; s2: string }> {
-    const ts2 = new Date().toISOString();
-    const ts1 = new Date(Date.parse(ts2) - 60_000).toISOString();
+    // Microsecond precision, as the Python worker sends it (`…08.039442Z`): a JS `Date` parameter
+    // truncates to milliseconds, and an exact-ts match built on one would never match a live row.
+    const micros = (ms: number): string => new Date(ms).toISOString().replace('Z', '442Z');
+    const now = Date.now();
+    const ts2 = micros(now);
+    const ts1 = micros(now - 60_000);
     for (const ts of [ts1, ts2]) {
       await xadd(
         SIGHTINGS_STREAM,
@@ -665,6 +669,12 @@ describe('D4-19 — a plate crop lands on its own replay, never on another repla
     if (!reachable || !valkeyReachable || store === null) return;
     const trackId = TRACK_BASE + 41;
     const { ts1, ts2, s1, s2 } = await twoReplays(trackId, 8_150);
+
+    // The record's own ts is the read's identity, microseconds included: before any crop lands,
+    // the "newest without s3://" fallback alone would hand replay 1's record to replay 2.
+    expect((await findPlateRead(db, cameraUuid, trackId, 8_150, ts1))?.id).toBe(s1);
+    expect((await findPlateRead(db, cameraUuid, trackId, 8_150, ts2))?.id).toBe(s2);
+    expect((await findSighting(db, cameraUuid, trackId, 8_150, ts1))?.id).toBe(s1);
 
     // Replay 1's crop, then replay 2's — the order a live VOD loop produces them.
     await xadd(EVIDENCE_STREAM_NAME, plateEvidencePayload({ trackId, framePtsMs: 8_150, ts: ts1 }));
