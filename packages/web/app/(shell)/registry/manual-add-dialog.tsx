@@ -24,16 +24,19 @@ import {
 
 const INITIAL: ManualAddState = { created: null, error: null };
 
-const INPUT =
+export const INPUT =
   'w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-400';
 
-function Row({
+export function Row({
   label,
   hint,
+  error,
   children,
 }: {
   label: string;
   hint?: string;
+  /** An inline validation message, shown under the field (D4-20's edit dialog). */
+  error?: string | undefined;
   children: React.ReactNode;
 }) {
   return (
@@ -43,6 +46,11 @@ function Row({
       </span>
       {children}
       {hint === undefined ? null : <span className="block text-[11px] text-slate-600">{hint}</span>}
+      {error === undefined ? null : (
+        <span role="alert" data-field-error className="block text-[11px] text-rose-300">
+          {error}
+        </span>
+      )}
     </label>
   );
 }

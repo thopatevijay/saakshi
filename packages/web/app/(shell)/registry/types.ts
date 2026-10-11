@@ -44,6 +44,15 @@ export interface ManualAddState {
   error: string | null;
 }
 
+/** The edit dialog's state (D4-20). `fieldErrors` is keyed by form field name, shown inline. */
+export interface EditCameraState {
+  saved: Camera | null;
+  error: string | null;
+  fieldErrors: Record<string, string>;
+  /** What was submitted, so a rejected form re-renders with the user's input, not the original. */
+  values: Record<string, string> | null;
+}
+
 export interface SyncState {
   report: {
     added: number;
