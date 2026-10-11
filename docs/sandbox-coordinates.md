@@ -4,117 +4,108 @@ The sandbox catalogue gives each of the 30 cameras an id and a name, and nothing
 records where each camera can be put on the map **from its name alone**.
 
 > **Every coordinate here was placed from the camera name, not surveyed.** Nobody has stood at
-> these cameras, and the catalogue holds no location. A pin is "the OpenStreetMap feature this name
-> most plausibly refers to", never "where the camera is mounted".
+> these cameras, and the catalogue holds no location. A pin is "the mapped place this name most
+> plausibly refers to", never "where the camera is mounted".
 
 Import file: [`fixtures/sandbox-coordinates.csv`](../fixtures/sandbox-coordinates.csv). It holds
-**4 of the 30** cameras: only rows graded `junction` or `road` whose candidate locations agree within
-500 m. Every other camera stays in the "Not on the map" tray, deliberately.
+**27 of the 30** cameras. Each row's `address` column states its precision in words, and the app
+shows that text in the camera panel, so the grade travels with the pin. The 3 `not_found` cameras
+stay in the "Not on the map" tray.
 
 ## Precision grades
 
-| Grade | Meaning | In the CSV? |
-|---|---|---|
-| `junction` | The name resolves to one mapped point: a named junction, circle or gate. Uncertainty is the junction's own size, tens of metres. | Yes, if the sources agree within 500 m |
-| `road` | The name resolves to a named road, bridge, campus or stretch, but not to a point on it. Uncertainty is up to the length of the feature, a few hundred metres to about 1 km. | Yes, if the sources agree within 500 m |
-| `locality` | Only a village, town or neighbourhood can be identified. | **No** |
-| `not_found` | Nothing in OSM matches the name, or the name is too generic to pick one place. | **No** |
-
-| Grade | Count | Cameras |
-|---|---:|---|
-| `junction` | 2 | cam08, cam21 |
-| `road` | 4 | cam01, cam13 (placed); cam12, cam17 (left out: candidates disagree by more than 500 m) |
-| `locality` | 14 | cam04, cam06, cam09, cam10, cam11, cam18, cam19, cam24, cam25, cam26, cam27, cam28, cam29, cam30 |
-| `not_found` | 10 | cam02, cam03, cam05, cam07, cam14, cam15, cam16, cam20, cam22, cam23 |
+| Grade | Meaning | Count | Cameras |
+|---|---|---:|---|
+| `exact` | Google Maps shows the specific named junction, gate, bridge, building or campus. Uncertainty is that feature's own size: tens of metres for a junction, up to about 1.5 km along a bridge. | 9 | cam01, cam04, cam05, cam08, cam12, cam13, cam17, cam19, cam21 |
+| `approximate` | Only a neighbourhood, village, town, city centre or road is identified, or the name had to be interpreted. Uncertainty is up to the size of that place: hundreds of metres to several km. | 15 | cam03, cam06, cam07, cam09, cam10, cam11, cam15, cam16, cam18, cam20, cam22, cam24, cam25, cam26, cam30 |
+| `shared` | cam27, cam28 and cam29 are all named "bilimora". They get one Bilimora town-centre point; their pins sit on top of each other. No offsets were invented. | 3 | cam27, cam28, cam29 |
+| `not_found` | No place on Google Maps (or OpenStreetMap) matches the name well enough. Left blank, not guessed. | 3 | cam02, cam14, cam23 |
 
 ## All 30 cameras
 
-Sources: **X** = local OSM extract `data/gujarat-latest.osm.pbf` (named features exported with
-`osmium`), **R** = the `road_network` table, **N** = OpenStreetMap Nominatim (queried 11 Oct 2026).
-"Dist" is the distance in metres between the two locations being compared.
+**Source:** **G** = Google Maps search (11 Oct 2026; the pin is the place's own coordinate from the
+result, not the map viewport). **O** = the OpenStreetMap candidate recorded in the earlier OSM-only
+pass (local extract, `road_network`, Nominatim). "G–O" is the distance in metres between the two
+where both exist; above 500 m it is in bold.
 
-| Camera | Name (catalogue) | Grade | Lat, lon | Source(s) | Dist (m) | Notes |
+| Camera | Name (catalogue) | Grade | Lat, lon | Source | G–O (m) | Notes |
 |---|---|---|---|---|---:|---|
-| cam01 | 01 Chiman bhai Bridge | `road` | 23.070259, 72.588310 | X way 37722606; N same way; R | X-N 86; X-R 123 | "Chimanbhai patel Flyover" (SH41, `bridge=yes`) between Ranip and Sabarmati, Ahmedabad. Pin is the centroid of the bridge span; the flyover is about 1.5 km long, so the camera could be anywhere along it. Name match is close but not exact ("Bridge" vs "Flyover"). |
-| cam02 | 02 Janpath | `not_found` | | X, N | | Only hotels named Janpath on SH41 in Mahesana district, and Janpath in New Delhi. Nothing in Ahmedabad. |
-| cam03 | 03 O.N.G.C. Office | `not_found` | | X, N | | No ONGC office mapped in Ahmedabad. ONGC features exist in Chandkheda (a bus depot), Mahesana, Surat, Vadodara and Kalol; the name does not say which. |
-| cam04 | 04 Paldi Circle | `locality` | | X, N | | Only the Paldi suburb node (23.01455, 72.56354). No feature named Paldi Circle or Paldi Char Rasta. Not placed. |
-| cam05 | 05 Visat teen Rasta | `not_found` | | X, R, N | | No feature named Visat as a junction or road. Only an apartment block and a hospital elsewhere. |
-| cam06 | 06 Timbavadi gate-Junagadh | `locality` | | X, N | 189 | Timbavadi neighbourhood (21.50331, 70.43350) and Timbavadi bus stop (21.50268, 70.43520) agree, but no "Timbavadi gate" is mapped. Neighbourhood only; not placed. |
-| cam07 | 07 hero-showroom-gir-somnath | `not_found` | | X, N | | No Hero showroom mapped in Gir Somnath district. The district alone is not a location. |
-| cam08 | 08 majewadi-gate-junagadh | `junction` | 21.535443, 70.460000 | X node 648272854; N same node; R | X-N 0 | "Majevdi Gate", a historic city gate on Mahatma Gandhi Road, Junagadh. The road network has Mahatma Gandhi Road through the same point (0 m). The two lookups return the same OSM node, so the agreement checks the name match, not the position. A separate village "Majevadi" lies 8 km north; the camera name says gate. |
-| cam09 | 09 new-bypass-near-by-circle-junagadh-2 | `locality` | | X | | Junagadh Bypass is mapped (NH trunk, about 20 km). "Near by circle" names no circle. Junagadh city only. |
-| cam10 | 10 char-chowk-road-2-junagadh | `locality` | | X, N | | No "Char Chowk" in Junagadh. Junagadh has many named chowks (Kalwa, Azad, Gandhi, Circle Chowk), none matching. City only. |
-| cam11 | 11 dolatpara-junagadh | `locality` | | X, N | | Dolatpara suburb (21.55876, 70.46592). Area only. |
-| cam12 | 12 Tri Mandir Adalaj Tollnaka | `road` | | X, N | **1507** | Two candidates disagree: Dadabhagwan Trimandir, Adalaj (23.17848, 72.57213; X and N agree) and the nearest mapped toll booth (23.18653, 72.56027). The name points at a toll plaza near the temple, but the nearest toll booth is 1.5 km from it. **Left out.** |
-| cam13 | 13 CN Vidhyalaya | `road` | 23.019348, 72.548823 | X way 336335115; N same way | X-N 40 | Sheth C N Vidyalaya (Sheth Chimanlal Nagindas Vidyavihar), Ambawadi, Ahmedabad. Pin is the campus centroid; the campus is about 300 m across and the camera is likely on a boundary road. |
-| cam14 | 14 Delight RLVD | `not_found` | | X, N | | RLVD = red-light violation detection, so a signalised junction. Nothing named Delight in Ahmedabad or Gandhinagar. |
-| cam15 | 15 Suvidha park | `not_found` | | X, N | | No "Suvidha Park" mapped. There is a "Suvidha Crossroads" junction in Paldi (23.01468, 72.55917), 1.2 km from cam13 and 450 m from Paldi. It is a plausible match on one word, which is a guess, so **not placed**. |
-| cam16 | 16 Visat P2 | `not_found` | | X, N | | As cam05; "P2" is not a place. |
-| cam17 | 17 Rajkot Bus Port CCTV | `road` | | X, N, R | **589** | Two features on Dhebar Road, Rajkot, could be the "bus port": GSRTC Central Bus Station (22.29105, 70.80218) and Rajkot New Bus Station (22.29576, 70.79956). The name does not decide between them. **Left out.** |
-| cam18 | 18 Rajkot CCTV | `locality` | | | | City only. |
-| cam19 | 19 KHAPARIA GRAM PANCHAYAT , TALUKA GANDEVI, DISTRICT NAVSARI | `locality` | | X, N | 0 | Khapariya village, Gandevi taluka (20.86340, 73.04896). X and N return the same node. Village only. |
-| cam20 | 20 Mohanpura | `not_found` | | X, N | | Not in the Gujarat extract; Nominatim returns only Madhya Pradesh villages. A common village name; no district given. |
-| cam21 | 23 Patan Dethali Char Rasta | `junction` | 23.916598, 72.361154 | X way 225384273; N same way; R | X-N 0; X-R 14 | "Dethali Circle" (દેથલી ચોકડી), a roundabout on SH41 at Siddhpur, Patan district. The two lookups return the same OSM way. A different village called Dethali exists in Becharaji taluka, Mahesana (23.47739, 72.11063), but the name says Patan and "char rasta", and only the Siddhpur feature is a junction. |
-| cam22 | 28 BK Mervada tran Rasta | `not_found` | | X, N | | "BK" is read as Banaskantha. No Mervada village or junction is mapped there. |
-| cam23 | 30 kheram | `not_found` | | X, N | | No Gujarat match (Kheralu is a different name; Nominatim's only Kheram is in Jammu and Kashmir). |
-| cam24 | 33 dehgam | `locality` | | X, N | | Dehgam town, Gandhinagar district. Town only. |
-| cam25 | 34 dhanori | `locality` | | X, N | 1639 | Dhanori, Gandevi taluka: Civil Hospital Dhanori (20.83886, 73.02396) and a fenced area named Dhanori (20.83472, 73.03910), 1.6 km apart. Village only. |
-| cam26 | 35 TANKAL | `locality` | | X, N | | Tankal, Chikhli taluka, Navsari (PHC at 20.86059, 73.13062). Village only. |
-| cam27 | 36 bilimora | `locality` | | X, N | | Bilimora town (20.76717, 72.96935). |
-| cam28 | 37 bilimora | `locality` | | X, N | | Same name as cam27. Three cameras cannot be told apart from their names. |
-| cam29 | 38 bilimora | `locality` | | X, N | | Same name as cam27. |
-| cam30 | Gandhidham Rambaugh p2 | `locality` | | X, N | **929** | Two features: Rambagh Hospital, Gandhidham (23.07550, 70.09993) and a services point named Rambaug (23.07540, 70.09085), 929 m apart. "p2" is not a place. Area only. |
+| cam01 | 01 Chiman bhai Bridge | `exact` | 23.0695867, 72.5876512 | G; O | 101 | Google: "Chimanbhai Patel Bridge". OSM: "Chimanbhai patel Flyover". The span is about 1.5 km; the camera could be anywhere on it. |
+| cam02 | 02 Janpath | `not_found` | | G; O | | Google returns Janpath Complex, Janpath Apartment, Janpath Society and hotels spread across Ahmedabad and beyond; no Janpath junction. One word is not enough to choose. |
+| cam03 | 03 O.N.G.C. Office | `approximate` | 23.1019798, 72.5880784 | G | | "ONGC Ahmedabad Asset – Avani Bhavan", Chandkheda. ONGC has offices in many cities; Ahmedabad is inferred from the neighbouring cameras (Visat Circle is 450 m away). OSM had no ONGC office in Ahmedabad. |
+| cam04 | 04 Paldi Circle | `exact` | 23.0142067, 72.5649987 | G; O | 154 | Google has "Paldi Char Rasta" (no "Paldi Circle"); circle and char rasta are read as the same junction. O is the Paldi suburb node. |
+| cam05 | 05 Visat teen Rasta | `exact` | 23.0982308, 72.5883014 | G | | Google: "Visat Circle" (a second "Visat Circle" listing is 138 m away). OSM had no Visat junction. "Visat Circle Ahmedabad" as a single query resolves to SH41 near Mahesana, 60 km away; the listing was taken instead. |
+| cam06 | 06 Timbavadi gate-Junagadh | `approximate` | 21.5044881, 70.4335212 | G; O | 131 | Timbavadi neighbourhood. Neither source maps a "Timbavadi gate". |
+| cam07 | 07 hero-showroom-gir-somnath | `approximate` | 20.9258663, 70.3540973 | G | | "Jagdish Automobiles – Hero MotoCorp", Veraval (the district headquarters). Other Hero dealers exist in the district; this one is a choice. |
+| cam08 | 08 majewadi-gate-junagadh | `exact` | 21.5354573, 70.4600778 | G; O | 8 | Google: "Majevadi Gate". OSM: "Majevdi Gate". |
+| cam09 | 09 new-bypass-near-by-circle-junagadh-2 | `approximate` | 21.5656929, 70.4101728 | G | | Google's "Junagadh Bypass" pin. The bypass is about 20 km long and no circle is named. |
+| cam10 | 10 char-chowk-road-2-junagadh | `approximate` | 21.5222203, 70.4579436 | G | | Junagadh city centre. Google's only "Char Chowk" is in Ankolvadi, Gir Somnath (about 55 km away), not Junagadh, so it was not used. |
+| cam11 | 11 dolatpara-junagadh | `approximate` | 21.5538445, 70.4691218 | G; O | **639** | Dolatpara neighbourhood. The two sources pick different points inside the same area. |
+| cam12 | 12 Tri Mandir Adalaj Tollnaka | `exact` | 23.1867852, 72.5597838 | G; O | 57 | Google: "Toll plaza adalaj". OSM's nearest toll booth agrees (57 m). Trimandir Adalaj itself is 1558 m away; the name's "Tollnaka" decides. |
+| cam13 | 13 CN Vidhyalaya | `exact` | 23.0214064, 72.5519863 | G; O | 396 | Google: "Sheth C N Vidyalaya" (another listing, "Seth C N Vidhyalay", is 235 m from O). The campus is about 300 m across. |
+| cam14 | 14 Delight RLVD | `not_found` | | G; O | | RLVD = red-light violation detection, so a signalised junction. Google returns only shops and restaurants named Delight across Ahmedabad; no Delight junction. |
+| cam15 | 15 Suvidha park | `approximate` | 23.0147239, 72.5592038 | G; O | 6 | Interpreted as "Suvidha Cross Road", Paldi, which is near cam04 and cam13. At least four "Suvidha Park" housing societies exist in Ahmedabad, 4 to 14 km from this junction; the junction was chosen because a camera is more likely at a junction. |
+| cam16 | 16 Visat P2 | `approximate` | 23.0982308, 72.5883014 | G | | Same point as cam05. "P2" is not a place. |
+| cam17 | 17 Rajkot Bus Port CCTV | `exact` | 22.2910217, 70.8021165 | G; O | 7 | Google: "Rajkot Central Bus Station – Bus port". This settles the earlier OSM ambiguity: the Rajkot New Bus Station candidate is 589 m away and was not used. |
+| cam18 | 18 Rajkot CCTV | `approximate` | 22.3038945, 70.8021599 | G | | Rajkot city centre. The name gives the city only. |
+| cam19 | 19 KHAPARIA GRAM PANCHAYAT , TALUKA GANDEVI, DISTRICT NAVSARI | `exact` | 20.8639533, 73.0498184 | G; O | 108 | Google: "Gram Panchayat Khaparia". O is the Khapariya village node. |
+| cam20 | 20 Mohanpura | `approximate` | 23.8479874, 73.027983 | G | | **Low confidence.** Google's one Gujarat "Mohanpura" (PIN 383430, north-east Gujarat). The name is common: a "Mohanpur" (PIN 383305) also exists in Gujarat, and an unqualified search returns Madhya Pradesh. The camera gives no district. |
+| cam21 | 23 Patan Dethali Char Rasta | `exact` | 23.9167434, 72.3611879 | G; O | 17 | Google: "Dethali Char Rasta, Siddhpur". OSM: "Dethali Circle". |
+| cam22 | 28 BK Mervada tran Rasta | `approximate` | 24.1438623, 72.4805487 | G | | Merwada village near Palanpur. "BK" is read as Banaskantha, and the PIN (385001) is Palanpur's. The "tran rasta" junction is not mapped; the pin is the village. |
+| cam23 | 30 kheram | `not_found` | | G; O | | Google's nearest matches are Kherem (Arunachal Pradesh) and unrelated Gujarat villages (Khaar, Kheradi). Not guessed. |
+| cam24 | 33 dehgam | `approximate` | 23.1637196, 72.810245 | G; O | | Dahegam town centre. O identified the same town without a recorded point. |
+| cam25 | 34 dhanori | `approximate` | 20.7505537, 72.9507926 | G; O | **12420** | Google's "Dhanori" (PIN 396110) is 12.4 km from OSM's Dhanori near Gandevi (Civil Hospital Dhanori). Both are in the Navsari area; Google's was used. Treat the village as uncertain. |
+| cam26 | 35 TANKAL | `approximate` | 20.8528538, 73.1320101 | G; O | **872** | Tankal village, Chikhli taluka. O was the village's health centre, not its centre. |
+| cam27 | 36 bilimora | `shared` | 20.7702311, 72.9823779 | G; O | **1397** | Bilimora town centre. O is a different point in the same town. |
+| cam28 | 37 bilimora | `shared` | 20.7702311, 72.9823779 | G | | Same point as cam27: identical names. |
+| cam29 | 38 bilimora | `shared` | 20.7702311, 72.9823779 | G | | Same point as cam27: identical names. |
+| cam30 | Gandhidham Rambaugh p2 | `approximate` | 23.0753822, 70.0907139 | G; O | 14 | Google: "Rambaug Rd", Adipur, Gandhidham. Agrees with OSM's "Rambaug" point (14 m); Rambagh Hospital is 943 m away. "p2" is not a place. |
 
-## Disagreements over 500 m
+## Google–OpenStreetMap disagreements over 500 m
 
-| Camera | Candidates | Distance | What we did |
-|---|---|---:|---|
-| cam12 | Trimandir Adalaj vs the nearest toll booth | 1507 m | Left out |
-| cam17 | GSRTC Central Bus Station vs Rajkot New Bus Station | 589 m | Left out |
-| cam30 | Rambagh Hospital vs Rambaug services point | 929 m | Graded `locality`, left out |
-| cam25 | Civil Hospital Dhanori vs Dhanori area | 1639 m | `locality` either way, left out |
+| Camera | Distance | Why | Effect |
+|---|---:|---|---|
+| cam25 | 12,420 m | Two different villages named Dhanori | The pin may be in the wrong village |
+| cam27 (cam28, cam29) | 1,397 m | Different points in the same town | Town-level either way |
+| cam26 | 872 m | OSM point was the village health centre | Village-level either way |
+| cam11 | 639 m | Different points in the same neighbourhood | Neighbourhood-level either way |
 
-No row in the CSV has a disagreement: the four placed rows agree within 86 m (X-N) and 123 m (X-R).
+Every `exact` row agrees with OpenStreetMap within 400 m where OSM has the feature (cam05 has no OSM
+feature to compare).
 
 ## Method
 
-1. **Offline first.** `osmium tags-filter data/gujarat-latest.osm.pbf nwr/name nwr/name:en` then
-   `osmium export -f geojsonseq` gives 154,060 named features. Each camera name was searched with
-   regexes covering spelling variants (Majewadi/Majevadi/Majevdi, Vidhyalaya/Vidyalaya,
-   Rambaug/Rambagh, Char Rasta/Circle/Chokdi), limited to the district where the name gives one.
-   Unnamed toll booths were pulled separately (`barrier=toll_booth`).
-2. **Road network.** Each candidate was checked against `road_network` for the nearest mapped road,
-   and road names were searched directly.
-3. **Nominatim.** Place names only (for example "Majevdi Gate, Junagadh"), `countrycodes=in`, one
-   request every 1.2 s, User-Agent `saakshi-finale-research/1.0`. 49 queries in all.
-4. **Grade.** One of the four grades above, chosen by the narrowest thing the name *certainly*
-   identifies. When two features could match, the distance between them is recorded, and above
-   500 m the camera is left out.
-5. **Write the CSV** with only the agreeing `junction`/`road` rows. The names are the catalogue's own,
-   including the number prefix, so an import changes the location and district and leaves the name alone.
+1. **Google Maps, one search per name** in a browser, with the camera's town or district appended
+   (for example "Majevadi Gate Junagadh", "Dethali Char Rasta Patan"). The pin is the place's own
+   coordinate from the result (the `!3d…!4d…` pair of the place link), not the map viewport.
+   Spelling variants were tried where the first search missed (Paldi Circle / Paldi Char Rasta,
+   Mervada / Merwada, Dehgam / Dahegam).
+2. **Grade** by the narrowest thing the result certainly identifies: a named junction, gate,
+   building or campus is `exact`; anything coarser or interpreted is `approximate`.
+3. **Cross-check** against the earlier OpenStreetMap pass and record the distance.
+4. **Write the CSV** with every placed camera. The names are the catalogue's own, including the
+   number prefix, so an import changes location, district and address and leaves the name alone.
 
 ## Limits
 
-- **The sources are not independent.** The local extract, `road_network` and Nominatim all come from
-  OpenStreetMap. When two of them agree, the name has been matched to the same feature by two
-  different lookups (our regex search and Nominatim's ranking). That is not a second survey. For
-  cam08, cam13 and cam21 both lookups return the same OSM object, so the "distance" is 0 or tiny by
-  construction.
-- **A named feature is not a camera position.** A junction pin can be tens of metres off, and a road
-  or campus pin hundreds of metres off. The cameras' facing direction is unknown.
-- **OSM coverage is uneven.** Small-town junctions such as Visat or Delight may exist on the ground
-  and simply not be mapped. `not_found` means "not found in OSM", not "does not exist".
-- **Name readings are interpretations.** "BK" as Banaskantha, and "Chiman bhai Bridge" as the
-  Chimanbhai Patel Flyover, are our readings. Each one is written down in the table above so it can
-  be challenged.
+- **A named place is not a camera position.** An `exact` pin is the junction or building; the
+  camera may be on any arm of it, and its facing direction is unknown.
+- **Name readings are interpretations.** "Paldi Circle" as Paldi Char Rasta, "O.N.G.C. Office" as
+  Avani Bhavan, "Suvidha park" as Suvidha Cross Road, and "BK" as Banaskantha are our readings. Each
+  is written down above, and in the row's `address`, so it can be challenged.
+- **The city is sometimes inferred.** cam02, cam03, cam14 and cam15 do not name a city; Ahmedabad
+  comes from the neighbouring cameras.
+- **cam20 and cam25 are the weakest pins.** Both are common village names with more than one candidate.
 - The fix is a location from the camera owner. One row in the CSV per camera would replace all of
-  this.
+  this. A single camera can also be corrected in the app's Edit dialog.
 
 ## Import
 
 The CSV uses the existing bulk-import path, `POST /api/v1/cameras/bulk` (multipart, CSV). Rows match
-on `(department_id, external_id)`, so the 4 rows update the existing sandbox cameras in place.
-Columns that are not in the file reset to their defaults (`cameraType=ip`, `mount=static`,
-`geometryClass=unclassified`, `endpoints={}`), and those match how catalogue sync created the
-sandbox cameras.
+on `(department_id, external_id)`, so the 27 rows update the existing sandbox cameras in place.
+The sandbox cameras' `endpoints` are already `{}`; the import resets that field to `{}`, so it does not change.
+
+Checked on a throwaway database (11 Oct 2026) holding a copy of the 30 sandbox rows:
+`received 27, imported 27, created 0, updated 27, rejected []`. Names and endpoints were unchanged
+(md5 of external id + name + endpoints identical before and after, 30 rows); 27 rows have a
+location and an address, at 24 distinct points (cam27–29 share one, and cam16 shares cam05's).
