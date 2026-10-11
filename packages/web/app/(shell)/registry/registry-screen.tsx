@@ -52,6 +52,7 @@ import { UnplacedTray } from './unplaced-tray';
 import { CameraDrawer } from './camera-drawer';
 import { ImportDialog } from './import-dialog';
 import { ManualAddDialog } from './manual-add-dialog';
+import { EditCameraDialog } from './edit-camera-dialog';
 import { RegistryToolbar } from './registry-toolbar';
 import { RegistryTable } from './registry-table';
 import { loadCameraDetail, loadCameras, loadCoverage } from './actions';
@@ -107,6 +108,7 @@ export function RegistryScreen({
   const [elapsedMs, setElapsedMs] = useState(initialElapsedMs);
   const [view, setView] = useState<View>('map');
   const [dialog, setDialog] = useState<'import' | 'manual' | null>(null);
+  const [editing, setEditing] = useState<Camera | null>(null);
   const [detail, setDetail] = useState<CameraDetailPayload | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   // D3-06's coverage overlay. Off by default and fetched on first enable: it is a second round
@@ -240,6 +242,17 @@ export function RegistryScreen({
     [capped, patchFilters],
   );
 
+  // D4-20: the saved row replaces the stale one in place, so the table and the map (a tray camera
+  // given coordinates moves onto it) reflect the edit without a refetch or a reload.
+  const onSaved = useCallback(
+    (saved: Camera) => {
+      setCameras((current) => current.map((c) => (c.id === saved.id ? saved : c)));
+      setEditing(null);
+      notify(`${saved.externalId} saved.`, 'success');
+    },
+    [notify],
+  );
+
   const onToggleBand = useCallback((band: BandKey) => {
     setLayers((current) => toggleLayer(current, 'band', band));
   }, []);
@@ -358,6 +371,7 @@ export function RegistryScreen({
               canWrite={canWrite}
               canDelete={canDelete}
               onSelect={setSelected}
+              onEdit={setEditing}
             />
           )}
         </div>
@@ -389,6 +403,16 @@ export function RegistryScreen({
           }}
         />
       ) : null}
+
+      {editing === null ? null : (
+        <EditCameraDialog
+          camera={editing}
+          onClose={() => {
+            setEditing(null);
+          }}
+          onSaved={onSaved}
+        />
+      )}
 
       {dialog === 'manual' ? (
         <ManualAddDialog

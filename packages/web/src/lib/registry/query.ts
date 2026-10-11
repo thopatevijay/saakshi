@@ -40,6 +40,7 @@ export const CAMERA_MOUNTS = ['static', 'mobile'] as const;
 export const ADAPTER_KINDS = ['hls', 'rtsp', 'onvif', 'whep', 'nvr', 'file'] as const;
 export const CAMERA_STATUSES = ['unknown', 'online', 'degraded', 'offline'] as const;
 export const GEOMETRY_CLASSES = ['anpr_viable', 'detection_only', 'unclassified'] as const;
+export const STORAGE_TYPES = ['cloud', 'local'] as const;
 
 export type CameraType = (typeof CAMERA_TYPES)[number];
 export type CameraMount = (typeof CAMERA_MOUNTS)[number];

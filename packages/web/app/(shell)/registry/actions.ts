@@ -25,7 +25,15 @@ import {
   type RegistryFilters,
 } from '@/src/lib/registry/query';
 import { EMPTY_COVERAGE, type CoverageFeatureCollection } from '@/src/lib/registry/coverage';
-import type { Camera, CameraPage, ImportState, ManualAddState, SyncState } from './types';
+import { parseCameraEdit } from '@/src/lib/registry/camera-edit';
+import type {
+  Camera,
+  CameraPage,
+  EditCameraState,
+  ImportState,
+  ManualAddState,
+  SyncState,
+} from './types';
 
 /**
  * A page of cameras for the map and the table.
@@ -223,6 +231,56 @@ export async function addCamera(
 
   revalidatePath('/registry');
   return { created: { externalId: data.externalId, id: data.id }, error: null };
+}
+
+// ── Edit one camera (D4-20) ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Save the edit dialog with `PATCH /api/v1/cameras/:id`.
+ *
+ * Bound to the camera id by the dialog (`updateCamera.bind(null, id)`). A form that fails
+ * `parseCameraEdit` is returned with its field errors and **never sent**, so nothing is saved. The
+ * API writes the `camera.update` audit entry itself, with the actor and the fields that changed.
+ */
+export async function updateCamera(
+  id: string,
+  _prev: EditCameraState,
+  formData: FormData,
+): Promise<EditCameraState> {
+  const values = Object.fromEntries(
+    [...formData.entries()].flatMap(([k, v]) => (typeof v === 'string' ? [[k, v]] : [])),
+  );
+  const fail = (error: string, fieldErrors: Record<string, string> = {}): EditCameraState => ({
+    saved: null,
+    error,
+    fieldErrors,
+    values,
+  });
+
+  const session = await getSession();
+  if (session === null) return fail('Your session has expired.');
+  if (!can(UserRole.parse(session.user.role), 'registry:write')) {
+    return fail('Your role may not edit cameras.');
+  }
+
+  const parsed = parseCameraEdit((name) => text(formData, name));
+  if (!parsed.ok) return fail('Fix the highlighted fields.', parsed.fieldErrors);
+
+  const { data, error, response } = await apiClient(session.token).PATCH('/api/v1/cameras/{id}', {
+    params: { path: { id } },
+    body: parsed.body,
+  });
+
+  if (error !== undefined || data === undefined) {
+    // The API's 400 carries `details[{field, message}]`; put each one next to its field.
+    const details = (error as { details?: { field: string; message: string }[] } | undefined)
+      ?.details;
+    const fieldErrors = Object.fromEntries((details ?? []).map((d) => [d.field, d.message]));
+    return fail(`The change was rejected (HTTP ${String(response.status)}).`, fieldErrors);
+  }
+
+  revalidatePath('/registry');
+  return { saved: data, error: null, fieldErrors: {}, values: null };
 }
 
 // ── Onboarding path 3 · catalogue sync ──────────────────────────────────────────────────────────

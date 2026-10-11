@@ -37,6 +37,25 @@ const pointSql = (lat: number | null | undefined, lon: number | null | undefined
     : sql`st_setsrid(st_makepoint(${lon}, ${lat}), 4326)::geography`;
 
 /**
+ * The PATCH keys whose submitted value differs from the stored one (D4-20). Coordinates compare
+ * numerically with a tolerance, because a value that round-trips through PostGIS geography may
+ * come back a few ulps away from what was sent; everything else compares as JSON, with `null` and
+ * absent treated alike.
+ */
+function changedFields(body: CameraPatch, existing: Record<string, unknown>): string[] {
+  return Object.entries(body)
+    .filter(([key, value]) => {
+      if (value === undefined) return false;
+      const before = existing[key] ?? null;
+      if ((key === 'lat' || key === 'lon') && typeof value === 'number') {
+        return typeof before !== 'number' || Math.abs(before - value) > 1e-9;
+      }
+      return JSON.stringify(value ?? null) !== JSON.stringify(before);
+    })
+    .map(([key]) => key);
+}
+
+/**
  * The band, resolved in SQL, now lives in `../services/trust-band-sql.ts`.
  *
  * **It exists so no client ever writes `trust_score >= 70` itself**, and it moved out of this file
@@ -687,8 +706,10 @@ export function registerCameraRoutes(app: App, deps: Deps): void {
         targetType: 'camera',
         targetId: request.params.id,
         purpose: 'camera metadata update',
-        // Field names only, never values: an audit row is not the place to copy the payload.
-        params: { fields: Object.keys(body) },
+        // Field names only, never values: an audit row is not the place to copy the payload. Only
+        // the fields whose value actually changed — the edit dialog sends the whole form, and an
+        // entry listing thirteen "changed" fields for a one-field fix tells an auditor nothing.
+        params: { fields: changedFields(body, existing) },
         resultCount: 1,
       });
 
