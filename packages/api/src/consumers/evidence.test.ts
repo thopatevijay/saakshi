@@ -632,8 +632,10 @@ describe('D4-19 — a plate crop lands on its own replay, never on another repla
         SIGHTINGS_STREAM,
         sightingPayload({ trackId, framePtsMs, ts, cropUri: LOCAL_CROP_URI }),
       );
+      // One drain per replay, as on a live loop: one batch would give both reads the same
+      // `created_at` (one transaction's `now()`), and the oldest-first bug would hide behind a tie.
+      await drainSightings();
     }
-    await drainSightings();
     const rows = await db.execute<{ id: string }>(
       sql`select id::text as id from sightings
            where camera_id = ${cameraUuid}::uuid and track_id = ${trackId}
