@@ -8478,6 +8478,105 @@
                         },
                         "truncated": {
                           "type": "boolean"
+                        },
+                        "analysedCameras": {
+                          "type": "object",
+                          "properties": {
+                            "count": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "cameras": {
+                              "maxItems": 25,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "cameraId": {
+                                    "type": "string"
+                                  },
+                                  "externalId": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "district": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "cameraId",
+                                  "externalId",
+                                  "name",
+                                  "district"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "truncated": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "count",
+                            "cameras",
+                            "truncated"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "notAnalysedCameras": {
+                          "type": "object",
+                          "properties": {
+                            "count": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "cameras": {
+                              "maxItems": 25,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "cameraId": {
+                                    "type": "string"
+                                  },
+                                  "externalId": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "district": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "cameraId",
+                                  "externalId",
+                                  "name",
+                                  "district"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "truncated": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "count",
+                            "cameras",
+                            "truncated"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "cameraStatement": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -8490,7 +8589,10 @@
                         "fuzzyLinks",
                         "otherLinks",
                         "droppedBelowConfidence",
-                        "truncated"
+                        "truncated",
+                        "analysedCameras",
+                        "notAnalysedCameras",
+                        "cameraStatement"
                       ],
                       "additionalProperties": false
                     },

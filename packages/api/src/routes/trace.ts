@@ -15,6 +15,22 @@
  * **The empty result is a 200, always.** A registration nobody has seen, and a query the plate
  * grammar refuses to read as a registration at all, are both *answers*. `emptyReason` says which,
  * and the UI renders a state rather than an error.
+ *
+ * **Camera coverage: which cameras the answer could have come from (D4-21).** A trace searches only
+ * the plate reads the analytics worker produced, and the worker analyses a configured subset of the
+ * registry. A short or empty trace would otherwise look identical to "the vehicle was not there".
+ * So every response, empty ones included, carries:
+ *
+ * - `coverage.analysedCameras`: registry cameras with **at least one sighting inside the trace's
+ *   time window** (`from`/`to`, scoped by `camera_ids` when given). That is the only evidence of
+ *   analysis the data holds; there is no separate "analysed" flag, and this does not claim one.
+ * - `coverage.notAnalysedCameras`: every other **active** registry camera (not deleted,
+ *   `catalogue_status = 'active'`). Absence of the vehicle there proves nothing.
+ *
+ * Each is `{ count, cameras, truncated }`, the list capped at `COVERAGE_CAMERA_SAMPLE` (25).
+ * `coverage.cameraStatement` is the sentence the screen and both exports print. The probe is one
+ * index lookup per camera on `sightings (camera_id, ts desc)` and changes nothing about which
+ * sightings the trace returns.
  */
 import { z } from 'zod';
 import type { App } from '../server.js';
@@ -26,6 +42,7 @@ import { CaseReference, PurposeStatement } from './audit-contracts.js';
 import { writeAudit } from '../audit.js';
 import { LINK_METHODS } from '../services/identity.js';
 import {
+  COVERAGE_CAMERA_SAMPLE,
   MAX_TRACE_SIGHTINGS,
   TraceService,
   type CropPresigner,
@@ -158,6 +175,20 @@ const TraceSegment = z.object({
   impliedSpeedKmh: z.number().nullable(),
   basis: z.literal('inferred'),
   note: z.string(),
+});
+
+const CoverageCamera = z.object({
+  cameraId: z.string(),
+  externalId: z.string(),
+  name: z.string(),
+  district: z.string().nullable(),
+});
+
+/** A count plus a list capped at `COVERAGE_CAMERA_SAMPLE` (D4-21). */
+const CameraCoverageSet = z.object({
+  count: z.number().int(),
+  cameras: z.array(CoverageCamera).max(COVERAGE_CAMERA_SAMPLE),
+  truncated: z.boolean(),
 });
 
 const TraceCamera = z.object({
@@ -402,6 +433,11 @@ export const TraceResponse = z.object({
     otherLinks: z.number().int(),
     droppedBelowConfidence: z.number().int(),
     truncated: z.boolean(),
+    /** Registry cameras with at least one sighting in the window: the only evidence of analysis. */
+    analysedCameras: CameraCoverageSet,
+    /** Every other active registry camera. Absence there proves nothing. */
+    notAnalysedCameras: CameraCoverageSet,
+    cameraStatement: z.string(),
   }),
   /** The two sentences that keep a trace from over-claiming. Rendered, not buried in a footer. */
   claims: z.object({ observed: z.string(), inferred: z.string() }),

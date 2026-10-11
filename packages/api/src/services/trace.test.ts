@@ -23,7 +23,7 @@ import { loadEnv, type Env } from '../env.js';
 import { buildServer, type App } from '../server.js';
 import type { UserRole } from '../auth.js';
 import { TraceService, buildSegments, type TraceResult, type TraceSighting } from './trace.js';
-import { TRACE_CSV_COLUMNS, traceCsv, tracePdf } from './trace-export.js';
+import { CSV_COVERAGE_PREFIX, TRACE_CSV_COLUMNS, traceCsv, tracePdf } from './trace-export.js';
 
 const TAG = `TR${String(Date.now()).slice(-9)}`;
 /** The registration the whole suite traces. Real-shaped; it names no real vehicle. */
@@ -486,7 +486,9 @@ describe('AC 7 — CSV export', () => {
     const lines = csv.trim().split('\n');
 
     expect(lines[0]).toBe(TRACE_CSV_COLUMNS.join(','));
-    expect(lines).toHaveLength(result.sightings.length + 1);
+    // Header, one row per sighting, then the camera-coverage line (D4-21) — never a data row.
+    expect(lines).toHaveLength(result.sightings.length + 2);
+    expect(lines.at(-1)).toBe(`${CSV_COVERAGE_PREFIX}${result.coverage.cameraStatement}`);
 
     const first = (lines[1] ?? '').split(',');
     expect(first[0]).toBe(PLATE);
@@ -525,6 +527,7 @@ describe('AC 7 — CSV export', () => {
           linkMethod: 'plate_exact',
         } as unknown as TraceSighting,
       ],
+      coverage: { cameraStatement: '' },
     } as unknown as TraceResult;
     expect(traceCsv(result).split('\n')[1]).toContain(`"'=cmd|calc"`);
   });
@@ -575,6 +578,77 @@ describe('AC 8 — PDF export', () => {
     const text = tracePdf(await trace('757508300')).toString('latin1');
     expect(text).toContain('No sightings for this registration');
     expect(text).toContain('/Count 1');
+  });
+});
+
+/* ── D4-21 · which cameras the answer could have come from ───────────────────────────────────── */
+
+describe('D4-21 — trace coverage names the cameras it could not see', () => {
+  // Inside this window only cam-a holds a sighting (the LONELY read at 04:00).
+  const window = { from: new Date('2026-05-11T03:00:00Z'), to: new Date('2026-05-11T05:00:00Z') };
+  const ids = (set: TraceResult['coverage']['analysedCameras']): string[] =>
+    set.cameras.map((c) => c.cameraId).sort();
+
+  it('a window with sightings on camera A only: A analysed, B and C not analysed', async () => {
+    if (!reachable) return;
+    const result = await trace(LONELY, window);
+    expect(result.sightings).toHaveLength(1);
+    expect(result.coverage.analysedCameras.count).toBe(1);
+    expect(ids(result.coverage.analysedCameras)).toEqual([cameras['a']]);
+    expect(result.coverage.notAnalysedCameras.count).toBe(2);
+    expect(ids(result.coverage.notAnalysedCameras)).toEqual(
+      [cameras['b'] ?? '', cameras['c'] ?? ''].sort(),
+    );
+    expect(result.coverage.cameraStatement).toBe(
+      'Searched the plate reads of 1 camera analysed in this window. 2 registry cameras were not ' +
+        'analysed: absence there proves nothing.',
+    );
+  });
+
+  it('an empty result still reports coverage — the case that matters most', async () => {
+    if (!reachable) return;
+    const result = await trace('GJ99ZZ9999', window);
+    expect(result.sightings).toEqual([]);
+    expect(result.emptyReason).toBe('no_matching_plate');
+    expect(result.coverage.analysedCameras.count).toBe(1);
+    expect(result.coverage.notAnalysedCameras.count).toBe(2);
+    expect(result.coverage.cameraStatement).toContain('2 registry cameras were not analysed');
+  });
+
+  it('coverage does not change which sightings a trace returns', async () => {
+    if (!reachable) return;
+    const result = await trace(PLATE);
+    expect(result.sightings).toHaveLength(4);
+    // Over all time all three seeded cameras hold sightings, so none is unanalysed.
+    expect(result.coverage.analysedCameras.count).toBe(3);
+    expect(result.coverage.notAnalysedCameras.count).toBe(0);
+  });
+
+  it('both exports carry the coverage line, even for an empty trace', async () => {
+    if (!reachable) return;
+    const empty = await trace('GJ99ZZ9999', window);
+    const csv = traceCsv(empty).trim().split('\n');
+    expect(csv).toHaveLength(2);
+    expect(csv[1]).toBe(`${CSV_COVERAGE_PREFIX}${empty.coverage.cameraStatement}`);
+    const pdf = tracePdf(empty).toString('latin1');
+    expect(pdf).toContain('were not analysed: absence there proves nothing.');
+    expect(pdf).toContain('Cameras not analysed');
+  });
+
+  it('over HTTP the response carries both lists, capped, with counts', async () => {
+    if (!reachable) return;
+    const res = await app.inject({
+      method: 'GET',
+      url:
+        `/api/v1/trace?plate=GJ99ZZ9999&purpose=${PURPOSE}&camera_ids=${cameraIds().join(',')}` +
+        `&from=${window.from.toISOString()}&to=${window.to.toISOString()}`,
+      headers: auth('supervisor'),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json<TraceResult>();
+    expect(body.coverage.analysedCameras).toMatchObject({ count: 1, truncated: false });
+    expect(body.coverage.notAnalysedCameras).toMatchObject({ count: 2, truncated: false });
+    expect(body.coverage.notAnalysedCameras.cameras[0]).toHaveProperty('externalId');
   });
 });
 
