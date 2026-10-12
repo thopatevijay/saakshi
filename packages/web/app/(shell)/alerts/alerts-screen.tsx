@@ -433,7 +433,9 @@ export function AlertsScreen({
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-100">Alert queue</h1>
-        <p className="flex items-center gap-2 text-xs text-slate-400">
+        {/* A <div>, not a <p>: <Spinner> renders a <div>, and a <div> inside a <p> is invalid HTML
+            that React reports as two console errors whenever "Refreshing" shows (D4-22). */}
+        <div className="flex items-center gap-2 text-xs text-slate-400">
           <span
             data-testid="stream-status"
             data-state={stream}
@@ -464,7 +466,7 @@ export function AlertsScreen({
                   : 'Connecting'}
           </span>
           {pendingFetch ? <Spinner label="Refreshing" /> : null}
-        </p>
+        </div>
       </div>
 
       {/* ── the claims banner, above the queue where a screenshot will catch it ───────────── */}
