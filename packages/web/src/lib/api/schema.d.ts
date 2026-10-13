@@ -3046,6 +3046,27 @@ export interface paths {
                                 otherLinks: number;
                                 droppedBelowConfidence: number;
                                 truncated: boolean;
+                                analysedCameras: {
+                                    count: number;
+                                    cameras: {
+                                        cameraId: string;
+                                        externalId: string;
+                                        name: string;
+                                        district: string | null;
+                                    }[];
+                                    truncated: boolean;
+                                };
+                                notAnalysedCameras: {
+                                    count: number;
+                                    cameras: {
+                                        cameraId: string;
+                                        externalId: string;
+                                        name: string;
+                                        district: string | null;
+                                    }[];
+                                    truncated: boolean;
+                                };
+                                cameraStatement: string;
                             };
                             claims: {
                                 observed: string;

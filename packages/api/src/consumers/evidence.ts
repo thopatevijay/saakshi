@@ -16,13 +16,14 @@
  *
  * Matching is `(camera_id, track_id, frame_pts_ms)`. Unique **because `track_id` is
  * session-qualified** (D1-09): the raw ByteTrack id is reused across a loop-point cut, and matching
- * on it would attach one vehicle's crop to another vehicle's row.
+ * on it would attach one vehicle's crop to another vehicle's row. Unique within one pass only: a VOD
+ * replay repeats the tuple, and `replayOrder` picks the replay's own row (D4-19).
  *
  * A record whose sighting row has not landed yet is a real, expected case — the two streams are
  * consumed independently and the sightings consumer can be behind. It is retried a bounded number
  * of times and then counted as `unmatched`, never redelivered forever.
  */
-import { sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import { EvidenceRecord } from '@saakshi/shared';
 import type { Db } from '../db/client.js';
 import { CameraIdResolver, type SightingStreamReader, type StreamEntry } from './sightings.js';
@@ -64,6 +65,25 @@ interface SightingRef {
 }
 
 /**
+ * Which of several rows sharing one `(camera_id, track_id, frame_pts_ms)` a crop belongs to (D4-19).
+ *
+ * The key is unique within one pass over a feed, but the sandbox is VOD: every replay of the same
+ * clip yields the same track id at the same PTS, so one key can own a dozen rows. A bare `limit 1`
+ * attached every replay's crop to the same (oldest) row, overwriting it each time, and left every
+ * newer row on the worker's `file://` path — 41% of one day's plate reads (10 Oct).
+ *
+ * So, in order: the row whose `ts` is the record's own `ts` (the worker stamps both from the same
+ * PTS-derived clock, so when it holds this is the exact read identity); then a row that does not
+ * already carry an `s3://` crop, so one replay's crop never overwrites another's; the caller breaks
+ * the remaining tie by newest.
+ */
+function replayOrder(ts: SQL, cropUri: SQL, recordTs: string | undefined): SQL {
+  const noS3 = sql`(coalesce(${cropUri}, '') like 's3://%') asc`;
+  if (recordTs === undefined) return noS3;
+  return sql`(${ts} = ${recordTs}::timestamptz) desc, ${noS3}`;
+}
+
+/**
  * The `sightings` row a record belongs to, or `null` if it has not landed yet.
  *
  * `ts` comes back as text and is used for two things: the object's date segment, and the second
@@ -75,6 +95,7 @@ export async function findSighting(
   cameraId: string,
   trackId: number,
   framePtsMs: number,
+  recordTs?: string,
 ): Promise<SightingRef | null> {
   const rows = await db.execute<{ id: string; ts: string }>(
     sql`select id::text as id, ts::text as ts
@@ -82,6 +103,7 @@ export async function findSighting(
          where camera_id = ${cameraId}::uuid
            and track_id = ${trackId}
            and frame_pts_ms = ${framePtsMs}
+         order by ${replayOrder(sql`ts`, sql`crop_uri`, recordTs)}, ts desc
          limit 1`,
   );
   return rows[0] ?? null;
@@ -107,7 +129,8 @@ interface PlateReadRef extends SightingRef {
  * exact for a reason worth stating: the ANPR engine emits its one voted read for a track *on the
  * frame the vote fires*, and `pipeline.py` attaches it to that frame's sighting payload. So the
  * frame that produced the plate crop is the frame that owns the `plate_reads` row — a plate crop
- * can never attach to a different read of the same vehicle, or to a different vehicle.
+ * can never attach to a different read of the same vehicle, or to a different vehicle — within one
+ * pass. Across VOD replays the tuple repeats; `replayOrder` resolves which replay's read it is.
  *
  * Looked up **before** the upload, exactly as `findSighting` is: an object with nothing pointing at
  * it is an orphan inflating the bucket's count against the read count, and D2-02's whole retention
@@ -118,6 +141,7 @@ export async function findPlateRead(
   cameraId: string,
   trackId: number,
   framePtsMs: number,
+  recordTs?: string,
 ): Promise<PlateReadRef | null> {
   const rows = await db.execute<{ read_id: string; id: string; ts: string }>(
     sql`select p.id::text as read_id, s.id::text as id, s.ts::text as ts
@@ -126,7 +150,7 @@ export async function findPlateRead(
          where s.camera_id = ${cameraId}::uuid
            and s.track_id = ${trackId}
            and s.frame_pts_ms = ${framePtsMs}
-         order by p.created_at
+         order by ${replayOrder(sql`s.ts`, sql`p.crop_uri`, recordTs)}, p.created_at desc
          limit 1`,
   );
   const row = rows[0];
@@ -139,7 +163,8 @@ export async function storeEvidence(options: StoreEvidenceOptions): Promise<stri
 
   if (record.kind === 'plate') return storePlateCrop(options);
 
-  const sighting = await findSighting(db, cameraUuid, record.trackId, record.framePtsMs);
+  const { trackId, framePtsMs, ts } = record;
+  const sighting = await findSighting(db, cameraUuid, trackId, framePtsMs, ts);
   if (sighting === null) {
     stats.unmatched += 1;
     return null;
@@ -242,7 +267,8 @@ async function storeAppearance(
 async function storePlateCrop(options: StoreEvidenceOptions): Promise<string | null> {
   const { db, store, record, cameraUuid, stats } = options;
 
-  const read = await findPlateRead(db, cameraUuid, record.trackId, record.framePtsMs);
+  const { trackId, framePtsMs, ts } = record;
+  const read = await findPlateRead(db, cameraUuid, trackId, framePtsMs, ts);
   if (read === null) {
     stats.unmatched += 1;
     return null;

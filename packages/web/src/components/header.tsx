@@ -1,4 +1,5 @@
 import { CameraSearch } from './camera-search';
+import { FINALE_HIDE } from '@/src/lib/finale-ui';
 import { logout } from '@/app/login/actions';
 import type { SessionUser } from '@/src/lib/api/client';
 
@@ -6,7 +7,7 @@ import type { SessionUser } from '@/src/lib/api/client';
 export function Header({ user }: { user: SessionUser }) {
   return (
     <header className="flex items-center gap-6 border-b border-slate-800 bg-slate-900/40 px-8 py-3">
-      <CameraSearch />
+      {FINALE_HIDE.cameraSearch ? null : <CameraSearch />}
       <div className="ml-auto flex items-center gap-4">
         <p className="text-right text-sm leading-tight">
           <span className="block font-medium text-slate-200">{user.name}</span>

@@ -528,6 +528,54 @@ describe('PATCH /api/v1/cameras/:id', () => {
     expect(await auditCountFor(id)).toBe(before + 1);
   });
 
+  it('records the actor and only the fields that changed (D4-20)', async () => {
+    if (!reachable) return;
+    const before = await auditCountFor(id);
+    // The whole form, as the edit dialog sends it: only `vendor` and `lon` differ from the row.
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/cameras/${id}`,
+      headers: auth('admin'),
+      payload: {
+        name: 'After',
+        district: 'Gandhinagar',
+        lat: 23.2156,
+        lon: 72.64,
+        vendor: 'Hikvision',
+        retentionDays: null,
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(await auditCountFor(id)).toBe(before + 1);
+
+    const rows = await db.execute<{ action: string; actor_badge_no: string; fields: string[] }>(
+      sql`select action, actor_badge_no, params->'fields' as fields from audit_log
+          where target_id = ${id} order by ts desc limit 1`,
+    );
+    expect(rows[0]?.action).toBe('camera.update');
+    expect(rows[0]?.actor_badge_no).toBe('GP-ADM-0001');
+    expect([...(rows[0]?.fields ?? [])].sort()).toEqual(['lon', 'vendor']);
+  });
+
+  it('rejects an out-of-range latitude and a negative retention, and saves nothing', async () => {
+    if (!reachable) return;
+    for (const payload of [{ lat: 123, lon: 72.6 }, { retentionDays: -1 }]) {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/cameras/${id}`,
+        headers: auth('supervisor'),
+        payload: { ...payload, name: 'Should not stick' },
+      });
+      expect(res.statusCode).toBe(400);
+    }
+    const after = await app.inject({
+      method: 'GET',
+      url: `/api/v1/cameras/${id}`,
+      headers: auth('operator'),
+    });
+    expect(after.json<{ name: string }>().name).toBe('After');
+  });
+
   it('rejects an out-of-range declaredFps', async () => {
     if (!reachable) return;
     const res = await app.inject({

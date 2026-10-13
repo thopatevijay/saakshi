@@ -29,11 +29,14 @@ export function RegistryTable({
   canWrite,
   canDelete,
   onSelect,
+  onEdit,
 }: {
   cameras: Camera[];
   canWrite: boolean;
   canDelete: boolean;
   onSelect?: (id: string) => void;
+  /** Opens the edit dialog (D4-20). Only rendered for roles with `registry:write`. */
+  onEdit?: (camera: Camera) => void;
 }) {
   const { notify } = useToast();
 
@@ -128,11 +131,9 @@ export function RegistryTable({
                       {canWrite ? (
                         <button
                           type="button"
+                          data-edit={camera.externalId}
                           onClick={() => {
-                            notify(
-                              `Editing ${camera.externalId} lands with the onboarding workflow ticket.`,
-                              'info',
-                            );
+                            onEdit?.(camera);
                           }}
                           className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
                         >

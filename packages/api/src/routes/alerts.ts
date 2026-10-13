@@ -100,7 +100,8 @@ const SELECT_ALERT = sql`
            (select p.crop_uri from plate_reads p
              where p.sighting_id = a.last_sighting_id and p.sighting_ts = a.last_sighting_ts
                and p.crop_uri is not null
-             order by p.created_at desc limit 1),
+             /* D4-19: a signable s3:// crop beats a worker-disk file:// path on the same sighting. */
+             order by (p.crop_uri like 's3://%') desc, p.created_at desc limit 1),
            (select s.crop_uri from sightings s
              where s.id = a.last_sighting_id and s.ts = a.last_sighting_ts
                and s.crop_uri is not null)
