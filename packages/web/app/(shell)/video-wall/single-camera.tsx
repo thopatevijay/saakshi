@@ -15,6 +15,7 @@
  * gateway and about nothing else.
  */
 import { useRef, useState } from 'react';
+import { FINALE_HIDE } from '@/src/lib/finale-ui';
 import { BAND_STYLE, bandKeyOf } from '@/src/lib/registry/trust';
 import { presentTrust } from '@/src/lib/wall/trust-reason';
 import { deliveryReason, deliveryVerdict } from '@/src/lib/wall/delivery';
@@ -200,7 +201,13 @@ export function SingleCameraView({
         </p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div
+        className={
+          FINALE_HIDE.noWhepPath && (manifest?.whep === null || manifest?.whep === undefined)
+            ? 'grid gap-4'
+            : 'grid gap-4 lg:grid-cols-2'
+        }
+      >
         {manifest?.hls === null || manifest === null || trust?.playable !== true ? (
           <div className="flex aspect-video items-center justify-center rounded-lg border border-slate-800 bg-slate-950/60 px-6 text-center text-xs text-slate-400">
             {trust?.headline ?? 'No stream available for this camera.'}
@@ -222,7 +229,7 @@ export function SingleCameraView({
             externalId={camera.externalId}
             label="WHEP · WebRTC, sub-second"
           />
-        ) : (
+        ) : FINALE_HIDE.noWhepPath ? null : (
           <div className="flex aspect-video flex-col justify-center gap-3 rounded-lg border border-dashed border-slate-800 bg-slate-950/60 px-6 py-4">
             <h3 className="text-xs font-semibold text-slate-200">No WHEP path for this camera</h3>
             <p className="text-[11px] leading-relaxed text-slate-400">

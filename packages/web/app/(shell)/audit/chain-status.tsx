@@ -5,6 +5,7 @@
  * made here is narrow and precise — tamper evidence, not tamper prevention — and a banner that said
  * only "VERIFIED" in green would be overstating it to exactly the audience most likely to notice.
  */
+import { FINALE_HIDE } from '@/src/lib/finale-ui';
 import type { ChainVerification } from './types';
 
 const CARD = 'rounded-lg border px-4 py-3 text-sm';
@@ -45,11 +46,22 @@ export function ChainStatus({ chain }: { chain: ChainVerification | null }) {
         <p className="font-mono text-xs text-slate-500">{chain.algorithm}</p>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+      <div
+        className={`mt-3 grid grid-cols-2 gap-x-6 gap-y-3 ${
+          FINALE_HIDE.auditChainExtraCounts ? 'sm:max-w-sm' : 'sm:grid-cols-4'
+        }`}
+      >
         <Figure label="Entries" value={chain.entries.toLocaleString('en-GB')} />
         <Figure label="Verified" value={chain.verifiedEntries.toLocaleString('en-GB')} />
-        <Figure label="Pre-canonical" value={chain.preCanonicalEntries.toLocaleString('en-GB')} />
-        <Figure label="Forks" value={chain.forks.length.toLocaleString('en-GB')} />
+        {FINALE_HIDE.auditChainExtraCounts ? null : (
+          <>
+            <Figure
+              label="Pre-canonical"
+              value={chain.preCanonicalEntries.toLocaleString('en-GB')}
+            />
+            <Figure label="Forks" value={chain.forks.length.toLocaleString('en-GB')} />
+          </>
+        )}
       </div>
 
       {chain.preCanonicalEntries > 0 ? (

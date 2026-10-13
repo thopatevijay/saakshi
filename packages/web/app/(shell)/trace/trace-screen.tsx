@@ -36,6 +36,7 @@ import { CloningPanel } from './cloning-panel';
 import { EvidenceStrip } from './evidence-strip';
 import { QueryConsole } from './query-console';
 import { CameraCoverage } from './camera-coverage';
+import { FINALE_HIDE } from '@/src/lib/finale-ui';
 import { RouteSummary } from './route-summary';
 import { TraceTimeline, formatDuration } from './trace-timeline';
 import type { TracePayload, TraceSighting } from './types';
@@ -152,7 +153,9 @@ export function TraceScreen({
         that was always the primary interface — which is exactly the graceful degradation the
         ticket asks for, reached by placement rather than by a fallback path.
       */}
-      <QueryConsole purpose={draft.purpose} caseRef={draft.caseRef} />
+      {FINALE_HIDE.traceQueryConsole ? null : (
+        <QueryConsole purpose={draft.purpose} caseRef={draft.caseRef} />
+      )}
 
       {/* ── the query ─────────────────────────────────────────────────────────────────────── */}
       <form onSubmit={submit} role="search" className="flex flex-wrap items-end gap-3">
@@ -361,7 +364,9 @@ export function TraceScreen({
             </p>
           )}
           {/* D4-21. Shown for an empty result too — that is the case it exists for. */}
-          {coverage === null ? null : <CameraCoverage coverage={coverage} />}
+          {coverage === null || FINALE_HIDE.traceCameraCoverage ? null : (
+            <CameraCoverage coverage={coverage} />
+          )}
           {/* D3-03. Rendered whenever appearance links were asked for or found — never silently.
               A screen that shows a re-ID link without its measured precision is over-claiming, and
               a switch that looks on while the server has the feature off is worse. */}
